@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import Scene from '../components/Scene';
 import StarBackground from '../components/StarBackground';
 import InfoPanel from '../components/InfoPanel';
+import SideMenu from '../components/SideMenu';
 
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center h-screen text-white">
@@ -18,6 +19,9 @@ const Index = () => {
     <div className="relative w-full h-screen overflow-hidden bg-black">
       {/* Фон со звездами */}
       <StarBackground />
+      
+      {/* Боковое меню */}
+      <SideMenu />
       
       {/* Информационная панель */}
       <InfoPanel />
