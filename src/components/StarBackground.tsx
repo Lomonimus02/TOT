@@ -8,8 +8,10 @@ const StarBackground = () => {
         zIndex: -1
       }}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/40 via-blue-900/30 to-pink-900/20"></div>
-      <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-700/50 via-blue-800/40 to-pink-700/30"></div>
+      <div className="absolute inset-0 bg-gradient-to-tl from-cyan-900/30 via-transparent to-violet-900/40"></div>
+      <div className="absolute inset-0 bg-gradient-radial from-transparent via-indigo-900/20 to-black/30"></div>
+      <div className="absolute inset-0 bg-black bg-opacity-10"></div>
     </div>
   );
 };

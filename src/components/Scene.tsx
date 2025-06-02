@@ -7,7 +7,7 @@ const Scene = () => {
   return (
     <div className="w-full h-screen">
       <Canvas
-        camera={{ position: [0, 0, 8], fov: 60 }}
+        camera={{ position: [0, 0, 12], fov: 50 }}
         shadows
         className="bg-transparent"
       >
@@ -33,8 +33,8 @@ const Scene = () => {
           enablePan={false}
           enableZoom={true}
           enableRotate={true}
-          minDistance={4}
-          maxDistance={15}
+          minDistance={6}
+          maxDistance={20}
           autoRotate={false}
           rotateSpeed={0.5}
         />
