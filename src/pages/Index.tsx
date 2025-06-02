@@ -26,6 +26,13 @@ const Index = () => {
       {/* Информационная панель */}
       <InfoPanel />
       
+      {/* Заголовок над пирамидой */}
+      <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-40">
+        <h1 className="text-2xl md:text-4xl font-bold text-yellow-400 tracking-widest text-center shadow-2xl">
+          ПИРАМИДА ТОТА. КОМПЛЕКС ТОТ-МААТ
+        </h1>
+      </div>
+      
       {/* 3D сцена */}
       <Suspense fallback={<LoadingSpinner />}>
         <Scene />

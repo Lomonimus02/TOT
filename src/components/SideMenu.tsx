@@ -39,10 +39,9 @@ const SideMenu = () => {
             <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10">
               Павлова С.Н.
             </Button>
-          </div>
-          
-          <div className="border-t border-white/20 pt-4 space-y-2">
-            <h3 className="text-sm font-semibold text-yellow-400 mb-2">Обучение</h3>
+            <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10">
+              Обучение
+            </Button>
             <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10">
               Записаться в пирамиду
             </Button>
