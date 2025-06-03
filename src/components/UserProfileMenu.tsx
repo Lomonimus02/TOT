@@ -22,25 +22,32 @@ interface UserProfile {
 const UserProfileMenu = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     // Проверяем текущего пользователя
     const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      
-      if (user) {
-        // Загружаем профиль пользователя
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('username, full_name')
-          .eq('id', user.id)
-          .single();
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
         
-        if (profileData) {
-          setProfile(profileData);
+        if (user) {
+          // Загружаем профиль пользователя
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('username, full_name')
+            .eq('id', user.id)
+            .single();
+          
+          if (profileData) {
+            setProfile(profileData);
+          }
         }
+      } catch (error) {
+        console.error('Error getting user:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -52,14 +59,18 @@ const UserProfileMenu = () => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('username, full_name')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profileData) {
-            setProfile(profileData);
+          try {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('username, full_name')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (profileData) {
+              setProfile(profileData);
+            }
+          } catch (error) {
+            console.error('Error loading profile:', error);
           }
         } else {
           setProfile(null);
@@ -71,8 +82,12 @@ const UserProfileMenu = () => {
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
+    try {
+      await supabase.auth.signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const handleProfileClick = () => {
@@ -83,6 +98,25 @@ const UserProfileMenu = () => {
   const handleAuthClick = () => {
     navigate('/auth');
   };
+
+  // Показываем загрузку пока проверяем пользователя
+  if (isLoading) {
+    return (
+      <div className="fixed top-4 right-4 z-50">
+        <Button
+          variant="ghost"
+          className="p-2 bg-black/20 border-white/20 text-white"
+          disabled
+        >
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-gray-500 text-white">
+              <User className="h-4 w-4" />
+            </AvatarFallback>
+          </Avatar>
+        </Button>
+      </div>
+    );
+  }
 
   if (!user) {
     // Показываем серую аватарку для неавторизованных пользователей
