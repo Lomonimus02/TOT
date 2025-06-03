@@ -38,7 +38,7 @@ const UserProfileMenu = () => {
             .from('profiles')
             .select('username, full_name')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
           
           if (profileData) {
             setProfile(profileData);
@@ -64,7 +64,7 @@ const UserProfileMenu = () => {
               .from('profiles')
               .select('username, full_name')
               .eq('id', session.user.id)
-              .single();
+              .maybeSingle();
             
             if (profileData) {
               setProfile(profileData);
