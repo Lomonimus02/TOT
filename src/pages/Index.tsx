@@ -4,6 +4,7 @@ import Scene from '../components/Scene';
 import StarBackground from '../components/StarBackground';
 import InfoPanel from '../components/InfoPanel';
 import SideMenu from '../components/SideMenu';
+import UserProfileMenu from '../components/UserProfileMenu';
 
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center h-screen text-white">
@@ -22,6 +23,9 @@ const Index = () => {
       
       {/* Боковое меню */}
       <SideMenu />
+      
+      {/* Меню профиля пользователя */}
+      <UserProfileMenu />
       
       {/* Информационная панель */}
       <InfoPanel />
