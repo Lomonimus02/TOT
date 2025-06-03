@@ -8,8 +8,15 @@ import {
 } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const SideMenu = () => {
+  const navigate = useNavigate();
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -51,7 +58,11 @@ const SideMenu = () => {
             <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10">
               Выездные семинары
             </Button>
-            <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-white hover:bg-white/10"
+              onClick={() => handleNavigation('/forum-registration')}
+            >
               Регистрация на форуме
             </Button>
           </div>
