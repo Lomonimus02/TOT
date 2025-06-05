@@ -36,6 +36,39 @@ export type Database = {
         }
         Relationships: []
       }
+      schedule_blocks: {
+        Row: {
+          content: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_visible: boolean
+          position: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_visible?: boolean
+          position?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_visible?: boolean
+          position?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

@@ -34,6 +34,13 @@ const SideMenu = () => {
         </SheetHeader>
         <div className="mt-8 space-y-4">
           <div className="space-y-2">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-white hover:bg-white/10"
+              onClick={() => handleNavigation('/')}
+            >
+              Главная
+            </Button>
             <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10">
               Описание
             </Button>
@@ -48,6 +55,13 @@ const SideMenu = () => {
             </Button>
             <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10">
               Обучение
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-white hover:bg-white/10"
+              onClick={() => handleNavigation('/schedule')}
+            >
+              Расписание
             </Button>
             <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10">
               Записаться в пирамиду
