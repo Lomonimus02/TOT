@@ -9,7 +9,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ForumRegistration from "./pages/ForumRegistration";
 import Auth from "./pages/Auth";
-import Schedule from "./pages/Schedule";
+import Description from "./pages/Description";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,7 +31,7 @@ const App = () => {
             <Route path="/" element={<Index />} />
             <Route path="/forum-registration" element={<ForumRegistration />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/schedule" element={<Schedule />} />
+            <Route path="/description" element={<Description />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

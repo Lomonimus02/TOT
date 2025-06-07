@@ -22,7 +22,7 @@ interface ScheduleBlock {
   created_by: string | null;
 }
 
-const Schedule = () => {
+const Description = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [scheduleBlocks, setScheduleBlocks] = useState<ScheduleBlock[]>([]);
@@ -94,7 +94,7 @@ const Schedule = () => {
       console.error('Error loading schedule blocks:', error);
       toast({
         title: "Ошибка загрузки",
-        description: "Не удалось загрузить блоки расписания",
+        description: "Не удалось загрузить блоки описания",
         variant: "destructive",
       });
     } finally {
@@ -131,7 +131,7 @@ const Schedule = () => {
         <div className="flex items-center justify-center h-screen text-white">
           <div className="text-center">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-            <p className="text-xl">Загрузка расписания...</p>
+            <p className="text-xl">Загрузка описания...</p>
           </div>
         </div>
       </div>
@@ -155,7 +155,7 @@ const Schedule = () => {
           {/* Заголовок */}
           <div className="text-center mb-12">
             <h1 className="text-3xl md:text-5xl font-bold text-yellow-300 tracking-[0.3em] mb-4 drop-shadow-2xl">
-              РАСПИСАНИЕ
+              ОПИСАНИЕ
             </h1>
             <h2 className="text-xl md:text-2xl font-semibold text-yellow-200 tracking-[0.2em] drop-shadow-xl">
               КОМПЛЕКС ТОТ-МААТ
@@ -175,12 +175,12 @@ const Schedule = () => {
             </div>
           )}
 
-          {/* Блоки расписания */}
+          {/* Блоки описания */}
           <div className="space-y-6">
             {scheduleBlocks.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-white/70 text-lg">
-                  {isAdmin ? "Создайте первый блок расписания" : "Расписание пока не добавлено"}
+                  {isAdmin ? "Создайте первый блок описания" : "Описание пока не добавлено"}
                 </p>
               </div>
             ) : (
@@ -216,4 +216,4 @@ const Schedule = () => {
   );
 };
 
-export default Schedule;
+export default Description;
