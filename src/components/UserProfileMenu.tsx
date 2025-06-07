@@ -23,67 +23,87 @@ const UserProfileMenu = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
   const navigate = useNavigate();
 
+  const loadUserProfile = async (userId: string) => {
+    setIsProfileLoading(true);
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('username, full_name')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      setProfile(profileData);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      setProfile(null);
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Проверяем текущего пользователя
-    const getCurrentUser = async () => {
+    let mounted = true;
+
+    const initializeAuth = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
+        // Получаем текущую сессию
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (user) {
-          // Загружаем профиль пользователя
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('username, full_name')
-            .eq('id', user.id)
-            .maybeSingle();
+        if (mounted) {
+          setUser(session?.user ?? null);
           
-          if (profileData) {
-            setProfile(profileData);
+          if (session?.user) {
+            await loadUserProfile(session.user.id);
           }
+          
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error('Error getting user:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setUser(null);
+          setProfile(null);
+          setIsLoading(false);
+        }
       }
     };
 
-    getCurrentUser();
+    initializeAuth();
 
     // Слушаем изменения состояния аутентификации
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        
+        if (!mounted) return;
+        
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          try {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('username, full_name')
-              .eq('id', session.user.id)
-              .maybeSingle();
-            
-            if (profileData) {
-              setProfile(profileData);
-            }
-          } catch (error) {
-            console.error('Error loading profile:', error);
-          }
+          await loadUserProfile(session.user.id);
         } else {
           setProfile(null);
         }
+        
+        // Убираем загрузку после обработки события
+        setIsLoading(false);
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -91,7 +111,6 @@ const UserProfileMenu = () => {
   };
 
   const handleProfileClick = () => {
-    // Пока не функциональная кнопка
     console.log('Переход в профиль');
   };
 
@@ -99,7 +118,7 @@ const UserProfileMenu = () => {
     navigate('/auth');
   };
 
-  // Показываем загрузку пока проверяем пользователя
+  // Показываем загрузку только в самом начале
   if (isLoading) {
     return (
       <div className="fixed top-4 right-4 z-50">
@@ -119,7 +138,6 @@ const UserProfileMenu = () => {
   }
 
   if (!user) {
-    // Показываем серую аватарку для неавторизованных пользователей
     return (
       <div className="fixed top-4 right-4 z-50">
         <Button
@@ -144,14 +162,15 @@ const UserProfileMenu = () => {
           <Button
             variant="ghost"
             className="p-2 bg-black/20 border-white/20 text-white hover:bg-white/10 flex items-center gap-2"
+            disabled={isProfileLoading}
           >
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-yellow-600 text-white font-semibold">
-                {profile?.username ? profile.username.charAt(0).toUpperCase() : 'U'}
+                {profile?.username ? profile.username.charAt(0).toUpperCase() : (user.email?.charAt(0).toUpperCase() || 'U')}
               </AvatarFallback>
             </Avatar>
             <span className="text-sm font-medium">
-              {profile?.username || 'Пользователь'}
+              {isProfileLoading ? 'Загрузка...' : (profile?.username || user.email?.split('@')[0] || 'Пользователь')}
             </span>
           </Button>
         </DropdownMenuTrigger>
@@ -162,7 +181,7 @@ const UserProfileMenu = () => {
         >
           <div className="px-2 py-1.5">
             <p className="text-sm font-medium text-yellow-400">
-              {profile?.full_name || profile?.username}
+              {profile?.full_name || profile?.username || user.email?.split('@')[0]}
             </p>
             <p className="text-xs text-gray-400">{user.email}</p>
           </div>
