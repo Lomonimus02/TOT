@@ -32,33 +32,33 @@ const Description = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    let mounted = true;
+
     const initializeData = async () => {
       try {
         console.log('Initializing Description page...');
         
         // Получаем текущего пользователя
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) {
-          console.error('Error getting user:', userError);
-        } else {
-          console.log('User loaded:', user);
-          setUser(user);
-          
-          if (user) {
-            // Проверяем роль администратора
-            try {
-              const { data: roleData, error: roleError } = await supabase.rpc('has_role', {
-                _user_id: user.id,
-                _role: 'admin'
-              });
-              if (roleError) {
-                console.error('Error checking admin role:', roleError);
-              } else {
-                console.log('Admin role check result:', roleData);
-                setIsAdmin(roleData || false);
-              }
-            } catch (roleError) {
-              console.error('Error in admin role check:', roleError);
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        if (!mounted) return;
+        
+        setUser(currentUser);
+        
+        // Проверяем роль администратора только если пользователь авторизован
+        if (currentUser) {
+          try {
+            const { data: roleData } = await supabase.rpc('has_role', {
+              _user_id: currentUser.id,
+              _role: 'admin'
+            });
+            
+            if (mounted) {
+              setIsAdmin(roleData || false);
+            }
+          } catch (roleError) {
+            console.error('Error checking admin role:', roleError);
+            if (mounted) {
               setIsAdmin(false);
             }
           }
@@ -69,13 +69,46 @@ const Description = () => {
 
       } catch (error) {
         console.error('Error in initializeData:', error);
-        toast({
-          title: "Ошибка инициализации",
-          description: "Произошла ошибка при загрузке страницы",
-          variant: "destructive",
-        });
+        if (mounted) {
+          toast({
+            title: "Ошибка инициализации",
+            description: "Произошла ошибка при загрузке страницы",
+            variant: "destructive",
+          });
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    const loadScheduleBlocks = async () => {
+      try {
+        console.log('Loading schedule blocks...');
+        const { data, error } = await supabase
+          .from('schedule_blocks')
+          .select('*')
+          .order('position', { ascending: true });
+
+        if (error) {
+          console.error('Error loading schedule blocks:', error);
+          throw error;
+        }
+        
+        console.log('Schedule blocks loaded:', data);
+        if (mounted) {
+          setScheduleBlocks(data || []);
+        }
+      } catch (error) {
+        console.error('Error in loadScheduleBlocks:', error);
+        if (mounted) {
+          toast({
+            title: "Ошибка загрузки",
+            description: "Не удалось загрузить блоки описания",
+            variant: "destructive",
+          });
+        }
       }
     };
 
@@ -84,7 +117,9 @@ const Description = () => {
     // Слушаем изменения состояния аутентификации
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session);
+        console.log('Auth state changed:', event);
+        if (!mounted) return;
+        
         setUser(session?.user ?? null);
         
         if (session?.user) {
@@ -93,40 +128,49 @@ const Description = () => {
               _user_id: session.user.id,
               _role: 'admin'
             });
-            setIsAdmin(roleData || false);
+            if (mounted) {
+              setIsAdmin(roleData || false);
+            }
           } catch (error) {
             console.error('Error checking admin role:', error);
-            setIsAdmin(false);
+            if (mounted) {
+              setIsAdmin(false);
+            }
           }
         } else {
-          setIsAdmin(false);
+          if (mounted) {
+            setIsAdmin(false);
+          }
         }
       }
     );
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [toast]);
 
-  const loadScheduleBlocks = async () => {
+  const reloadScheduleBlocks = async () => {
     try {
-      console.log('Loading schedule blocks...');
+      console.log('Reloading schedule blocks...');
       const { data, error } = await supabase
         .from('schedule_blocks')
         .select('*')
         .order('position', { ascending: true });
 
       if (error) {
-        console.error('Error loading schedule blocks:', error);
+        console.error('Error reloading schedule blocks:', error);
         throw error;
       }
       
-      console.log('Schedule blocks loaded:', data);
+      console.log('Schedule blocks reloaded:', data);
       setScheduleBlocks(data || []);
     } catch (error) {
-      console.error('Error in loadScheduleBlocks:', error);
+      console.error('Error in reloadScheduleBlocks:', error);
       toast({
-        title: "Ошибка загрузки",
-        description: "Не удалось загрузить блоки описания",
+        title: "Ошибка обновления",
+        description: "Не удалось обновить блоки описания",
         variant: "destructive",
       });
     }
@@ -148,7 +192,7 @@ const Description = () => {
   };
 
   const handleFormSuccess = () => {
-    loadScheduleBlocks();
+    reloadScheduleBlocks();
     handleFormClose();
   };
 
@@ -220,7 +264,7 @@ const Description = () => {
                   block={block}
                   isAdmin={isAdmin}
                   onEdit={handleEditBlock}
-                  onUpdate={loadScheduleBlocks}
+                  onUpdate={reloadScheduleBlocks}
                 />
               ))
             )}
