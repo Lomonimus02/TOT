@@ -22,7 +22,7 @@ interface UserProfile {
 const UserProfileMenu = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -47,51 +47,53 @@ const UserProfileMenu = () => {
   useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = async () => {
-      try {
-        // Получаем текущую сессию
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (mounted) {
-          setUser(session?.user ?? null);
-          
-          if (session?.user) {
-            await loadUserProfile(session.user.id);
-          }
-          
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        if (mounted) {
-          setUser(null);
-          setProfile(null);
-          setIsLoading(false);
-        }
-      }
-    };
-
-    initializeAuth();
-
-    // Слушаем изменения состояния аутентификации
+    // Устанавливаем слушатель изменений состояния аутентификации
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         
         if (!mounted) return;
         
-        setUser(session?.user ?? null);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
         
-        if (session?.user) {
-          await loadUserProfile(session.user.id);
+        if (currentUser) {
+          await loadUserProfile(currentUser.id);
         } else {
           setProfile(null);
         }
         
         // Убираем загрузку после обработки события
-        setIsLoading(false);
+        setIsInitialLoading(false);
       }
     );
+
+    // Проверяем существующую сессию
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (mounted) {
+          const currentUser = session?.user ?? null;
+          setUser(currentUser);
+          
+          if (currentUser) {
+            await loadUserProfile(currentUser.id);
+          }
+          
+          setIsInitialLoading(false);
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+        if (mounted) {
+          setUser(null);
+          setProfile(null);
+          setIsInitialLoading(false);
+        }
+      }
+    };
+
+    checkSession();
 
     return () => {
       mounted = false;
@@ -119,7 +121,7 @@ const UserProfileMenu = () => {
   };
 
   // Показываем загрузку только в самом начале
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <div className="fixed top-4 right-4 z-50">
         <Button
