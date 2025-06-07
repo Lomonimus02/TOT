@@ -32,30 +32,59 @@ const Description = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Проверяем текущего пользователя
-    const getCurrentUser = async () => {
+    const initializeData = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
+        console.log('Initializing Description page...');
         
-        if (user) {
-          // Проверяем роль администратора
-          const { data: roleData } = await supabase.rpc('has_role', {
-            _user_id: user.id,
-            _role: 'admin'
-          });
-          setIsAdmin(roleData || false);
+        // Получаем текущего пользователя
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) {
+          console.error('Error getting user:', userError);
+        } else {
+          console.log('User loaded:', user);
+          setUser(user);
+          
+          if (user) {
+            // Проверяем роль администратора
+            try {
+              const { data: roleData, error: roleError } = await supabase.rpc('has_role', {
+                _user_id: user.id,
+                _role: 'admin'
+              });
+              if (roleError) {
+                console.error('Error checking admin role:', roleError);
+              } else {
+                console.log('Admin role check result:', roleData);
+                setIsAdmin(roleData || false);
+              }
+            } catch (roleError) {
+              console.error('Error in admin role check:', roleError);
+              setIsAdmin(false);
+            }
+          }
         }
+
+        // Загружаем блоки описания
+        await loadScheduleBlocks();
+
       } catch (error) {
-        console.error('Error getting user:', error);
+        console.error('Error in initializeData:', error);
+        toast({
+          title: "Ошибка инициализации",
+          description: "Произошла ошибка при загрузке страницы",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    getCurrentUser();
+    initializeData();
 
     // Слушаем изменения состояния аутентификации
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
@@ -67,6 +96,7 @@ const Description = () => {
             setIsAdmin(roleData || false);
           } catch (error) {
             console.error('Error checking admin role:', error);
+            setIsAdmin(false);
           }
         } else {
           setIsAdmin(false);
@@ -77,28 +107,28 @@ const Description = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    loadScheduleBlocks();
-  }, []);
-
   const loadScheduleBlocks = async () => {
     try {
+      console.log('Loading schedule blocks...');
       const { data, error } = await supabase
         .from('schedule_blocks')
         .select('*')
         .order('position', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading schedule blocks:', error);
+        throw error;
+      }
+      
+      console.log('Schedule blocks loaded:', data);
       setScheduleBlocks(data || []);
     } catch (error) {
-      console.error('Error loading schedule blocks:', error);
+      console.error('Error in loadScheduleBlocks:', error);
       toast({
         title: "Ошибка загрузки",
         description: "Не удалось загрузить блоки описания",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 

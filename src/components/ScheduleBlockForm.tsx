@@ -1,12 +1,13 @@
 
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Save } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import MediaUpload from './MediaUpload';
 
 interface ScheduleBlock {
   id: string;
@@ -19,8 +20,14 @@ interface ScheduleBlock {
   created_by: string | null;
 }
 
+interface MediaItem {
+  type: 'image' | 'video';
+  url: string;
+  file?: File;
+}
+
 interface ScheduleBlockFormProps {
-  block?: ScheduleBlock | null;
+  block: ScheduleBlock | null;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -28,40 +35,34 @@ interface ScheduleBlockFormProps {
 const ScheduleBlockForm = ({ block, onClose, onSuccess }: ScheduleBlockFormProps) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [position, setPosition] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     if (block) {
       setTitle(block.title);
       setContent(block.content || '');
-      setPosition(block.position);
       setIsVisible(block.is_visible);
-    } else {
-      // Для нового блока получаем следующую позицию
-      getNextPosition();
+      
+      // Парсим медиа контент из существующего содержимого
+      try {
+        if (block.content) {
+          const parsedContent = JSON.parse(block.content);
+          if (parsedContent.media) {
+            setMediaItems(parsedContent.media);
+          }
+          if (parsedContent.text) {
+            setContent(parsedContent.text);
+          }
+        }
+      } catch {
+        // Если контент не в JSON формате, используем как обычный текст
+        setContent(block.content || '');
+      }
     }
   }, [block]);
-
-  const getNextPosition = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('schedule_blocks')
-        .select('position')
-        .order('position', { ascending: false })
-        .limit(1);
-
-      if (error) throw error;
-      
-      const maxPosition = data && data.length > 0 ? data[0].position : 0;
-      setPosition(maxPosition + 1);
-    } catch (error) {
-      console.error('Error getting next position:', error);
-      setPosition(1);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,24 +70,42 @@ const ScheduleBlockForm = ({ block, onClose, onSuccess }: ScheduleBlockFormProps
     if (!title.trim()) {
       toast({
         title: "Ошибка",
-        description: "Заголовок обязателен для заполнения",
+        description: "Заголовок не может быть пустым",
         variant: "destructive",
       });
       return;
     }
 
-    setIsSaving(true);
+    setIsSubmitting(true);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Пользователь не аутентифицирован');
+      }
+
+      // Формируем контент с медиа и текстом
+      const contentData = {
+        text: content,
+        media: mediaItems.map(item => ({
+          type: item.type,
+          url: item.url // В реальном приложении здесь должны быть загруженные URL
+        }))
+      };
+
+      const blockData = {
+        title: title.trim(),
+        content: JSON.stringify(contentData),
+        is_visible: isVisible,
+        created_by: user.id,
+      };
+
       if (block) {
         // Обновляем существующий блок
         const { error } = await supabase
           .from('schedule_blocks')
           .update({
-            title: title.trim(),
-            content: content.trim() || null,
-            position,
-            is_visible: isVisible,
+            ...blockData,
             updated_at: new Date().toISOString(),
           })
           .eq('id', block.id);
@@ -94,25 +113,33 @@ const ScheduleBlockForm = ({ block, onClose, onSuccess }: ScheduleBlockFormProps
         if (error) throw error;
 
         toast({
-          title: "Блок обновлен",
-          description: "Блок расписания успешно обновлен",
+          title: "Успешно",
+          description: "Блок обновлен",
         });
       } else {
         // Создаем новый блок
+        const { data: existingBlocks } = await supabase
+          .from('schedule_blocks')
+          .select('position')
+          .order('position', { ascending: false })
+          .limit(1);
+
+        const newPosition = existingBlocks && existingBlocks.length > 0 
+          ? existingBlocks[0].position + 1 
+          : 0;
+
         const { error } = await supabase
           .from('schedule_blocks')
           .insert({
-            title: title.trim(),
-            content: content.trim() || null,
-            position,
-            is_visible: isVisible,
+            ...blockData,
+            position: newPosition,
           });
 
         if (error) throw error;
 
         toast({
-          title: "Блок создан",
-          description: "Новый блок расписания успешно создан",
+          title: "Успешно",
+          description: "Блок создан",
         });
       }
 
@@ -120,105 +147,101 @@ const ScheduleBlockForm = ({ block, onClose, onSuccess }: ScheduleBlockFormProps
     } catch (error) {
       console.error('Error saving block:', error);
       toast({
-        title: "Ошибка сохранения",
+        title: "Ошибка",
         description: "Не удалось сохранить блок",
         variant: "destructive",
       });
     } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
     }
   };
 
+  const handleMediaAdd = (media: MediaItem[]) => {
+    setMediaItems(media);
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="bg-black/90 border-white/20 text-white w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-yellow-300">
-              {block ? 'Редактировать блок' : 'Создать блок'}
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-white hover:bg-white/10"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-700">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-white">
+            {block ? 'Редактировать блок' : 'Создать блок'}
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-white hover:bg-gray-700"
+          >
+            <X className="w-4 h-4" />
+          </Button>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Заголовок *
+              <label htmlFor="title" className="block text-sm font-medium text-white mb-2">
+                Заголовок
               </label>
               <Input
+                id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Введите заголовок блока"
-                className="bg-white/10 border-white/20 text-white placeholder-white/50"
+                className="bg-gray-800 border-gray-600 text-white"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Содержание
+              <label htmlFor="content" className="block text-sm font-medium text-white mb-2">
+                Текстовое содержимое
               </label>
               <Textarea
+                id="content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Введите содержание блока"
+                placeholder="Введите содержимое блока"
                 rows={6}
-                className="bg-white/10 border-white/20 text-white placeholder-white/50"
+                className="bg-gray-800 border-gray-600 text-white resize-none"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Позиция
-                </label>
-                <Input
-                  type="number"
-                  value={position}
-                  onChange={(e) => setPosition(Number(e.target.value))}
-                  min="0"
-                  className="bg-white/10 border-white/20 text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Видимость
-                </label>
-                <select
-                  value={isVisible.toString()}
-                  onChange={(e) => setIsVisible(e.target.value === 'true')}
-                  className="w-full p-2 bg-white/10 border border-white/20 rounded-md text-white"
-                >
-                  <option value="true">Видимый</option>
-                  <option value="false">Скрытый</option>
-                </select>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Медиа файлы
+              </label>
+              <MediaUpload onMediaAdd={handleMediaAdd} />
             </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button
-                type="submit"
-                disabled={isSaving}
-                className="bg-yellow-600 hover:bg-yellow-700 text-black font-semibold"
-              >
-                {isSaving ? 'Сохранение...' : (block ? 'Обновить' : 'Создать')}
-              </Button>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isVisible"
+                checked={isVisible}
+                onChange={(e) => setIsVisible(e.target.checked)}
+                className="rounded border-gray-600 bg-gray-800"
+              />
+              <label htmlFor="isVisible" className="text-sm text-white">
+                Видимый для пользователей
+              </label>
+            </div>
+
+            <div className="flex justify-end space-x-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                className="border-white/20 text-white hover:bg-white/10"
+                className="text-white border-gray-600 hover:bg-gray-700"
               >
                 Отмена
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-yellow-600 hover:bg-yellow-700 text-black"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {isSubmitting ? 'Сохранение...' : 'Сохранить'}
               </Button>
             </div>
           </form>
