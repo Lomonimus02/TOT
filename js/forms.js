@@ -698,10 +698,15 @@ class FormHandler {
         const accountIcon = document.getElementById('accountIcon');
         const accountDropdown = document.getElementById('accountDropdown');
         const adminLink = document.querySelector('a[data-admin-link="true"]');
+        const editModeBtn = document.getElementById('editModeBtn');
 
         if (accountIcon) accountIcon.remove();
         if (accountDropdown) accountDropdown.remove();
         if (adminLink) adminLink.remove();
+        if (editModeBtn) {
+            console.log('Удаление кнопки режима редактирования при выходе');
+            editModeBtn.remove();
+        }
 
         // Восстановить кнопки входа и регистрации
         const navMenu = document.querySelector('.nav-menu');

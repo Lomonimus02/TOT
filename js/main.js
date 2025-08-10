@@ -179,7 +179,7 @@ class InlinePageEditor {
 
         // Функции редактирования только для админов
         if (this.isAdmin()) {
-            // Removed createEditToggle() call - using floating edit button from forms.js instead
+            this.createEditToggle();
             this.setupEventListeners();
             // Загружаем изменения только для админов (для синхронизации с БД)
             this.loadPageChanges();
@@ -206,7 +206,22 @@ class InlinePageEditor {
         return false;
     }
 
-    // Removed createEditToggle() - using floating edit button from forms.js instead
+    createEditToggle() {
+        // Создаем кнопку переключения режима редактирования
+        const toggleContainer = document.createElement('div');
+        toggleContainer.className = 'edit-mode-toggle';
+        toggleContainer.innerHTML = `
+            <button id="toggleEditMode" class="edit-toggle-btn">
+                ✏️ Режим редактирования
+            </button>
+        `;
+
+        document.body.appendChild(toggleContainer);
+
+        // Добавляем обработчик клика
+        const toggleBtn = document.getElementById('toggleEditMode');
+        toggleBtn.addEventListener('click', () => this.toggleEditMode());
+    }
 
     setupEventListeners() {
         // Обработчик для сохранения изменений при уходе со страницы
@@ -233,7 +248,29 @@ class InlinePageEditor {
         });
     }
 
-    // Removed toggleEditMode() - using edit mode functionality from edit-mode.js instead
+    async toggleEditMode() {
+        this.isEditMode = !this.isEditMode;
+        const toggleBtn = document.getElementById('toggleEditMode');
+
+        if (this.isEditMode) {
+            document.body.classList.add('edit-mode');
+            toggleBtn.textContent = '💾 Выйти из редактирования';
+            toggleBtn.style.background = '#f44336';
+            this.makeElementsEditable();
+            this.showEditIndicators();
+            this.createContextEditor();
+
+            // Проверяем статус API и уведомляем пользователя
+            await this.checkAndNotifyApiStatus();
+        } else {
+            document.body.classList.remove('edit-mode');
+            toggleBtn.textContent = '✏️ Режим редактирования';
+            toggleBtn.style.background = 'var(--gold-color)';
+            this.disableEditing();
+            this.hideEditIndicators();
+            this.hideContextEditor();
+        }
+    }
 
     async checkAndNotifyApiStatus() {
         const isApiAvailable = await this.checkApiAvailability();

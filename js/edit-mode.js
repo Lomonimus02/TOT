@@ -1286,7 +1286,13 @@ class EditMode {
             this.isEditMode = false;
             this.disableEditMode();
 
-            // Removed editModeBtn reference - using floating edit button instead
+            // Обновляем кнопку режима редактирования
+            const editBtn = document.getElementById('editModeBtn');
+            if (editBtn) {
+                editBtn.style.display = 'none';
+                editBtn.classList.remove('edit-mode-active');
+                editBtn.textContent = 'Редактировать';
+            }
 
             // Показываем уведомление
             this.showNotification('Режим редактирования отключен: требуется авторизация администратора', 'warning');

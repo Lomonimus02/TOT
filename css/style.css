@@ -1472,7 +1472,37 @@ html, body {
     animation: fadeInUp 0.5s ease-out;
 }
 
-/* Removed duplicate edit mode toggle styles - using floating edit button styles instead */
+/* Стили для встроенного редактора страниц */
+.edit-mode-toggle {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    z-index: 2000;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.edit-mode-toggle:hover {
+    opacity: 1;
+}
+
+.edit-toggle-btn {
+    background: var(--gold-color);
+    color: var(--text-dark);
+    border: none;
+    padding: 0.8rem 1.2rem;
+    border-radius: var(--border-radius);
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: var(--shadow-glow);
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+
+.edit-toggle-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(255, 215, 0, 0.4);
+}
 
 /* Режим редактирования активен */
 body.edit-mode {
