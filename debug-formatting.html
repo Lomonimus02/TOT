@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отладка форматирования</title>
+    <style>
+        /* Копируем CSS-классы форматирования */
+        .font-size-12 { font-size: 12px !important; }
+        .font-size-14 { font-size: 14px !important; }
+        .font-size-16 { font-size: 16px !important; }
+        .font-size-18 { font-size: 18px !important; }
+        .font-size-20 { font-size: 20px !important; }
+        .font-size-24 { font-size: 24px !important; }
+        .font-size-28 { font-size: 28px !important; }
+        .font-size-32 { font-size: 32px !important; }
+        .font-size-36 { font-size: 36px !important; }
+        .font-size-42 { font-size: 42px !important; }
+        .font-size-48 { font-size: 48px !important; }
+
+        .text-align-left { text-align: left !important; }
+        .text-align-center { text-align: center !important; }
+        .text-align-right { text-align: right !important; }
+
+        .font-weight-bold { font-weight: bold !important; }
+        .font-style-italic { font-style: italic !important; }
+
+        .test-element {
+            border: 2px solid #ccc;
+            padding: 20px;
+            margin: 20px;
+            background: #f9f9f9;
+        }
+
+        .controls {
+            margin: 20px;
+            padding: 20px;
+            background: #e9e9e9;
+        }
+
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+
+        select {
+            margin: 5px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Отладка системы форматирования</h1>
+    
+    <div class="controls">
+        <h3>Тестовые кнопки:</h3>
+        <button onclick="testFontSize()">Размер шрифта 24px</button>
+        <button onclick="testBold()">Bold</button>
+        <button onclick="testItalic()">Italic</button>
+        <button onclick="testCenter()">Центрирование</button>
+        <button onclick="testClearClasses()">Очистить классы</button>
+        
+        <br><br>
+        
+        <select onchange="testFontSizeSelect(this.value)">
+            <option value="">Выберите размер</option>
+            <option value="12">12px</option>
+            <option value="16">16px</option>
+            <option value="20">20px</option>
+            <option value="24">24px</option>
+            <option value="32">32px</option>
+            <option value="48">48px</option>
+        </select>
+    </div>
+
+    <div class="test-element" id="testElement">
+        <h2>Тестовый заголовок</h2>
+        <p>Это тестовый текст для проверки форматирования. Классы должны применяться к этому элементу.</p>
+    </div>
+
+    <div id="log" style="background: #000; color: #0f0; padding: 20px; font-family: monospace; height: 300px; overflow-y: scroll;">
+        <div>🚀 Консоль отладки готова...</div>
+    </div>
+
+    <script>
+        const testElement = document.getElementById('testElement');
+        const logDiv = document.getElementById('log');
+
+        function log(message) {
+            const div = document.createElement('div');
+            div.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            logDiv.appendChild(div);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function testFontSize() {
+            log('🎨 Тестируем размер шрифта 24px');
+            
+            // Удаляем старые классы размера
+            const fontSizeClasses = ['12', '14', '16', '18', '20', '24', '28', '32', '36', '42', '48'];
+            fontSizeClasses.forEach(size => {
+                testElement.classList.remove(`font-size-${size}`);
+            });
+            
+            // Добавляем новый класс
+            testElement.classList.add('font-size-24');
+            
+            log(`✅ Добавлен класс: font-size-24`);
+            log(`📋 Текущие классы: ${testElement.className}`);
+            
+            // Проверяем визуальный эффект
+            const computedSize = window.getComputedStyle(testElement).fontSize;
+            log(`👁️ Вычисленный размер шрифта: ${computedSize}`);
+        }
+
+        function testBold() {
+            log('🎨 Тестируем Bold');
+            
+            if (testElement.classList.contains('font-weight-bold')) {
+                testElement.classList.remove('font-weight-bold');
+                log('➖ Убран класс: font-weight-bold');
+            } else {
+                testElement.classList.add('font-weight-bold');
+                log('➕ Добавлен класс: font-weight-bold');
+            }
+            
+            log(`📋 Текущие классы: ${testElement.className}`);
+        }
+
+        function testItalic() {
+            log('🎨 Тестируем Italic');
+            
+            if (testElement.classList.contains('font-style-italic')) {
+                testElement.classList.remove('font-style-italic');
+                log('➖ Убран класс: font-style-italic');
+            } else {
+                testElement.classList.add('font-style-italic');
+                log('➕ Добавлен класс: font-style-italic');
+            }
+            
+            log(`📋 Текущие классы: ${testElement.className}`);
+        }
+
+        function testCenter() {
+            log('🎨 Тестируем центрирование');
+            
+            // Удаляем старые классы выравнивания
+            ['left', 'center', 'right'].forEach(align => {
+                testElement.classList.remove(`text-align-${align}`);
+            });
+            
+            // Добавляем центрирование
+            testElement.classList.add('text-align-center');
+            
+            log('✅ Добавлен класс: text-align-center');
+            log(`📋 Текущие классы: ${testElement.className}`);
+            
+            // Проверяем визуальный эффект
+            const computedAlign = window.getComputedStyle(testElement).textAlign;
+            log(`👁️ Вычисленное выравнивание: ${computedAlign}`);
+        }
+
+        function testFontSizeSelect(size) {
+            if (!size) return;
+            
+            log(`🎨 Тестируем размер шрифта из селекта: ${size}px`);
+            
+            // Удаляем старые классы размера
+            const fontSizeClasses = ['12', '14', '16', '18', '20', '24', '28', '32', '36', '42', '48'];
+            fontSizeClasses.forEach(s => {
+                testElement.classList.remove(`font-size-${s}`);
+            });
+            
+            // Добавляем новый класс
+            testElement.classList.add(`font-size-${size}`);
+            
+            log(`✅ Добавлен класс: font-size-${size}`);
+            log(`📋 Текущие классы: ${testElement.className}`);
+        }
+
+        function testClearClasses() {
+            log('🧹 Очищаем все классы форматирования');
+            
+            const formattingClasses = [
+                'font-size-12', 'font-size-14', 'font-size-16', 'font-size-18', 'font-size-20',
+                'font-size-24', 'font-size-28', 'font-size-32', 'font-size-36', 'font-size-42', 'font-size-48',
+                'text-align-left', 'text-align-center', 'text-align-right',
+                'font-weight-bold', 'font-style-italic'
+            ];
+            
+            formattingClasses.forEach(cls => {
+                testElement.classList.remove(cls);
+            });
+            
+            log('✅ Все классы форматирования удалены');
+            log(`📋 Текущие классы: ${testElement.className}`);
+        }
+
+        // Автотест при загрузке
+        setTimeout(() => {
+            log('🤖 Запуск автотеста...');
+            testFontSize();
+            setTimeout(() => testBold(), 1000);
+            setTimeout(() => testCenter(), 2000);
+        }, 1000);
+    </script>
+</body>
+</html>

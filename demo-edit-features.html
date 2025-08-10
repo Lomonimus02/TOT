@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Демо новых возможностей - Пирамида ТОТА</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="index.html">
+                    <img src="images/logo.png" alt="Пирамида ТОТА" class="logo-img">
+                    <span class="logo-text">Пирамида ТОТА</span>
+                </a>
+            </div>
+            
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link menu-link">Главная</a></li>
+                <li><a href="pages/complex.html" class="nav-link menu-link">Комплекс</a></li>
+                <li><a href="pages/programs.html" class="nav-link menu-link">Программы</a></li>
+                <li><a href="pages/about.html" class="nav-link menu-link">О нас</a></li>
+                <li><a href="pages/contact.html" class="nav-link menu-link">Контакты</a></li>
+            </ul>
+            
+            <div class="nav-auth">
+                <a href="#" class="nav-link" id="loginBtn">Вход</a>
+                
+                <div class="user-menu" id="userMenu" style="display: none;">
+                    <span class="user-name" id="userNameDisplay"></span>
+                    <a href="#" class="nav-link" id="logoutBtn">Выход</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main class="page-content">
+        <div class="container">
+            <div class="content-section">
+                <h1 class="page-title">Демонстрация новых возможностей режима редактирования</h1>
+                <p class="page-subtitle">Протестируйте все улучшения и новые функции</p>
+                
+                <div class="features-demo">
+                    <h2>🎯 Новые возможности</h2>
+                    
+                    <div class="feature-block">
+                        <h3>1. Визуальные кнопки управления</h3>
+                        <p>При наведении на элемент в режиме редактирования появляются кнопки: ✏️ Редактировать, ⬆️⬇️ Перемещать, 🗑️ Удалить</p>
+                    </div>
+                    
+                    <div class="feature-block">
+                        <h3>2. Drag & Drop перемещение</h3>
+                        <p>Перетаскивайте элементы для изменения их порядка. Визуальные индикаторы покажут место вставки.</p>
+                    </div>
+                    
+                    <div class="feature-block">
+                        <h3>3. Улучшенная панель инструментов</h3>
+                        <p>Новая панель с индикаторами изменений, счетчиками элементов и улучшенным дизайном.</p>
+                    </div>
+                    
+                    <div class="feature-block">
+                        <h3>4. Галерея изображений</h3>
+                        <p>Выбирайте изображения из галереи уже загруженных файлов или загружайте новые.</p>
+                    </div>
+                    
+                    <div class="feature-block">
+                        <h3>5. Горячие клавиши</h3>
+                        <ul>
+                            <li><strong>Ctrl+S</strong> - сохранить изменения</li>
+                            <li><strong>Escape</strong> - выйти из режима</li>
+                            <li><strong>Delete</strong> - удалить выбранный элемент</li>
+                            <li><strong>Ctrl+↑/↓</strong> - перемещать элементы</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-block">
+                        <h3>6. Справочная система</h3>
+                        <p>Встроенная справка с подсказками и контекстными советами для новых пользователей.</p>
+                    </div>
+                </div>
+                
+                <div class="test-instructions">
+                    <h2>📋 Инструкции для тестирования</h2>
+                    <ol>
+                        <li><strong>Войдите как администратор:</strong> admin@gmail.com / admin123</li>
+                        <li><strong>Включите режим редактирования</strong> кнопкой в навигации</li>
+                        <li><strong>Протестируйте каждую функцию:</strong>
+                            <ul>
+                                <li>Наведите на элементы - появятся кнопки управления</li>
+                                <li>Попробуйте редактировать текст</li>
+                                <li>Перемещайте элементы кнопками или перетаскиванием</li>
+                                <li>Добавьте новый текстовый блок</li>
+                                <li>Добавьте изображение из галереи</li>
+                                <li>Удалите элемент</li>
+                                <li>Используйте горячие клавиши</li>
+                                <li>Сохраните изменения</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+                
+                <div class="demo-elements">
+                    <h2>🧪 Элементы для тестирования</h2>
+                    <p>Эти элементы специально созданы для демонстрации возможностей редактирования:</p>
+                    
+                    <h3>Заголовок третьего уровня</h3>
+                    <p>Обычный параграф текста для редактирования.</p>
+                    
+                    <h4>Заголовок четвертого уровня</h4>
+                    <p>Еще один параграф с другим содержимым.</p>
+                    
+                    <ul>
+                        <li>Первый элемент списка</li>
+                        <li>Второй элемент списка</li>
+                        <li>Третий элемент списка</li>
+                    </ul>
+                    
+                    <p>Попробуйте переместить этот параграф выше или ниже других элементов.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Подключение скриптов -->
+    <script src="js/session-manager.js"></script>
+    <script src="js/forms.js"></script>
+    <script src="js/edit-mode.js"></script>
+    <script src="js/main.js"></script>
+    
+    <!-- Модальные окна -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Вход в систему</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="loginEmail">Email:</label>
+                    <input type="email" id="loginEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Пароль:</label>
+                    <input type="password" id="loginPassword" name="password" required>
+                </div>
+                <button type="submit" class="submit-btn">Войти</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

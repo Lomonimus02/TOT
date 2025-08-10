@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест доступа к админ-панели - Пирамида ТОТА</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Космический фон -->
+    <div class="cosmic-background"></div>
+    
+    <!-- Навигационная панель -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="../index.html">
+                    <h1>Пирамида ТОТА</h1>
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="../index.html" class="nav-link">Главная</a>
+                <a href="#" class="nav-link" id="loginBtn">Вход</a>
+                <a href="#" class="nav-link" id="registerBtn">Регистрация</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div class="container">
+            <div class="content-section">
+                <h1 style="color: var(--gold-color); text-align: center;">🔧 Тест доступа к админ-панели</h1>
+                
+                <div style="background: rgba(22, 33, 62, 0.8); padding: 2rem; border-radius: 15px; margin: 2rem 0; border: 1px solid rgba(255, 215, 0, 0.3);">
+                    <h3 style="color: var(--gold-color);">Инструкции для тестирования:</h3>
+                    <ol style="color: var(--text-light); line-height: 1.8;">
+                        <li>Нажмите кнопку "Вход" в навигации</li>
+                        <li>Введите данные администратора:
+                            <ul>
+                                <li><strong>Email:</strong> admin@pyramid-tota.ru</li>
+                                <li><strong>Пароль:</strong> admin123456</li>
+                            </ul>
+                        </li>
+                        <li>После успешной авторизации в навигации должна появиться ссылка "Админ-панель"</li>
+                        <li>Нажмите на "Админ-панель" - должен открыться переход на ../admin.html</li>
+                        <li>Проверьте, что фон остается статичным при прокрутке страницы</li>
+                    </ol>
+                </div>
+
+                <div style="background: rgba(22, 33, 62, 0.8); padding: 2rem; border-radius: 15px; margin: 2rem 0; border: 1px solid rgba(255, 215, 0, 0.3);">
+                    <h3 style="color: var(--gold-color);">Проверка фона:</h3>
+                    <p style="color: var(--text-light);">Прокрутите страницу вниз, чтобы убедиться, что космический фон остается неподвижным (эффект параллакса).</p>
+                    
+                    <!-- Добавляем контент для прокрутки -->
+                    <div style="height: 200vh; background: transparent;">
+                        <div style="position: sticky; top: 50%; background: rgba(255, 215, 0, 0.1); padding: 1rem; border-radius: 10px; margin: 2rem 0;">
+                            <p style="text-align: center; color: var(--gold-color); font-weight: bold;">
+                                🌌 Фон должен оставаться неподвижным при прокрутке
+                            </p>
+                        </div>
+                        
+                        <div style="margin-top: 50vh; background: rgba(22, 33, 62, 0.8); padding: 2rem; border-radius: 15px; border: 1px solid rgba(255, 215, 0, 0.3);">
+                            <h4 style="color: var(--gold-color);">Тест завершен</h4>
+                            <p style="color: var(--text-light);">Если вы видите этот блок и фон остался неподвижным - тест прошел успешно!</p>
+                            <p style="text-align: center; margin-top: 2rem;">
+                                <a href="../index.html" style="color: var(--gold-color); text-decoration: none; padding: 1rem 2rem; border: 1px solid var(--gold-color); border-radius: 25px; display: inline-block; transition: all 0.3s ease;">
+                                    ← Вернуться на главную
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Модальные окна -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Вход в систему</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="email" id="login-email" name="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="login-password" name="password" placeholder="Пароль" required>
+                </div>
+                <button type="submit" class="submit-btn">Войти</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Регистрация</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <input type="text" id="register-name" name="name" placeholder="Имя" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="register-email" name="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-password" name="password" placeholder="Пароль" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-confirm" name="confirm-password" placeholder="Подтвердите пароль" required>
+                </div>
+                <button type="submit" class="submit-btn">Зарегистрироваться</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Скрипты в правильном порядке -->
+    <script src="../js/forms.js"></script>
+    <script src="../js/animations.js"></script>
+    <script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест авторизации - Пирамида ТОТА</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Тест авторизации</h1>
+        <p>Проверка работы системы авторизации сайта "Пирамида ТОТА"</p>
+
+        <div class="form-group">
+            <label for="email">Email администратора:</label>
+            <input type="email" id="email" value="admin@pyramid-tota.ru">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Пароль:</label>
+            <input type="password" id="password" value="admin123456">
+        </div>
+
+        <button class="btn" onclick="testLogin()">🚀 Тест авторизации</button>
+        <button class="btn" onclick="checkUsers()">👥 Проверить пользователей</button>
+        <button class="btn" onclick="testRegister()">📝 Тест регистрации</button>
+        <button class="btn" onclick="testInterface()">🔧 Тест интерфейса</button>
+
+        <div id="result" class="result"></div>
+
+        <hr style="margin: 30px 0;">
+        
+        <h3>📋 Инструкции:</h3>
+        <ol>
+            <li>Нажмите "Проверить пользователей" чтобы убедиться, что администратор создан</li>
+            <li>Нажмите "Тест авторизации" для проверки входа</li>
+            <li>Проверьте консоль браузера (F12) для отладочной информации</li>
+            <li>После успешной авторизации перейдите на <a href="index.html">главную страницу</a></li>
+            <li>Интерфейс должен показать "Привет, Администратор ТОТА!" и ссылку "Админ-панель"</li>
+        </ol>
+
+        <h3>🔧 Отладка:</h3>
+        <p>Если интерфейс не обновился после авторизации, откройте консоль браузера (F12) и выполните:</p>
+        <pre>testAuth() // Принудительное обновление интерфейса
+checkAuth() // Проверка статуса авторизации</pre>
+
+        <p><strong>Данные администратора:</strong></p>
+        <ul>
+            <li>Email: admin@pyramid-tota.ru</li>
+            <li>Пароль: admin123456</li>
+        </ul>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+
+            showResult('Отправка запроса авторизации...', 'info');
+
+            try {
+                console.log('Отправка запроса:', { email, password: '***' });
+
+                const response = await fetch(`${API_BASE}/api/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                console.log('Ответ сервера:', response.status, response.statusText);
+
+                const result = await response.json();
+                console.log('Данные ответа:', result);
+
+                if (response.ok) {
+                    showResult(`✅ Авторизация успешна!\n\nПользователь: ${result.user.name}\nEmail: ${result.user.email}\nРоль: ${result.user.role}\n\nТокен получен: ${result.token.substring(0, 50)}...`, 'success');
+                    
+                    // Сохранить токен для дальнейших тестов
+                    localStorage.setItem('testToken', result.token);
+                } else {
+                    showResult(`❌ Ошибка авторизации: ${result.error}`, 'error');
+                }
+
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showResult(`❌ Ошибка сети: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkUsers() {
+            const resultDiv = document.getElementById('result');
+            showResult('Загрузка списка пользователей...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/debug/users`);
+                const users = await response.json();
+
+                console.log('Пользователи в базе:', users);
+
+                if (response.ok) {
+                    let usersList = '👥 Пользователи в базе данных:\n\n';
+                    users.forEach((user, index) => {
+                        usersList += `${index + 1}. ${user.name} (${user.email}) - ${user.role}\n   Создан: ${new Date(user.created_at).toLocaleString('ru-RU')}\n\n`;
+                    });
+
+                    showResult(usersList, 'success');
+                } else {
+                    showResult(`❌ Ошибка получения пользователей: ${users.error}`, 'error');
+                }
+
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showResult(`❌ Ошибка сети: ${error.message}`, 'error');
+            }
+        }
+
+        async function testRegister() {
+            const resultDiv = document.getElementById('result');
+            showResult('Тест регистрации нового пользователя...', 'info');
+
+            const testUser = {
+                name: 'Тестовый Пользователь',
+                email: `test${Date.now()}@example.com`,
+                password: 'test123456'
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testUser)
+                });
+
+                const result = await response.json();
+                console.log('Результат регистрации:', result);
+
+                if (response.ok) {
+                    showResult(`✅ Регистрация успешна!\n\nПользователь: ${result.user.name}\nEmail: ${result.user.email}\nРоль: ${result.user.role}`, 'success');
+                } else {
+                    showResult(`❌ Ошибка регистрации: ${result.error}`, 'error');
+                }
+
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showResult(`❌ Ошибка сети: ${error.message}`, 'error');
+            }
+        }
+
+        async function testInterface() {
+            const resultDiv = document.getElementById('result');
+            showResult('Тестирование интерфейса...', 'info');
+
+            try {
+                // Проверяем, есть ли данные авторизации
+                const token = localStorage.getItem('authToken');
+                const userData = localStorage.getItem('user');
+
+                if (!token || !userData) {
+                    showResult('❌ Пользователь не авторизован. Сначала выполните авторизацию.', 'error');
+                    return;
+                }
+
+                const user = JSON.parse(userData);
+
+                // Открываем главную страницу в новой вкладке
+                const mainWindow = window.open('index.html', '_blank');
+
+                // Ждем загрузки страницы и тестируем интерфейс
+                setTimeout(() => {
+                    if (mainWindow) {
+                        // Пытаемся вызвать функцию обновления интерфейса
+                        try {
+                            mainWindow.testAuth();
+                            showResult(`✅ Интерфейс обновлен!\n\nПользователь: ${user.name}\nРоль: ${user.role}\n\nПроверьте главную страницу - должны быть видны:\n- "Привет, ${user.name}!"\n${user.role === 'admin' ? '- Ссылка "Админ-панель"' : ''}\n- Кнопка "Выход"`, 'success');
+                        } catch (error) {
+                            showResult(`⚠️ Главная страница открыта, но автоматическое обновление не удалось.\n\nВыполните в консоли главной страницы:\ntestAuth()\n\nИли обновите страницу.`, 'info');
+                        }
+                    } else {
+                        showResult('❌ Не удалось открыть главную страницу', 'error');
+                    }
+                }, 2000);
+
+            } catch (error) {
+                console.error('Ошибка тестирования интерфейса:', error);
+                showResult(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = `<pre>${message}</pre>`;
+            resultDiv.style.display = 'block';
+        }
+
+        // Автоматическая проверка при загрузке
+        window.addEventListener('load', () => {
+            console.log('Страница тестирования загружена');
+            console.log('API Base URL:', API_BASE);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+[
+  {
+    "name": "API Formatting Endpoint",
+    "passed": true,
+    "details": "API работает"
+  },
+  {
+    "name": "Font Size Application",
+    "passed": false,
+    "details": "Класс не применен"
+  },
+  {
+    "name": "Text Alignment",
+    "passed": false,
+    "details": "Класс не применен"
+  },
+  {
+    "name": "Database Save",
+    "passed": false,
+    "details": "Форматирование не сохранено"
+  },
+  {
+    "name": "Font Size Persistence",
+    "passed": false,
+    "details": "Before: page-title editable | After: page-title editable"
+  },
+  {
+    "name": "Alignment Persistence",
+    "passed": false,
+    "details": "Before: page-title editable | After: page-title editable"
+  }
+]

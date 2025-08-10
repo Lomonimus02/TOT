@@ -1,0 +1,34 @@
+{
+  "tests": [
+    {
+      "name": "Title Element Found",
+      "passed": false,
+      "details": "Заголовок страницы найден",
+      "timestamp": "2025-08-09T17:14:26.884Z"
+    }
+  ],
+  "issues": [
+    {
+      "category": "Page Load Error",
+      "description": "net::ERR_CONNECTION_REFUSED at http://localhost:3000/pyramid.html",
+      "timestamp": "2025-08-09T17:14:26.831Z"
+    },
+    {
+      "category": "Font Size Test",
+      "description": "Заголовок не найден",
+      "timestamp": "2025-08-09T17:14:26.887Z"
+    },
+    {
+      "category": "Persistence Error",
+      "description": "Execution context was destroyed",
+      "timestamp": "2025-08-09T17:14:29.949Z"
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "successRate": 0,
+    "issuesCount": 3
+  }
+}

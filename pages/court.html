@@ -1,0 +1,126 @@
+<!DOCTYPE html><html lang="ru"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Храмовый мистериальный двор - Пирамида ТОТА</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&amp;family=Open+Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Космический фон -->
+    <div class="cosmic-background"></div>
+    
+    <!-- Навигационная панель -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="../index.html">
+                    <h1>Пирамида ТОТА</h1>
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="#" class="nav-link" id="loginBtn">Вход</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Заголовок страницы -->
+            <header class="page-header">
+                <h1 class="page-title" data-edit-id="page-title">Храмовый мистериальный двор</h1>
+                <p class="page-subtitle" data-edit-id="page-subtitle">Место священных церемоний и ритуалов</p>
+            </header>
+
+            <!-- Основной контент страницы -->
+            <div class="page-content">
+                    <div class="content-section">
+                        <p data-edit-id="intro-text">Добро пожаловать на эту страницу. Здесь вы можете добавить описание и информацию.</p>
+                        
+                        <h3 data-edit-id="section-title">Основная информация</h3>
+                        <p data-edit-id="section-text">Здесь можно разместить подробную информацию о данном разделе.</p>
+                    </div>
+                </div>
+
+            <!-- Навигация по страницам -->
+            <nav class="page-navigation">
+                <a href="temple.html" class="nav-btn prev">← Храм Исиды</a>
+                <a href="rods.html" class="nav-btn next">Жезлы Фараонов →</a>
+            </nav>
+        </div>
+    </main>
+
+    <!-- Модальные окна -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h2 id="modalTitle">Вход в систему</h2>
+
+            <!-- Переключатель между входом и регистрацией -->
+            <div class="auth-toggle">
+                <button type="button" id="showLoginBtn" class="toggle-btn active">Вход</button>
+                <button type="button" id="showRegisterBtn" class="toggle-btn">Регистрация</button>
+            </div>
+
+            <!-- Форма входа -->
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <input type="email" id="login-email" name="email" placeholder="Email" required="">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="login-password" name="password" placeholder="Пароль" required="">
+                </div>
+                <button type="submit" class="submit-btn">Войти</button>
+            </form>
+
+            <!-- Форма регистрации (скрыта по умолчанию) -->
+            <form id="registerFormInModal" class="auth-form" style="display: none;">
+                <div class="form-group">
+                    <input type="text" id="register-name-modal" name="name" placeholder="Имя" required="">
+                </div>
+                <div class="form-group">
+                    <input type="email" id="register-email-modal" name="email" placeholder="Email" required="">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-password-modal" name="password" placeholder="Пароль" required="">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-confirm-modal" name="confirm-password" placeholder="Подтвердите пароль" required="">
+                </div>
+                <button type="submit" class="submit-btn">Зарегистрироваться</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h2>Регистрация</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <input type="text" id="register-name" name="name" placeholder="Имя" required="">
+                </div>
+                <div class="form-group">
+                    <input type="email" id="register-email" name="email" placeholder="Email" required="">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-password" name="password" placeholder="Пароль" required="">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-confirm" name="confirm-password" placeholder="Подтвердите пароль" required="">
+                </div>
+                <button type="submit" class="submit-btn">Зарегистрироваться</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Подключение скриптов -->
+    <script src="../js/session.js"></script>
+    <script src="../js/forms.js"></script>
+    <script src="../js/animations.js"></script>
+    <script src="../js/main.js"></script>
+    <script src="../js/edit-mode.js"></script><script src="../js/mobile.js"></script>
+
+
+</body></html>

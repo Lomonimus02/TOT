@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{PAGE_TITLE}} - Пирамида ТОТА</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Космический фон -->
+    <div class="cosmic-background"></div>
+    
+    <!-- Навигационная панель -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="../index.html">
+                    <h1>Пирамида ТОТА</h1>
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="../index.html" class="nav-link">Главная</a>
+                <a href="#" class="nav-link" id="loginBtn">Вход</a>
+                <a href="#" class="nav-link" id="registerBtn">Регистрация</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Заголовок страницы -->
+            <header class="page-header">
+                <h1 class="page-title">{{PAGE_TITLE}}</h1>
+                <p class="page-subtitle">{{PAGE_SUBTITLE}}</p>
+            </header>
+
+            <!-- Основной контент страницы -->
+            <div class="page-content">
+                <!-- Контент добавляется через inline редактор -->
+            </div>
+
+            <!-- Навигация по страницам -->
+            <nav class="page-navigation">
+                <a href="{{PREV_PAGE}}" class="nav-btn prev">← {{PREV_TITLE}}</a>
+                <a href="{{NEXT_PAGE}}" class="nav-btn next">{{NEXT_TITLE}} →</a>
+            </nav>
+        </div>
+    </main>
+
+    <!-- Модальные окна -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Вход в систему</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="email" id="login-email" name="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="login-password" name="password" placeholder="Пароль" required>
+                </div>
+                <button type="submit" class="submit-btn">Войти</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Регистрация</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <input type="text" id="register-name" name="name" placeholder="Имя" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="register-email" name="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-password" name="password" placeholder="Пароль" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-confirm" name="confirm-password" placeholder="Подтвердите пароль" required>
+                </div>
+                <button type="submit" class="submit-btn">Зарегистрироваться</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Подключение скриптов -->
+    <script src="../js/forms.js"></script>
+    <script src="../js/animations.js"></script>
+    <script src="../js/main.js"></script>
+</body>
+</html>

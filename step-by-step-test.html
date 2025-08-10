@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пошаговый тест авторизации</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 100px auto 50px;
+            padding: 20px;
+            background: rgba(26, 26, 46, 0.95);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        .test-step {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border-left: 4px solid #ffd700;
+        }
+        .test-btn {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { background: rgba(0, 255, 0, 0.1); color: #00ff00; }
+        .error { background: rgba(255, 0, 0, 0.1); color: #ff6b6b; }
+        .info { background: rgba(0, 150, 255, 0.1); color: #4dabf7; }
+    </style>
+</head>
+<body>
+    <!-- Навигация (копия из index.html) -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2>Пирамида ТОТА</h2>
+            </div>
+            <div class="nav-menu">
+                <a href="index.html" class="nav-link">Главная</a>
+                <a href="#" class="nav-link" id="loginBtn">Вход</a>
+                <a href="#" class="nav-link" id="registerBtn">Регистрация</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="test-container">
+        <h1 style="color: #ffd700; text-align: center;">🔍 Пошаговый тест авторизации</h1>
+        
+        <div class="test-step">
+            <h3>Шаг 1: Проверка начального состояния</h3>
+            <button class="test-btn" onclick="checkInitialState()">Проверить состояние</button>
+            <div id="step1-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-step">
+            <h3>Шаг 2: Выполнение авторизации</h3>
+            <button class="test-btn" onclick="performLogin()">Авторизоваться</button>
+            <div id="step2-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-step">
+            <h3>Шаг 3: Проверка обновления интерфейса</h3>
+            <button class="test-btn" onclick="checkUIUpdate()">Проверить UI</button>
+            <button class="test-btn" onclick="forceUIUpdate()">Принудительное обновление</button>
+            <div id="step3-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-step">
+            <h3>Шаг 4: Тест выхода</h3>
+            <button class="test-btn" onclick="performLogout()">Выйти</button>
+            <div id="step4-result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Модальные окна (копия из index.html) -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Вход в систему</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="email" id="login-email" name="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="login-password" name="password" placeholder="Пароль" required>
+                </div>
+                <button type="submit" class="submit-btn">Войти</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Регистрация</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <input type="text" id="register-name" name="name" placeholder="Имя" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="register-email" name="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-password" name="password" placeholder="Пароль" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-confirm" name="confirm-password" placeholder="Подтвердите пароль" required>
+                </div>
+                <button type="submit" class="submit-btn">Зарегистрироваться</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Скрипты в правильном порядке -->
+    <script src="js/forms.js"></script>
+    <script src="js/animations.js"></script>
+    <script src="js/main.js"></script>
+
+    <script>
+        function showResult(stepId, message, type = 'info') {
+            const resultDiv = document.getElementById(stepId + '-result');
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = message;
+            resultDiv.style.display = 'block';
+        }
+
+        function checkInitialState() {
+            let message = 'Начальное состояние:\n\n';
+            
+            const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+            const navMenu = document.querySelector('.nav-menu');
+            const token = localStorage.getItem('authToken');
+            const userData = localStorage.getItem('user');
+            
+            message += `✓ loginBtn: ${loginBtn ? 'найден' : 'НЕ НАЙДЕН'}\n`;
+            message += `✓ registerBtn: ${registerBtn ? 'найден' : 'НЕ НАЙДЕН'}\n`;
+            message += `✓ navMenu: ${navMenu ? 'найден' : 'НЕ НАЙДЕН'}\n`;
+            message += `✓ authToken: ${token ? 'есть' : 'нет'}\n`;
+            message += `✓ userData: ${userData ? 'есть' : 'нет'}\n`;
+            
+            if (navMenu) {
+                message += `\nСодержимое навигации:\n${navMenu.innerHTML}`;
+            }
+            
+            showResult('step1', message, loginBtn && registerBtn && navMenu ? 'success' : 'error');
+        }
+
+        async function performLogin() {
+            showResult('step2', 'Выполнение авторизации...', 'info');
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@pyramid-tota.ru',
+                        password: 'admin123456'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('authToken', result.token);
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    
+                    let message = `✅ Авторизация успешна!\n\n`;
+                    message += `Пользователь: ${result.user.name}\n`;
+                    message += `Email: ${result.user.email}\n`;
+                    message += `Роль: ${result.user.role}\n`;
+                    message += `Токен: ${result.token.substring(0, 30)}...\n\n`;
+                    message += `Данные сохранены в localStorage`;
+                    
+                    showResult('step2', message, 'success');
+                    
+                    // Автоматически проверяем UI через 1 секунду
+                    setTimeout(() => {
+                        checkUIUpdate();
+                    }, 1000);
+                    
+                } else {
+                    showResult('step2', `❌ Ошибка авторизации: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showResult('step2', `❌ Ошибка сети: ${error.message}`, 'error');
+            }
+        }
+
+        function checkUIUpdate() {
+            let message = 'Проверка обновления интерфейса:\n\n';
+            
+            const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+            const userInfo = document.querySelector('.user-info');
+            const adminLink = document.querySelector('a[href="admin.html"]');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const navMenu = document.querySelector('.nav-menu');
+            
+            message += `✓ loginBtn: ${loginBtn ? 'ВСЕ ЕЩЕ ЕСТЬ (плохо)' : 'удален (хорошо)'}\n`;
+            message += `✓ registerBtn: ${registerBtn ? 'ВСЕ ЕЩЕ ЕСТЬ (плохо)' : 'удален (хорошо)'}\n`;
+            message += `✓ userInfo: ${userInfo ? 'добавлен (хорошо)' : 'НЕ НАЙДЕН (плохо)'}\n`;
+            message += `✓ adminLink: ${adminLink ? 'добавлен (хорошо)' : 'НЕ НАЙДЕН (плохо)'}\n`;
+            message += `✓ logoutBtn: ${logoutBtn ? 'добавлен (хорошо)' : 'НЕ НАЙДЕН (плохо)'}\n`;
+            
+            if (navMenu) {
+                message += `\nТекущее содержимое навигации:\n${navMenu.innerHTML}`;
+            }
+            
+            const isUpdated = !loginBtn && !registerBtn && userInfo && logoutBtn;
+            showResult('step3', message, isUpdated ? 'success' : 'error');
+        }
+
+        function forceUIUpdate() {
+            const userData = localStorage.getItem('user');
+            if (!userData) {
+                showResult('step3', '❌ Нет данных пользователя для обновления UI', 'error');
+                return;
+            }
+
+            try {
+                const user = JSON.parse(userData);
+                
+                // Вызываем глобальную функцию, если она доступна
+                if (window.formHandler && window.formHandler.updateAuthUI) {
+                    window.formHandler.updateAuthUI(user);
+                    showResult('step3', '✅ Принудительное обновление UI выполнено через formHandler', 'success');
+                } else if (window.testAuth) {
+                    window.testAuth();
+                    showResult('step3', '✅ Принудительное обновление UI выполнено через testAuth', 'success');
+                } else {
+                    showResult('step3', '❌ Функции обновления UI не найдены', 'error');
+                }
+                
+                // Проверяем результат через 500мс
+                setTimeout(() => {
+                    checkUIUpdate();
+                }, 500);
+                
+            } catch (error) {
+                showResult('step3', `❌ Ошибка принудительного обновления: ${error.message}`, 'error');
+            }
+        }
+
+        function performLogout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            
+            // Попытка вызвать функцию logout
+            if (window.formHandler && window.formHandler.logout) {
+                window.formHandler.logout();
+            }
+            
+            showResult('step4', '✅ Выход выполнен, localStorage очищен', 'success');
+            
+            // Проверяем состояние через 500мс
+            setTimeout(() => {
+                checkInitialState();
+            }, 500);
+        }
+
+        // Автоматическая проверка при загрузке
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                checkInitialState();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест авторизации - Пирамида ТОТА</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+        }
+        .form-container {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ffd700;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ffd700;
+            border-radius: 5px;
+            background: #0f1419;
+            color: white;
+            box-sizing: border-box;
+        }
+        button {
+            background: #ffd700;
+            color: #1a1a2e;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #ffed4e;
+        }
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #4caf50;
+            color: white;
+        }
+        .error {
+            background: #f44336;
+            color: white;
+        }
+        .user-info {
+            background: #2196f3;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест авторизации</h1>
+    
+    <div id="loginSection">
+        <div class="form-container">
+            <h2>Вход в систему</h2>
+            <form id="testLoginForm">
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" value="admin@gmail.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Пароль:</label>
+                    <input type="password" id="password" name="password" value="admin123" required>
+                </div>
+                <button type="submit">Войти</button>
+            </form>
+        </div>
+        
+        <div class="form-container">
+            <h3>Тестовые аккаунты:</h3>
+            <p><strong>Администратор:</strong> admin@gmail.com / admin123</p>
+            <p><strong>GAAD:</strong> gaad@example.com / gaad123</p>
+            <p><strong>GAD:</strong> gad@example.com / gad123</p>
+            <button onclick="fillAdmin()">Заполнить админа</button>
+            <button onclick="fillGAAD()">Заполнить GAAD</button>
+            <button onclick="fillGAD()">Заполнить GAD</button>
+        </div>
+    </div>
+    
+    <div id="userSection" class="hidden">
+        <div class="user-info">
+            <h2>Добро пожаловать!</h2>
+            <p><strong>Имя:</strong> <span id="userName"></span></p>
+            <p><strong>Email:</strong> <span id="userEmail"></span></p>
+            <p><strong>Роль:</strong> <span id="userRole"></span></p>
+            <p><strong>ID:</strong> <span id="userId"></span></p>
+            <button onclick="logout()">Выйти</button>
+            <button onclick="testEditMode()" id="editModeBtn" style="display: none;">Тест режима редактирования</button>
+        </div>
+    </div>
+    
+    <div id="messages"></div>
+
+    <script>
+        const apiBaseUrl = window.location.origin;
+        
+        // Заполнение форм тестовыми данными
+        function fillAdmin() {
+            document.getElementById('email').value = 'admin@gmail.com';
+            document.getElementById('password').value = 'admin123';
+        }
+        
+        function fillGAAD() {
+            document.getElementById('email').value = 'gaad@example.com';
+            document.getElementById('password').value = 'gaad123';
+        }
+        
+        function fillGAD() {
+            document.getElementById('email').value = 'gad@example.com';
+            document.getElementById('password').value = 'gad123';
+        }
+        
+        // Показ сообщений
+        function showMessage(text, type = 'info') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+        
+        // Обработка формы входа
+        document.getElementById('testLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {
+                email: formData.get('email'),
+                password: formData.get('password')
+            };
+            
+            try {
+                showMessage('Попытка входа...', 'info');
+                
+                const response = await fetch(`${apiBaseUrl}/api/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.user) {
+                    // Сохраняем токен
+                    localStorage.setItem('authToken', result.token);
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    
+                    showMessage(`Успешный вход! Добро пожаловать, ${result.user.name}`, 'success');
+                    showUserInfo(result.user);
+                } else {
+                    showMessage(`Ошибка входа: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage(`Ошибка: ${error.message}`, 'error');
+            }
+        });
+        
+        // Показ информации о пользователе
+        function showUserInfo(user) {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('userSection').classList.remove('hidden');
+            
+            document.getElementById('userName').textContent = user.name;
+            document.getElementById('userEmail').textContent = user.email;
+            document.getElementById('userRole').textContent = user.role;
+            document.getElementById('userId').textContent = user.id;
+            
+            // Показываем кнопку тестирования режима редактирования для админов
+            if (user.role === 'admin') {
+                document.getElementById('editModeBtn').style.display = 'inline-block';
+            }
+        }
+        
+        // Выход
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('userSection').classList.add('hidden');
+            
+            showMessage('Вы вышли из системы', 'info');
+        }
+        
+        // Тест режима редактирования
+        function testEditMode() {
+            window.location.href = '/test-edit-mode.html';
+        }
+        
+        // Проверка авторизации при загрузке
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('authToken');
+            const userStr = localStorage.getItem('user');
+            
+            if (token && userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    showUserInfo(user);
+                    showMessage('Вы уже авторизованы', 'success');
+                } catch (error) {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('user');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

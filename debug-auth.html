@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отладка авторизации - Пирамида ТОТА</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .nav-simulation {
+            background: #1a1a2e;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+            padding: 5px 10px;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        .nav-link.user-info {
+            color: #ffd700;
+            background: rgba(255, 215, 0, 0.15);
+            border: 1px solid rgba(255, 215, 0, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Отладка авторизации</h1>
+        
+        <h3>1. Проверка localStorage</h3>
+        <button class="btn" onclick="checkLocalStorage()">Проверить localStorage</button>
+        
+        <h3>2. Симуляция навигации</h3>
+        <div class="nav-simulation" id="navSimulation">
+            <a href="#" class="nav-link" id="testLoginBtn">Вход</a>
+            <a href="#" class="nav-link" id="testRegisterBtn">Регистрация</a>
+        </div>
+        
+        <h3>3. Тесты</h3>
+        <button class="btn" onclick="testDirectLogin()">Прямая авторизация</button>
+        <button class="btn" onclick="testUIUpdate()">Тест обновления UI</button>
+        <button class="btn" onclick="simulateLogout()">Симуляция выхода</button>
+        <button class="btn" onclick="clearAuth()">Очистить авторизацию</button>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = message;
+            resultDiv.style.display = 'block';
+        }
+
+        function checkLocalStorage() {
+            const token = localStorage.getItem('authToken');
+            const userData = localStorage.getItem('user');
+            
+            let message = 'Состояние localStorage:\n\n';
+            message += `Token: ${token ? 'Есть (' + token.substring(0, 30) + '...)' : 'Нет'}\n`;
+            message += `User Data: ${userData ? 'Есть' : 'Нет'}\n`;
+            
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    message += `\nДанные пользователя:\n`;
+                    message += `- Имя: ${user.name}\n`;
+                    message += `- Email: ${user.email}\n`;
+                    message += `- Роль: ${user.role}\n`;
+                } catch (e) {
+                    message += `\nОшибка парсинга данных пользователя: ${e.message}`;
+                }
+            }
+            
+            showResult(message, token && userData ? 'success' : 'info');
+        }
+
+        async function testDirectLogin() {
+            showResult('Выполнение прямой авторизации...', 'info');
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@pyramid-tota.ru',
+                        password: 'admin123456'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('authToken', result.token);
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    
+                    showResult(`✅ Авторизация успешна!\n\nПользователь: ${result.user.name}\nРоль: ${result.user.role}\n\nДанные сохранены в localStorage`, 'success');
+                } else {
+                    showResult(`❌ Ошибка авторизации: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка сети: ${error.message}`, 'error');
+            }
+        }
+
+        function testUIUpdate() {
+            const userData = localStorage.getItem('user');
+            if (!userData) {
+                showResult('❌ Нет данных пользователя. Сначала выполните авторизацию.', 'error');
+                return;
+            }
+
+            try {
+                const user = JSON.parse(userData);
+                updateNavSimulation(user);
+                showResult(`✅ UI обновлен для пользователя: ${user.name} (${user.role})`, 'success');
+            } catch (error) {
+                showResult(`❌ Ошибка обновления UI: ${error.message}`, 'error');
+            }
+        }
+
+        function updateNavSimulation(user) {
+            const navSim = document.getElementById('navSimulation');
+            
+            // Удаляем кнопки входа/регистрации
+            const loginBtn = document.getElementById('testLoginBtn');
+            const registerBtn = document.getElementById('testRegisterBtn');
+            if (loginBtn) loginBtn.remove();
+            if (registerBtn) registerBtn.remove();
+            
+            // Добавляем информацию о пользователе
+            const userInfo = document.createElement('span');
+            userInfo.className = 'nav-link user-info';
+            userInfo.textContent = `Привет, ${user.name}!`;
+            navSim.appendChild(userInfo);
+            
+            // Добавляем админ-панель для админов
+            if (user.role === 'admin') {
+                const adminLink = document.createElement('a');
+                adminLink.href = 'admin.html';
+                adminLink.className = 'nav-link';
+                adminLink.textContent = 'Админ-панель';
+                navSim.appendChild(adminLink);
+            }
+            
+            // Добавляем кнопку выхода
+            const logoutBtn = document.createElement('a');
+            logoutBtn.href = '#';
+            logoutBtn.className = 'nav-link';
+            logoutBtn.textContent = 'Выход';
+            logoutBtn.onclick = simulateLogout;
+            navSim.appendChild(logoutBtn);
+        }
+
+        function simulateLogout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            
+            // Восстанавливаем навигацию
+            const navSim = document.getElementById('navSimulation');
+            navSim.innerHTML = `
+                <a href="#" class="nav-link" id="testLoginBtn">Вход</a>
+                <a href="#" class="nav-link" id="testRegisterBtn">Регистрация</a>
+            `;
+            
+            showResult('✅ Выход выполнен, навигация восстановлена', 'success');
+        }
+
+        function clearAuth() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            simulateLogout();
+            showResult('✅ Авторизация очищена', 'success');
+        }
+
+        // Автоматическая проверка при загрузке
+        window.addEventListener('load', () => {
+            checkLocalStorage();
+        });
+    </script>
+</body>
+</html>
