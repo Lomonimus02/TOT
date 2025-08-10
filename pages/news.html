@@ -1,0 +1,102 @@
+<!DOCTYPE html><html lang="ru"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новости - Пирамида ТОТА</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&amp;family=Open+Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Космический фон -->
+    <div class="cosmic-background"></div>
+    
+    <!-- Навигационная панель -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="../index.html">
+                    <h1>Пирамида ТОТА</h1>
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="../index.html" class="nav-link desktop-only">Главная</a>
+                <a href="#" class="nav-link" id="loginBtn">Вход</a>
+                <a href="#" class="nav-link desktop-only" id="registerBtn">Регистрация</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Заголовок страницы -->
+            <header class="page-header">
+                <h1 class="page-title" data-edit-id="page-title">Новости</h1>
+                <p class="page-subtitle" data-edit-id="page-subtitle">Последние новости и события</p>
+            </header>
+
+            <!-- Основной контент страницы -->
+            <div class="page-content">
+                    <div class="content-section">
+                        <p data-edit-id="intro-text">Добро пожаловать на эту страницу. Здесь вы можете добавить описание и информацию.</p>
+                        
+                        <h3 data-edit-id="section-title">Основная информация</h3>
+                        <p data-edit-id="section-text">Здесь можно разместить подробную информацию о данном разделе.</p>
+                    </div>
+                </div>
+
+            <!-- Навигация по страницам -->
+            <nav class="page-navigation">
+                <a href="programs.html" class="nav-btn prev">← Программы</a>
+                <a href="../index.html" class="nav-btn next">Главная →</a>
+            </nav>
+        </div>
+    </main>
+
+    <!-- Модальные окна -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h2>Вход в систему</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="email" id="login-email" name="email" placeholder="Email" required="">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="login-password" name="password" placeholder="Пароль" required="">
+                </div>
+                <button type="submit" class="submit-btn">Войти</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h2>Регистрация</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <input type="text" id="register-name" name="name" placeholder="Имя" required="">
+                </div>
+                <div class="form-group">
+                    <input type="email" id="register-email" name="email" placeholder="Email" required="">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-password" name="password" placeholder="Пароль" required="">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-confirm" name="confirm-password" placeholder="Подтвердите пароль" required="">
+                </div>
+                <button type="submit" class="submit-btn">Зарегистрироваться</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Подключение скриптов -->
+    <script src="../js/forms.js"></script>
+    <script src="../js/animations.js"></script>
+    <script src="../js/main.js"></script>
+    <script src="../js/session.js"></script><script src="../js/edit-mode.js"></script><script src="../js/mobile.js"></script>
+
+
+</body></html>

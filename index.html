@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пирамида ТОТА</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Космический фон -->
+    <div class="cosmic-background"></div>
+    
+    <!-- Навигационная панель -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h1>Пирамида ТОТА</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="#" class="nav-link" id="loginBtn">Вход</a>
+                <a href="#" class="nav-link desktop-only" id="registerBtn">Регистрация</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Заголовок сайта -->
+            <header class="site-header">
+                <h1 class="site-title" data-edit-id="site-title">Пирамида ТОТА</h1>
+                <p class="site-subtitle" data-edit-id="site-subtitle">Древние знания для современного мира</p>
+            </header>
+
+            <!-- Основные картуши -->
+            <div class="cartouches-container">
+                <!-- Левый картуш - Основное меню -->
+                <div class="cartouche left-cartouche">
+                    <div class="cartouche-header collapsible-header" data-target="main-menu-content">
+                        <h2 data-edit-id="main-menu-title">Основное меню</h2>
+                        <span class="collapse-arrow">▼</span>
+                    </div>
+                    <div class="cartouche-content collapsible-content" id="main-menu-content">
+                        <nav class="main-menu">
+                            <!-- Превью - первые 3 элемента (видны в закрытом состоянии на мобильных) -->
+                            <ul class="menu-list menu-preview">
+                                <li class="menu-item">
+                                    <a href="pages/complex.html" class="menu-link" data-edit-id="menu-complex">
+                                        <span class="menu-icon">🏛️</span>
+                                        Комплекс Пирамида Тота и Храм Исиды
+                                    </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a href="pages/pyramid.html" class="menu-link" data-edit-id="menu-pyramid">
+                                        <span class="menu-icon">🔺</span>
+                                        Пирамида Тота
+                                    </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a href="pages/temple.html" class="menu-link" data-edit-id="menu-temple">
+                                        <span class="menu-icon">🏛️</span>
+                                        Храм Исиды
+                                    </a>
+                                </li>
+                            </ul>
+
+                            <!-- Полный список (скрыт в закрытом состоянии на мобильных) -->
+                            <ul class="menu-list menu-full">
+                                <li class="menu-item">
+                                    <a href="pages/court.html" class="menu-link" data-edit-id="menu-court">
+                                        <span class="menu-icon">🌟</span>
+                                        Храмовый мистериальный двор
+                                    </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a href="pages/rods.html" class="menu-link" data-edit-id="menu-rods">
+                                        <span class="menu-icon">⚡</span>
+                                        Жезлы Фараонов Египта
+                                    </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a href="pages/visit.html" class="menu-link" data-edit-id="menu-visit">
+                                        <span class="menu-icon">🚪</span>
+                                        Посетить пирамиду
+                                    </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a href="pages/programs.html" class="menu-link" data-edit-id="menu-programs">
+                                        <span class="menu-icon">📋</span>
+                                        Программы
+                                    </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a href="pages/news.html" class="menu-link" data-edit-id="menu-news">
+                                        <span class="menu-icon">📰</span>
+                                        Новости
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Правый картуш - Обучение -->
+                <div class="cartouche right-cartouche">
+                    <div class="cartouche-header collapsible-header" data-target="education-menu-content">
+                        <h2 data-edit-id="education-menu-title">Обучение</h2>
+                        <span class="collapse-arrow">▼</span>
+                    </div>
+                    <div class="cartouche-content collapsible-content" id="education-menu-content">
+                        <nav class="education-menu">
+                            <!-- Превью - первые 3 элемента (видны в закрытом состоянии на мобильных) -->
+                            <ul class="menu-list menu-preview">
+                                <li class="menu-item">
+                                    <a href="pages/school-tota.html" class="menu-link" data-edit-id="edu-school-tota">
+                                        <span class="menu-icon">🎓</span>
+                                        Школа Пирамиды Тота
+                                    </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a href="pages/school-isais.html" class="menu-link" data-edit-id="edu-school-isais">
+                                        <span class="menu-icon">👑</span>
+                                        Женская Школа Isais
+                                    </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a href="pages/seminars.html" class="menu-link" data-edit-id="edu-seminars">
+                                        <span class="menu-icon">🌍</span>
+                                        Выездные семинары
+                                    </a>
+                                </li>
+                            </ul>
+
+                            <!-- Полный список (скрыт в закрытом состоянии на мобильных) -->
+                            <ul class="menu-list menu-full">
+                                <li class="menu-item">
+                                    <a href="pages/recordings.html" class="menu-link" data-edit-id="edu-recordings">
+                                        <span class="menu-icon">🎥</span>
+                                        Записи лекций и семинаров
+                                    </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a href="pages/consultations.html" class="menu-link" data-edit-id="edu-consultations">
+                                        <span class="menu-icon">👤</span>
+                                        Личные приемы
+                                    </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a href="pages/programs.html" class="menu-link" data-edit-id="edu-programs">
+                                        <span class="menu-icon">📋</span>
+                                        Программы
+                                    </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a href="pages/news.html" class="menu-link" data-edit-id="edu-news">
+                                        <span class="menu-icon">📰</span>
+                                        Новости
+                                    </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a href="pages/forum.html" class="menu-link" data-edit-id="edu-forum">
+                                        <span class="menu-icon">💬</span>
+                                        Форум
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Дополнительные блоки -->
+            <div class="additional-sections">
+                <!-- Контактная информация -->
+                <section class="contact-info">
+                    <h3 data-edit-id="contact-title">Контактная информация</h3>
+                    <div class="contact-details">
+                        <p data-edit-id="contact-address"><strong>Адрес:</strong> г. Москва, ул. Примерная, д. 1</p>
+                        <p data-edit-id="contact-phone"><strong>Телефон:</strong> +7 (495) 123-45-67</p>
+                        <p data-edit-id="contact-email"><strong>Email:</strong> info@pyramid-tota.ru</p>
+                        <p data-edit-id="contact-hours"><strong>Время работы:</strong> Пн-Пт 10:00-18:00</p>
+                    </div>
+                </section>
+
+                <!-- Форма обратной связи -->
+                <section class="feedback-form">
+                    <h3 data-edit-id="feedback-title">Обратная связь</h3>
+                    <form id="contactForm" class="contact-form">
+                        <div class="form-group">
+                            <input type="text" id="name" name="name" placeholder="Ваше имя" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" id="email" name="email" placeholder="Ваш email" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="tel" id="phone" name="phone" placeholder="Ваш телефон">
+                        </div>
+                        <div class="form-group">
+                            <textarea id="message" name="message" placeholder="Ваше сообщение" rows="4" required></textarea>
+                        </div>
+                        <button type="submit" class="submit-btn">Отправить</button>
+                    </form>
+                </section>
+
+                <!-- Форма подписки -->
+                <section class="newsletter-form">
+                    <h3 data-edit-id="newsletter-title">Подписка на рассылку</h3>
+                    <form id="newsletterForm" class="newsletter-form-content">
+                        <div class="form-group">
+                            <input type="email" id="newsletter-email" name="email" placeholder="Ваш email для рассылки" required>
+                        </div>
+                        <button type="submit" class="submit-btn">Подписаться</button>
+                    </form>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Модальные окна -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle">Вход в систему</h2>
+
+            <!-- Переключатель между входом и регистрацией -->
+            <div class="auth-toggle">
+                <button type="button" id="showLoginBtn" class="toggle-btn active">Вход</button>
+                <button type="button" id="showRegisterBtn" class="toggle-btn">Регистрация</button>
+            </div>
+
+            <!-- Форма входа -->
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <input type="email" id="login-email" name="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="login-password" name="password" placeholder="Пароль" required>
+                </div>
+                <button type="submit" class="submit-btn">Войти</button>
+            </form>
+
+            <!-- Форма регистрации (скрыта по умолчанию) -->
+            <form id="registerFormInModal" class="auth-form" style="display: none;">
+                <div class="form-group">
+                    <input type="text" id="register-name-modal" name="name" placeholder="Имя" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="register-email-modal" name="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-password-modal" name="password" placeholder="Пароль" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-confirm-modal" name="confirm-password" placeholder="Подтвердите пароль" required>
+                </div>
+                <button type="submit" class="submit-btn">Зарегистрироваться</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Регистрация</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <input type="text" id="register-name" name="name" placeholder="Имя" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="register-email" name="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-password" name="password" placeholder="Пароль" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="register-confirm" name="confirm-password" placeholder="Подтвердите пароль" required>
+                </div>
+                <button type="submit" class="submit-btn">Зарегистрироваться</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Подключение скриптов -->
+    <script src="js/session.js"></script>
+    <script src="js/forms.js"></script>
+    <script src="js/animations.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/mobile.js"></script>
+    <script src="js/edit-mode.js"></script>
+</body>
+</html>

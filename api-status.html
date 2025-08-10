@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статус API Сервера - Пирамида ТОТА</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .status-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: rgba(22, 33, 62, 0.9);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--gold-color);
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 4px solid transparent;
+        }
+        
+        .status-item.success {
+            border-left-color: #4CAF50;
+        }
+        
+        .status-item.error {
+            border-left-color: #f44336;
+        }
+        
+        .status-item.warning {
+            border-left-color: #FF9800;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .status-badge.online {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .status-badge.offline {
+            background: #f44336;
+            color: white;
+        }
+        
+        .refresh-btn {
+            background: var(--gold-color);
+            color: var(--text-dark);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+        
+        .refresh-btn:hover {
+            background: #e6ac00;
+        }
+        
+        .log-container {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 0.25rem 0;
+            padding: 0.25rem;
+        }
+        
+        .log-entry.info {
+            color: #2196F3;
+        }
+        
+        .log-entry.success {
+            color: #4CAF50;
+        }
+        
+        .log-entry.error {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="page-header">
+            <h1 class="page-title">Статус API Сервера</h1>
+            <p class="page-subtitle">Мониторинг состояния системы inline редактора</p>
+        </header>
+
+        <div class="status-container">
+            <div class="status-item" id="api-status">
+                <div>
+                    <strong>API Сервер</strong>
+                    <div>http://localhost:3001</div>
+                </div>
+                <div class="status-badge offline" id="api-badge">Проверка...</div>
+            </div>
+
+            <div class="status-item" id="db-status">
+                <div>
+                    <strong>База данных</strong>
+                    <div>SQLite (content.db)</div>
+                </div>
+                <div class="status-badge offline" id="db-badge">Проверка...</div>
+            </div>
+
+            <div class="status-item" id="editor-status">
+                <div>
+                    <strong>Inline редактор</strong>
+                    <div>Клиентская часть</div>
+                </div>
+                <div class="status-badge online" id="editor-badge">Активен</div>
+            </div>
+
+            <button class="refresh-btn" onclick="checkStatus()">🔄 Обновить статус</button>
+
+            <div class="log-container">
+                <h3>Лог проверок:</h3>
+                <div id="log-entries"></div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="index.html" class="nav-btn">← Вернуться на главную</a>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3001';
+        
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('log-entries');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        async function checkApiStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/health`, {
+                    method: 'GET',
+                    timeout: 5000
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('api', true, `Версия: ${data.version}`);
+                    log('API сервер доступен', 'success');
+                    return true;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus('api', false, `Ошибка: ${error.message}`);
+                log(`API сервер недоступен: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function checkDatabaseStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/content/test`, {
+                    method: 'GET'
+                });
+                
+                if (response.ok || response.status === 404) {
+                    // 404 это нормально для тестовой страницы
+                    updateStatus('db', true, 'Подключение активно');
+                    log('База данных доступна', 'success');
+                    return true;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus('db', false, `Ошибка: ${error.message}`);
+                log(`База данных недоступна: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        function updateStatus(component, isOnline, details) {
+            const statusItem = document.getElementById(`${component}-status`);
+            const badge = document.getElementById(`${component}-badge`);
+            
+            if (isOnline) {
+                statusItem.className = 'status-item success';
+                badge.className = 'status-badge online';
+                badge.textContent = 'Онлайн';
+            } else {
+                statusItem.className = 'status-item error';
+                badge.className = 'status-badge offline';
+                badge.textContent = 'Офлайн';
+            }
+            
+            const detailsDiv = statusItem.querySelector('div div');
+            if (details) {
+                detailsDiv.textContent = details;
+            }
+        }
+
+        async function checkStatus() {
+            log('Начинаем проверку статуса...', 'info');
+            
+            const apiOnline = await checkApiStatus();
+            
+            if (apiOnline) {
+                await checkDatabaseStatus();
+            } else {
+                updateStatus('db', false, 'API недоступен');
+                log('Пропускаем проверку БД - API недоступен', 'error');
+            }
+            
+            log('Проверка завершена', 'info');
+        }
+
+        // Автоматическая проверка при загрузке
+        window.addEventListener('DOMContentLoaded', () => {
+            log('Страница загружена, начинаем проверку...', 'info');
+            checkStatus();
+            
+            // Автообновление каждые 30 секунд
+            setInterval(checkStatus, 30000);
+        });
+    </script>
+</body>
+</html>
