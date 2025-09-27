@@ -201,9 +201,41 @@ async function initDatabase() {
             )
         `);
 
+        // Проверяем и создаем администратора по умолчанию, если его нет
+        await createDefaultAdmin();
+
         console.log('База данных инициализирована успешно');
     } catch (error) {
         console.error('Ошибка инициализации базы данных:', error);
+    }
+}
+
+// Функция для создания администратора по умолчанию
+async function createDefaultAdmin() {
+    try {
+        // Проверяем, есть ли уже администратор
+        const adminCheck = await pool.query('SELECT * FROM users WHERE role = $1 LIMIT 1', ['admin']);
+
+        if (adminCheck.rows.length === 0) {
+            // Создаем администратора по умолчанию
+            const defaultAdminEmail = 'admin@gmail.com';
+            const defaultAdminPassword = 'admin123456';
+            const saltRounds = 10;
+            const hashedPassword = await bcrypt.hash(defaultAdminPassword, saltRounds);
+
+            await pool.query(
+                'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4)',
+                ['Администратор', defaultAdminEmail, hashedPassword, 'admin']
+            );
+
+            console.log('✅ Создан администратор по умолчанию:');
+            console.log('   Email:', defaultAdminEmail);
+            console.log('   Пароль:', defaultAdminPassword);
+        } else {
+            console.log('✅ Администратор уже существует в базе данных');
+        }
+    } catch (error) {
+        console.error('Ошибка при создании администратора по умолчанию:', error);
     }
 }
 
@@ -285,9 +317,38 @@ app.post('/api/login', async (req, res) => {
         const user = result.rows[0];
         console.log('Найден пользователь:', { id: user.id, email: user.email, role: user.role });
 
-        // Проверка пароля
-        const isValidPassword = await bcrypt.compare(password, user.password);
-        console.log('Пароль корректен:', isValidPassword);
+        // Проверка пароля (поддержка как хешированных, так и обычных паролей)
+        let isValidPassword = false;
+
+        // Сначала пробуем сравнить как хешированный пароль
+        try {
+            isValidPassword = await bcrypt.compare(password, user.password);
+            console.log('Проверка хешированного пароля:', isValidPassword);
+        } catch (error) {
+            console.log('Ошибка при проверке хешированного пароля:', error.message);
+        }
+
+        // Если хешированный пароль не подошел, проверяем как обычный текст
+        if (!isValidPassword) {
+            isValidPassword = (password === user.password);
+            console.log('Проверка обычного пароля:', isValidPassword);
+
+            // Если пароль совпал как обычный текст, обновляем его на хешированный
+            if (isValidPassword) {
+                try {
+                    const saltRounds = 10;
+                    const hashedPassword = await bcrypt.hash(password, saltRounds);
+                    await pool.query(
+                        'UPDATE users SET password = $1 WHERE id = $2',
+                        [hashedPassword, user.id]
+                    );
+                    console.log('Пароль автоматически хеширован и обновлен в БД');
+                } catch (hashError) {
+                    console.error('Ошибка при хешировании пароля:', hashError);
+                    // Продолжаем работу, даже если не удалось обновить пароль
+                }
+            }
+        }
 
         if (!isValidPassword) {
             console.log('Неверный пароль');
