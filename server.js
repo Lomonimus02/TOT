@@ -204,6 +204,9 @@ async function initDatabase() {
         // Проверяем и создаем администратора по умолчанию, если его нет
         await createDefaultAdmin();
 
+        // Исправляем последовательности для автоинкремента
+        await fixSequences();
+
         console.log('База данных инициализирована успешно');
     } catch (error) {
         console.error('Ошибка инициализации базы данных:', error);
@@ -236,6 +239,43 @@ async function createDefaultAdmin() {
         }
     } catch (error) {
         console.error('Ошибка при создании администратора по умолчанию:', error);
+    }
+}
+
+// Функция для исправления последовательностей автоинкремента
+async function fixSequences() {
+    try {
+        console.log('🔧 Исправление последовательностей автоинкремента...');
+
+        // Исправляем последовательность для таблицы users
+        await pool.query(`
+            SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1), true);
+        `);
+
+        // Исправляем последовательность для таблицы contact_forms
+        await pool.query(`
+            SELECT setval('contact_forms_id_seq', COALESCE((SELECT MAX(id) FROM contact_forms), 1), true);
+        `);
+
+        // Исправляем последовательность для таблицы program_bookings
+        await pool.query(`
+            SELECT setval('program_bookings_id_seq', COALESCE((SELECT MAX(id) FROM program_bookings), 1), true);
+        `);
+
+        // Исправляем последовательность для таблицы newsletter_subscriptions
+        await pool.query(`
+            SELECT setval('newsletter_subscriptions_id_seq', COALESCE((SELECT MAX(id) FROM newsletter_subscriptions), 1), true);
+        `);
+
+        // Исправляем последовательность для таблицы page_content
+        await pool.query(`
+            SELECT setval('page_content_id_seq', COALESCE((SELECT MAX(id) FROM page_content), 1), true);
+        `);
+
+        console.log('✅ Последовательности автоинкремента исправлены');
+
+    } catch (error) {
+        console.error('Ошибка при исправлении последовательностей:', error);
     }
 }
 
@@ -295,7 +335,28 @@ app.post('/api/register', async (req, res) => {
         });
     } catch (error) {
         console.error('Ошибка регистрации:', error);
-        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+
+        // Специальная обработка ошибки дублирования первичного ключа
+        if (error.code === '23505' && error.constraint === 'users_pkey') {
+            return res.status(500).json({
+                error: 'Ошибка базы данных: конфликт первичных ключей. Попробуйте исправить последовательности через /api/admin/fix-sequences',
+                code: 'SEQUENCE_ERROR',
+                details: 'Необходимо исправить последовательности автоинкремента'
+            });
+        }
+
+        // Обработка других ошибок уникальности
+        if (error.code === '23505') {
+            return res.status(400).json({
+                error: 'Пользователь с такими данными уже существует',
+                code: 'DUPLICATE_ERROR'
+            });
+        }
+
+        res.status(500).json({
+            error: 'Внутренняя ошибка сервера',
+            code: error.code || 'UNKNOWN_ERROR'
+        });
     }
 });
 
@@ -780,6 +841,61 @@ app.post('/api/admin/hash-passwords', authenticateToken, requireAdmin, async (re
         res.status(500).json({
             success: false,
             error: 'Ошибка при хешировании паролей',
+            details: error.message
+        });
+    }
+});
+
+// Endpoint для исправления последовательностей автоинкремента
+app.post('/api/admin/fix-sequences', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        console.log('🔧 Ручное исправление последовательностей...');
+
+        const results = [];
+
+        // Исправляем последовательность для таблицы users
+        const usersResult = await pool.query(`
+            SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1), true);
+        `);
+        results.push({ table: 'users', new_sequence_value: usersResult.rows[0].setval });
+
+        // Исправляем последовательность для таблицы contact_forms
+        const contactsResult = await pool.query(`
+            SELECT setval('contact_forms_id_seq', COALESCE((SELECT MAX(id) FROM contact_forms), 1), true);
+        `);
+        results.push({ table: 'contact_forms', new_sequence_value: contactsResult.rows[0].setval });
+
+        // Исправляем последовательность для таблицы program_bookings
+        const bookingsResult = await pool.query(`
+            SELECT setval('program_bookings_id_seq', COALESCE((SELECT MAX(id) FROM program_bookings), 1), true);
+        `);
+        results.push({ table: 'program_bookings', new_sequence_value: bookingsResult.rows[0].setval });
+
+        // Исправляем последовательность для таблицы newsletter_subscriptions
+        const newsletterResult = await pool.query(`
+            SELECT setval('newsletter_subscriptions_id_seq', COALESCE((SELECT MAX(id) FROM newsletter_subscriptions), 1), true);
+        `);
+        results.push({ table: 'newsletter_subscriptions', new_sequence_value: newsletterResult.rows[0].setval });
+
+        // Исправляем последовательность для таблицы page_content
+        const contentResult = await pool.query(`
+            SELECT setval('page_content_id_seq', COALESCE((SELECT MAX(id) FROM page_content), 1), true);
+        `);
+        results.push({ table: 'page_content', new_sequence_value: contentResult.rows[0].setval });
+
+        res.json({
+            success: true,
+            message: 'Последовательности автоинкремента исправлены',
+            results: results
+        });
+
+        console.log('✅ Последовательности исправлены через API');
+
+    } catch (error) {
+        console.error('Ошибка при исправлении последовательностей через API:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Ошибка при исправлении последовательностей',
             details: error.message
         });
     }
