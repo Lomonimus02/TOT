@@ -29,10 +29,6 @@ Thumbs.db
 *.swp
 *.swo
 
-# База данных (локальная)
-*.db
-*.sqlite
-*.sqlite3
 
 # Файлы сборки
 dist/
