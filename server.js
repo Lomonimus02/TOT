@@ -742,6 +742,49 @@ app.get('/api/debug/users', async (req, res) => {
     }
 });
 
+// Endpoint для хеширования всех обычных паролей в БД
+app.post('/api/admin/hash-passwords', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        // Получаем всех пользователей
+        const users = await pool.query('SELECT id, email, password FROM users');
+        let updatedCount = 0;
+
+        for (const user of users.rows) {
+            // Проверяем, является ли пароль уже хешированным
+            const isHashed = user.password.startsWith('$2b$') || user.password.startsWith('$2a$');
+
+            if (!isHashed) {
+                // Хешируем обычный пароль
+                const saltRounds = 10;
+                const hashedPassword = await bcrypt.hash(user.password, saltRounds);
+
+                await pool.query(
+                    'UPDATE users SET password = $1 WHERE id = $2',
+                    [hashedPassword, user.id]
+                );
+
+                updatedCount++;
+                console.log(`Хеширован пароль для пользователя: ${user.email}`);
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Обновлено паролей: ${updatedCount} из ${users.rows.length}`,
+            updated_count: updatedCount,
+            total_users: users.rows.length
+        });
+
+    } catch (error) {
+        console.error('Ошибка хеширования паролей:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Ошибка при хешировании паролей',
+            details: error.message
+        });
+    }
+});
+
 // API для работы с контентом страниц
 
 // Получить контент страницы
