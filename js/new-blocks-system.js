@@ -1343,13 +1343,27 @@ function showBlockNotification(message, type = 'info') {
 // ===== ФУНКЦИИ ЗАГРУЗКИ ИЗ БД =====
 
 /**
+ * Получение базового URL API
+ */
+function getApiBaseUrl() {
+    // Определяем базовый URL в зависимости от окружения
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3000';
+    } else {
+        // Для продакшена используем текущий домен
+        return window.location.origin;
+    }
+}
+
+/**
  * Загрузка блоков из базы данных
  */
 async function loadBlocksFromDatabase() {
     try {
         const pageId = getCurrentPageId();
+        const apiUrl = getApiBaseUrl();
 
-        const response = await fetch(`http://localhost:3000/api/blocks/${pageId}`);
+        const response = await fetch(`${apiUrl}/api/blocks/${pageId}`);
         const result = await response.json();
 
         if (result.success && result.data.length > 0) {
@@ -1631,7 +1645,8 @@ async function saveBlockToDatabase(blockElement, categoryKey, blockId, positionD
         };
 
         // Отправляем запрос на сохранение
-        const response = await fetch('http://localhost:3000/api/blocks/save', {
+        const apiUrl = getApiBaseUrl();
+        const response = await fetch(`${apiUrl}/api/blocks/save`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1834,7 +1849,8 @@ async function saveBlockContentToDatabase(blockElement) {
             blockData.containerSelector = '.page-content';
         }
 
-        const response = await fetch('http://localhost:3000/api/blocks/save', {
+        const apiUrl = getApiBaseUrl();
+        const response = await fetch(`${apiUrl}/api/blocks/save`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1906,7 +1922,8 @@ async function updateAllBlockPositions() {
  */
 async function saveBlockWithPosition(block, elementId, position, layoutInfo) {
     try {
-        await fetch('http://localhost:3000/api/blocks/save', {
+        const apiUrl = getApiBaseUrl();
+        await fetch(`${apiUrl}/api/blocks/save`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1960,7 +1977,8 @@ async function deleteBlockFromDatabase(blockElement) {
         const elementId = blockElement.dataset.editId || blockElement.dataset.blockId;
         if (!elementId) return { success: false, error: 'Нет ID элемента' };
 
-        const response = await fetch('http://localhost:3000/api/blocks/delete', {
+        const apiUrl = getApiBaseUrl();
+        const response = await fetch(`${apiUrl}/api/blocks/delete`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json'

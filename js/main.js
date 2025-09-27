@@ -311,11 +311,24 @@ class InlinePageEditor {
         this.contextEditor = null;
         this.selectedText = null;
         this.selectionRange = null;
-        this.apiBaseUrl = 'http://localhost:3000';
+        this.apiBaseUrl = this.getApiBaseUrl();
         this.saveTimeout = null;
         this.saveDelay = 1000; // Задержка автосохранения в миллисекундах
 
         this.init();
+    }
+
+    /**
+     * Получение базового URL API
+     */
+    getApiBaseUrl() {
+        // Определяем базовый URL в зависимости от окружения
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:3000';
+        } else {
+            // Для продакшена используем текущий домен
+            return window.location.origin;
+        }
     }
 
     init() {
