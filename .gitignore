@@ -1,0 +1,73 @@
+# Зависимости
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Переменные окружения
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Логи
+logs
+*.log
+
+# Временные файлы
+.tmp/
+temp/
+
+# Файлы операционной системы
+.DS_Store
+Thumbs.db
+
+# IDE файлы
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# База данных (локальная)
+*.db
+*.sqlite
+*.sqlite3
+
+# Файлы сборки
+dist/
+build/
+
+# Кэш
+.cache/
+
+# Файлы отчетов
+*.json
+!package.json
+!package-lock.json
+
+# Тестовые файлы
+test-*.html
+test-*.js
+debug-*.html
+demo-*.html
+step-by-step-test.html
+
+# Документация разработки
+TROUBLESHOOTING.md
+EDIT_MODE_GUIDE.md
+project_documentation.md
+
+# Скрипты разработки
+create-admin.js
+restore-users.js
+add-test-formatting.js
+test-formatting-fixed.js
+test-new-formatting.js
+test-login.js
+
+# Файлы задач
+tasks.json
+
+# Bat файлы
+*.bat

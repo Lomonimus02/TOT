@@ -1,0 +1,408 @@
+/* ========================================
+   ПОЛНОЭКРАННАЯ ЕГИПЕТСКАЯ РАМКА
+   ======================================== */
+
+/* Контейнер для полноэкранной рамки */
+.fullscreen-frame {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none; /* Рамка не блокирует взаимодействие с контентом */
+    z-index: 10000; /* Поверх всего контента */
+    background-image: url('../images/decor/frame_extracted.png');
+    background-size: 100% 100%; /* Растягиваем рамку на весь экран */
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 1; /* Полностью непрозрачная рамка */
+    transition: opacity 0.3s ease;
+}
+
+/* Адаптивность рамки для разных экранов */
+@media (max-width: 1200px) {
+    .fullscreen-frame {
+        /* Убираем прозрачность - рамка остается полностью непрозрачной */
+    }
+}
+
+@media (max-width: 768px) {
+    .fullscreen-frame {
+        /* Начинаем использовать "умное масштабирование" */
+        background-size: 120% 100%; /* Увеличиваем ширину, боковые части уходят за экран */
+        background-position: center center;
+    }
+}
+
+@media (max-width: 480px) {
+    .fullscreen-frame {
+        /* Увеличиваем горизонтальное масштабирование для лучшего вида верха/низа */
+        background-size: 140% 100%; /* Боковые части сильнее уходят за экран */
+        background-position: center center;
+    }
+}
+
+/* Дополнительные настройки для очень маленьких экранов */
+@media (max-width: 375px) {
+    .fullscreen-frame {
+        /* Еще больше увеличиваем горизонтальное масштабирование */
+        background-size: 160% 100%; /* Верх и низ рамки выглядят менее сжатыми */
+        background-position: center center;
+    }
+}
+
+/* Для экранов меньше 320px (старые телефоны) */
+@media (max-width: 320px) {
+    .fullscreen-frame {
+        /* Максимальное горизонтальное масштабирование для самых маленьких экранов */
+        background-size: 180% 100%; /* Боковые части полностью за экраном, верх/низ естественные */
+        background-position: center center;
+    }
+}
+
+/* Опциональный класс для скрытия рамки (если понадобится) */
+.fullscreen-frame.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Класс для временного скрытия рамки при модальных окнах */
+.fullscreen-frame.modal-active {
+    opacity: 1; /* Рамка остается полностью непрозрачной даже при модальных окнах */
+}
+
+/* Обеспечиваем правильные z-index для всех элементов */
+
+/* Контент поверх рамки, но под навигацией */
+.main-content {
+    position: relative;
+    z-index: 100;
+}
+
+/* Навигация поверх рамки */
+.egyptian-navbar {
+    z-index: 10001 !important;
+}
+
+/* Модальные окна поверх рамки */
+.modal {
+    z-index: 10002 !important;
+}
+
+/* Уведомления поверх всего */
+.notification {
+    z-index: 10003 !important;
+}
+
+/* Панель редактирования поверх рамки */
+.edit-mode-toggle,
+.blocks-panel {
+    z-index: 10004 !important;
+}
+
+/* Загрузочный экран поверх всего */
+.loading-overlay {
+    z-index: 10005 !important;
+}
+
+/* Дополнительные улучшения для рамки */
+
+/* Рамка статична без анимации */
+
+/* Класс для загруженной рамки */
+.fullscreen-frame.loaded {
+    opacity: 1; /* Полностью непрозрачная рамка после загрузки */
+}
+
+/* Улучшенная адаптивность для планшетов */
+@media (min-width: 481px) and (max-width: 1024px) {
+    .fullscreen-frame {
+        background-size: 100% 100%;
+    }
+}
+
+/* Специальные настройки для очень широких экранов */
+@media (min-width: 1920px) {
+    .fullscreen-frame {
+        background-size: 100% 100%;
+    }
+}
+
+/* Настройки для высоких экранов (портретная ориентация) */
+@media (orientation: portrait) and (max-width: 768px) {
+    .fullscreen-frame {
+        /* В портретной ориентации увеличиваем горизонтальное масштабирование еще больше */
+        background-size: 130% 100%; /* Боковые части уходят за экран, верх/низ выглядят лучше */
+        background-position: center center;
+    }
+}
+
+/* Специальные настройки для портретной ориентации на маленьких экранах */
+@media (orientation: portrait) and (max-width: 480px) {
+    .fullscreen-frame {
+        /* Еще больше увеличиваем для портретной ориентации */
+        background-size: 150% 100%; /* Сильное горизонтальное масштабирование */
+        background-position: center center;
+    }
+}
+
+/* Для очень маленьких экранов в портретной ориентации */
+@media (orientation: portrait) and (max-width: 375px) {
+    .fullscreen-frame {
+        /* Максимальное горизонтальное масштабирование для портретной ориентации */
+        background-size: 170% 100%; /* Боковые части далеко за экраном */
+        background-position: center center;
+    }
+}
+
+/* Для самых маленьких экранов в портретной ориентации */
+@media (orientation: portrait) and (max-width: 320px) {
+    .fullscreen-frame {
+        /* Экстремальное горизонтальное масштабирование */
+        background-size: 200% 100%; /* Верх и низ рамки выглядят максимально естественно */
+        background-position: center center;
+    }
+}
+
+/* Настройки для широких экранов (альбомная ориентация) */
+@media (orientation: landscape) and (max-height: 600px) {
+    .fullscreen-frame {
+        background-size: 100% 100%;
+        background-position: center center;
+    }
+}
+
+/* Специальные настройки для альбомной ориентации на маленьких экранах */
+@media (orientation: landscape) and (max-width: 768px) and (max-height: 500px) {
+    .fullscreen-frame {
+        /* В альбомной ориентации используем умеренное горизонтальное масштабирование */
+        background-size: 110% 100%; /* Слегка увеличиваем ширину */
+        background-position: center center;
+    }
+}
+
+/* Для очень маленьких экранов в альбомной ориентации */
+@media (orientation: landscape) and (max-width: 480px) and (max-height: 400px) {
+    .fullscreen-frame {
+        /* Увеличиваем горизонтальное масштабирование для маленьких альбомных экранов */
+        background-size: 125% 100%; /* Боковые части слегка уходят за экран */
+        background-position: center center;
+    }
+}
+
+/* Для экстремально маленьких экранов в альбомной ориентации */
+@media (orientation: landscape) and (max-width: 375px) and (max-height: 350px) {
+    .fullscreen-frame {
+        /* Сильное горизонтальное масштабирование для очень маленьких альбомных экранов */
+        background-size: 140% 100%; /* Верх и низ выглядят менее сжатыми */
+        background-position: center center;
+    }
+}
+
+/* Обеспечиваем корректную работу на устройствах с высокой плотностью пикселей */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .fullscreen-frame {
+        /* Улучшаем качество изображения на Retina дисплеях */
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+}
+
+/* Дополнительные настройки для конкретных размеров экранов */
+
+/* iPhone SE и подобные (320x568) - портретная ориентация */
+@media only screen and (max-width: 320px) and (max-height: 568px) {
+    .fullscreen-frame {
+        /* Экстремальное горизонтальное масштабирование для iPhone SE */
+        background-size: 200% 100%; /* Боковые части далеко за экраном */
+        background-position: center center;
+    }
+}
+
+/* iPhone 6/7/8 и подобные (375x667) - портретная ориентация */
+@media only screen and (max-width: 375px) and (max-height: 667px) {
+    .fullscreen-frame {
+        /* Сильное горизонтальное масштабирование для iPhone 6/7/8 */
+        background-size: 170% 100%; /* Верх и низ выглядят естественно */
+        background-position: center center;
+    }
+}
+
+/* iPhone 6/7/8 Plus и подобные (414x736) - портретная ориентация */
+@media only screen and (max-width: 414px) and (max-height: 736px) {
+    .fullscreen-frame {
+        /* Умеренное горизонтальное масштабирование для iPhone Plus */
+        background-size: 150% 100%; /* Баланс между естественностью и покрытием */
+        background-position: center center;
+    }
+}
+
+/* iPhone в альбомной ориентации */
+@media only screen and (max-height: 414px) and (orientation: landscape) {
+    .fullscreen-frame {
+        /* Для альбомной ориентации iPhone используем меньшее масштабирование */
+        background-size: 120% 100%; /* Умеренное увеличение ширины */
+        background-position: center center;
+    }
+}
+
+/* Обеспечиваем правильное позиционирование на всех мобильных устройствах */
+@media (max-width: 768px) {
+    .fullscreen-frame {
+        /* Убеждаемся, что рамка покрывает весь экран */
+        width: 100vw;
+        height: 100vh;
+        top: 0;
+        left: 0;
+        background-repeat: no-repeat;
+        /* Предотвращаем горизонтальную прокрутку от увеличенной ширины фона */
+        overflow: hidden;
+    }
+    
+    /* Скрываем возможную горизонтальную прокрутку на body */
+    body {
+        overflow-x: hidden;
+    }
+}
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .fullscreen-frame {
+        background-image: url('../images/decor/frame_extracted.png');
+        /* Можно добавить версию в высоком разрешении, если есть */
+        /* background-image: url('../images/decor/frame_extracted@2x.png'); */
+    }
+}
+
+/* Принудительное позиционирование для всех браузеров */
+.fullscreen-frame {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 10000 !important;
+    pointer-events: none !important;
+}
+
+/* Обеспечиваем, что рамка не влияет на прокрутку */
+body {
+    overflow-x: hidden; /* Предотвращаем горизонтальную прокрутку */
+}
+
+/* Дополнительная защита от конфликтов с другими элементами */
+.fullscreen-frame * {
+    pointer-events: none !important;
+}
+
+/* Плавные переходы для всех состояний рамки */
+.fullscreen-frame {
+    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+}
+
+/* Состояние скрытой рамки */
+.fullscreen-frame.hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transform: scale(0.98);
+}
+
+/* Состояние рамки при модальных окнах */
+.fullscreen-frame.modal-active {
+    opacity: 1 !important; /* Рамка остается полностью непрозрачной */
+    transition: opacity 0.2s ease;
+}
+
+/* Интерактивная зона в верхней части рамки для входа */
+.frame-login-zone {
+    position: fixed;
+    top: -20px; /* Передвинуто выше на 20px */
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 600px; /* Увеличено в 2 раза с 300px */
+    height: 160px; /* Увеличено в 2 раза с 80px */
+    z-index: 10001;
+    pointer-events: auto;
+    cursor: pointer;
+    background: transparent;
+    transition: background-color 0.3s ease;
+    border-radius: 0 0 30px 30px; /* Увеличено в 2 раза с 15px */
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    right: auto !important;
+}
+
+.frame-login-zone:hover {
+    background-color: rgba(255, 215, 0, 0.1);
+}
+
+/* Стили для текста в зоне входа */
+.frame-login-text {
+    position: absolute;
+    top: 50%; /* Изменено с bottom на top и центрирование по вертикали */
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important; /* Центрирование по обеим осям */
+    color: var(--gold-color);
+    font-size: 28px; /* Увеличено в 2 раза с 14px */
+    font-weight: bold;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+    text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.8); /* Увеличено в 2 раза */
+    font-family: 'Cinzel', serif;
+    text-align: center !important;
+    width: auto !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    right: auto !important;
+    pointer-events: none; /* Текст не должен перехватывать клики */
+}
+
+.frame-login-zone:hover .frame-login-text {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05) !important; /* Обновлено для центрирования */
+    left: 50% !important;
+    text-align: center !important;
+}
+
+/* Адаптивность зоны входа для мобильных устройств */
+@media (max-width: 768px) {
+    .frame-login-zone {
+        width: 400px; /* Увеличено в 2 раза с 200px */
+        height: 120px; /* Увеличено в 2 раза с 60px */
+    }
+
+    .frame-login-text {
+        font-size: 24px; /* Увеличено в 2 раза с 12px */
+    }
+}
+
+@media (max-width: 480px) {
+    .frame-login-zone {
+        width: 360px; /* Увеличено в 2 раза с 180px */
+        height: 100px; /* Увеличено в 2 раза с 50px */
+    }
+
+    .frame-login-text {
+        font-size: 22px; /* Увеличено в 2 раза с 11px */
+    }
+}
+
+@media (max-width: 375px) {
+    .frame-login-zone {
+        width: 320px; /* Увеличено в 2 раза с 160px */
+        height: 90px; /* Увеличено в 2 раза с 45px */
+    }
+
+    .frame-login-text {
+        font-size: 20px; /* Увеличено в 2 раза с 10px */
+    }
+}
+
+@media (max-width: 320px) {
+    .frame-login-zone {
+        width: 280px; /* Увеличено в 2 раза с 140px */
+        height: 80px; /* Увеличено в 2 раза с 40px */
+    }
+
+    .frame-login-text {
+        font-size: 18px; /* Увеличено в 2 раза с 9px */
+    }
+}

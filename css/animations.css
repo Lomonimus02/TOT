@@ -1,0 +1,459 @@
+/* Анимации для сайта "Пирамида ТОТА" - ВСЕ ОТКЛЮЧЕНЫ */
+
+/* ГЛОБАЛЬНОЕ ОТКЛЮЧЕНИЕ ВСЕХ АНИМАЦИЙ И ПЕРЕХОДОВ */
+*,
+*::before,
+*::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    animation-fill-mode: none !important;
+    animation-play-state: paused !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+}
+
+/* Анимации появления элементов - ОТКЛЮЧЕНЫ */
+@keyframes fadeIn {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 1;
+        transform: none;
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 1;
+        transform: none;
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes fadeInLeft {
+    from {
+        opacity: 1;
+        transform: none;
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes fadeInRight {
+    from {
+        opacity: 1;
+        transform: none;
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes zoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes zoomOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+}
+
+/* Анимации для космического фона */
+@keyframes twinkle {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+}
+
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+    }
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+/* Анимации для переходов между страницами */
+@keyframes pageTransitionIn {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pageTransitionOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-100px);
+    }
+}
+
+/* Анимации для модальных окон */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.7);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes modalFadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.7);
+    }
+}
+
+/* Анимации для кнопок */
+@keyframes buttonPress {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(0.95);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes buttonHover {
+    0% {
+        transform: translateY(0);
+        box-shadow: 0 5px 15px rgba(255, 215, 0, 0.2);
+    }
+    100% {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(255, 215, 0, 0.4);
+    }
+}
+
+/* Классы для применения анимаций */
+.animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.8s ease-out;
+}
+
+.animate-fade-in-down {
+    animation: fadeInDown 0.8s ease-out;
+}
+
+.animate-fade-in-left {
+    animation: fadeInLeft 0.8s ease-out;
+}
+
+.animate-fade-in-right {
+    animation: fadeInRight 0.8s ease-out;
+}
+
+.animate-slide-in-up {
+    animation: slideInUp 0.6s ease-out;
+}
+
+.animate-slide-in-down {
+    animation: slideInDown 0.6s ease-out;
+}
+
+.animate-zoom-in {
+    animation: zoomIn 0.5s ease-out;
+}
+
+.animate-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-glow {
+    animation: glow 2s ease-in-out infinite;
+}
+
+.animate-rotate {
+    animation: rotate 2s linear infinite;
+}
+
+/* Анимации с задержкой */
+.animate-delay-1 {
+    animation-delay: 0.1s;
+}
+
+.animate-delay-2 {
+    animation-delay: 0.2s;
+}
+
+.animate-delay-3 {
+    animation-delay: 0.3s;
+}
+
+.animate-delay-4 {
+    animation-delay: 0.4s;
+}
+
+.animate-delay-5 {
+    animation-delay: 0.5s;
+}
+
+/* Анимации при наведении */
+.hover-lift:hover {
+    animation: buttonHover 0.3s ease-out forwards;
+}
+
+.hover-glow:hover {
+    animation: glow 0.5s ease-out;
+}
+
+.hover-pulse:hover {
+    animation: pulse 0.6s ease-out;
+}
+
+.hover-shake:hover {
+    animation: shake 0.5s ease-out;
+}
+
+/* Анимации для загрузки страницы */
+.page-enter {
+    animation: pageTransitionIn 0.8s ease-out;
+}
+
+.page-exit {
+    animation: pageTransitionOut 0.8s ease-out;
+}
+
+/* Анимации для элементов меню */
+.menu-item {
+    opacity: 1;
+    /* animation: fadeInLeft 0.6s ease-out forwards; - убрано для устранения тряски */
+}
+
+.menu-item:nth-child(1) { animation-delay: 0.1s; }
+.menu-item:nth-child(2) { animation-delay: 0.2s; }
+.menu-item:nth-child(3) { animation-delay: 0.3s; }
+.menu-item:nth-child(4) { animation-delay: 0.4s; }
+.menu-item:nth-child(5) { animation-delay: 0.5s; }
+.menu-item:nth-child(6) { animation-delay: 0.6s; }
+.menu-item:nth-child(7) { animation-delay: 0.7s; }
+.menu-item:nth-child(8) { animation-delay: 0.8s; }
+
+/* Анимации для картушей */
+.left-cartouche {
+    /* animation: fadeInLeft 1s ease-out 0.5s both; - убрано для устранения тряски */
+    opacity: 1;
+    transform: none;
+}
+
+.right-cartouche {
+    /* animation: fadeInRight 1s ease-out 0.7s both; - убрано для устранения тряски */
+    opacity: 1;
+    transform: none;
+}
+
+/* Анимации для дополнительных секций */
+.additional-sections section {
+    opacity: 1;
+    /* animation: fadeInUp 0.8s ease-out forwards; - убрано для устранения тряски */
+}
+
+.additional-sections section:nth-child(1) { animation-delay: 1s; }
+.additional-sections section:nth-child(2) { animation-delay: 1.2s; }
+.additional-sections section:nth-child(3) { animation-delay: 1.4s; }
+
+/* Анимации для форм */
+.form-group {
+    opacity: 1;
+    /* animation: fadeInUp 0.6s ease-out forwards; - убрано для устранения тряски */
+}
+
+.form-group:nth-child(1) { animation-delay: 0.1s; }
+.form-group:nth-child(2) { animation-delay: 0.2s; }
+.form-group:nth-child(3) { animation-delay: 0.3s; }
+.form-group:nth-child(4) { animation-delay: 0.4s; }
+
+/* Анимации для модальных окон */
+.modal.show .modal-content {
+    animation: modalFadeIn 0.4s ease-out;
+}
+
+.modal.hide .modal-content {
+    animation: modalFadeOut 0.4s ease-out;
+}
+
+/* Анимации при клике */
+.click-effect {
+    animation: buttonPress 0.2s ease-out;
+}
+
+/* Отключение анимаций для пользователей с ограниченными возможностями */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Анимации для загрузки */
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 215, 0, 0.3);
+    border-top: 4px solid var(--gold-color);
+    border-radius: 50%;
+    animation: rotate 1s linear infinite;
+    margin: 20px auto;
+}
+
+/* Анимации для уведомлений */
+@keyframes slideInFromTop {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutToTop {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+}
+
+.notification-enter {
+    animation: slideInFromTop 0.5s ease-out;
+}
+
+.notification-exit {
+    animation: slideOutToTop 0.5s ease-out;
+}

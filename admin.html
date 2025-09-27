@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель администратора - Пирамида ТОТА</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .admin-header {
+            background: rgba(22, 33, 62, 0.9);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .admin-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .admin-tab {
+            padding: 1rem 2rem;
+            background: rgba(22, 33, 62, 0.8);
+            color: var(--text-light);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .admin-tab.active {
+            background: var(--gold-color);
+            color: var(--text-dark);
+            border-color: var(--gold-color);
+        }
+        
+        .admin-tab:hover {
+            border-color: var(--gold-color);
+            box-shadow: var(--shadow-glow);
+        }
+        
+        .admin-content {
+            background: rgba(22, 33, 62, 0.8);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .admin-table th,
+        .admin-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        .admin-table th {
+            background: rgba(255, 215, 0, 0.1);
+            color: var(--gold-color);
+            font-weight: bold;
+        }
+        
+        .status-new { color: #4caf50; }
+        .status-pending { color: #ff9800; }
+        .status-resolved { color: #9e9e9e; }
+        
+        .admin-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .admin-btn {
+            padding: 0.5rem 1rem;
+            background: var(--gold-color);
+            color: var(--text-dark);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: var(--transition);
+        }
+        
+        .admin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+        }
+        
+        .admin-btn.danger {
+            background: #e94560;
+            color: white;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--gold-color);
+            display: block;
+        }
+        
+        .stat-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+    </style>
+    <link rel="stylesheet" href="css/frame.css">
+</head>
+<body>
+    <!-- Полноэкранная египетская рамка -->
+    <div class="fullscreen-frame"></div>
+
+    <!-- Космический фон -->
+    <div class="cosmic-background"></div>
+    
+    <!-- Навигационная панель -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="index.html">
+                    <h1>Пирамида ТОТА</h1>
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="index.html" class="nav-link">Главная</a>
+                <span class="nav-link user-info" id="adminUserInfo">Администратор</span>
+                <a href="#" class="nav-link" id="logoutBtn">Выход</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div class="admin-container">
+            <!-- Заголовок админ-панели -->
+            <div class="admin-header">
+                <h1 class="page-title">Панель администратора</h1>
+                <p class="page-subtitle">Управление сайтом "Пирамида ТОТА"</p>
+            </div>
+
+            <!-- Статистика -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number" id="contactCount">0</span>
+                    <span class="stat-label">Сообщения</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="subscriberCount">0</span>
+                    <span class="stat-label">Подписчики</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="bookingCount">0</span>
+                    <span class="stat-label">Записи</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="userCount">0</span>
+                    <span class="stat-label">Пользователи</span>
+                </div>
+            </div>
+
+            <!-- Вкладки -->
+            <div class="admin-tabs">
+                <div class="admin-tab active" data-tab="contacts">Сообщения</div>
+                <div class="admin-tab" data-tab="bookings">Записи на программы</div>
+                <div class="admin-tab" data-tab="subscribers">Подписчики</div>
+                <div class="admin-tab" data-tab="users">Пользователи</div>
+            </div>
+
+            <!-- Контент вкладок -->
+            <div class="admin-content">
+                <!-- Сообщения -->
+                <div id="contacts-content" class="tab-content active">
+                    <h2>Сообщения обратной связи</h2>
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Имя</th>
+                                <th>Email</th>
+                                <th>Телефон</th>
+                                <th>Сообщение</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contactsTable">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 2rem;">
+                                    Загрузка данных...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Записи на программы -->
+                <div id="bookings-content" class="tab-content" style="display: none;">
+                    <h2>Записи на программы</h2>
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Имя</th>
+                                <th>Email</th>
+                                <th>Программа</th>
+                                <th>Дата программы</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookingsTable">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 2rem;">
+                                    Загрузка данных...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Подписчики -->
+                <div id="subscribers-content" class="tab-content" style="display: none;">
+                    <h2>Подписчики рассылки</h2>
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Дата подписки</th>
+                                <th>Email</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subscribersTable">
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 2rem;">
+                                    Загрузка данных...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Пользователи -->
+                <div id="users-content" class="tab-content" style="display: none;">
+                    <h2>Зарегистрированные пользователи</h2>
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Дата регистрации</th>
+                                <th>Имя</th>
+                                <th>Email</th>
+                                <th>Роль</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTable">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 2rem;">
+                                    Загрузка данных...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Подключение скриптов -->
+        <script src="js/frame-manager.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/animations.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
