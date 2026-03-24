@@ -1,12 +1,34 @@
 <!DOCTYPE html><html lang="ru"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Храм Исиды - Пирамида ТОТА</title>
+
+    <!-- SEO Оптимизация -->
+    <title>Храм Исиды - Богиня Магии, Женская Сила, Исцеление Души | Пирамида ТОТА</title>
+    <meta name="description" content="Храм Исиды - священное место женской силы и магии. Богиня Исида, покровительница магии, материнства, исцеления. Женские практики, работа с энергией души, чакрами, аурой. Древние ритуалы Египта, реинкарнация, судьба.">
+    <meta name="keywords" content="храм исиды, богиня исида, египетская богиня, женская магия, женская сила, исцеление души, материнство, магия исиды, женские практики, энергия женщины, чакры, аура, древний египет, боги египта, ритуалы исиды, реинкарнация, судьба, духовное развитие, эзотерика">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://pyramid-tota.ru/pages/temple.html">
+    <meta property="og:title" content="Храм Исиды - Богиня Магии, Женская Сила, Исцеление Души">
+    <meta property="og:description" content="Священное место женской силы и магии. Богиня Исида, покровительница магии, материнства, исцеления. Женские практики, работа с энергией души.">
+    <meta property="og:image" content="https://pyramid-tota.ru/images/uploads/logo.png">
+
+    <!-- Дополнительные SEO теги -->
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://pyramid-tota.ru/pages/temple.html">
+
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/animations.css">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&amp;family=Open+Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/frame.css">
-    <link rel="stylesheet" href="../css/new-blocks-system.css">
+    <link rel="stylesheet" href="../css/search.css">
+
+    <!-- Quill.js CSS -->
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+
+    <!-- Rich Text Editor CSS -->
+    <link rel="stylesheet" href="../css/rich-text-editor.css">
 </head>
 <body>
     <!-- Полноэкранная египетская рамка -->
@@ -15,170 +37,41 @@
     <!-- Космический фон -->
     <div class="cosmic-background"></div>
 
-    <!-- Панель блоков "Папирус" -->
-    <div class="blocks-panel" id="blocksPanel">
-        <div class="blocks-panel-header">
-            <h3 class="blocks-panel-title">📜 ПАПИРУС БЛОКОВ</h3>
-            <p class="blocks-panel-subtitle">Конструктор Пирамиды</p>
-        </div>
-        <div class="blocks-panel-content">
-            <!-- Содержимое будет добавлено на следующем этапе -->
-            <p style="color: #FFD700; text-align: center; font-style: italic;">
-                Библиотека блоков загружается...
-            </p>
-        </div>
+    <!-- Верхнее фото-меню с центральным слотом для кнопки входа -->
+    <div class="top-photo-menu">
+        <div class="top-photo-center-slot"></div>
     </div>
 
-    <!-- Кнопка-триггер панели блоков -->
-    <div class="blocks-trigger" id="blocksTrigger" title="Открыть панель блоков">
-        📜
-    </div>
 
-    <!-- Контекстное меню для блоков -->
-    <div class="block-context-menu" id="blockContextMenu">
-        <div class="context-menu-header">
-            <span class="context-menu-title">⚱️ Действия с блоком</span>
-        </div>
-        <div class="context-menu-items">
-            <div class="context-menu-item" data-action="edit">
-                <span class="menu-icon">✏️</span>
-                <span class="menu-text">Редактировать</span>
-            </div>
-            <div class="context-menu-item" data-action="style">
-                <span class="menu-icon">🎨</span>
-                <span class="menu-text">Настроить стиль</span>
-            </div>
-            <div class="context-menu-item" data-action="move-up">
-                <span class="menu-icon">⬆️</span>
-                <span class="menu-text">Переместить вверх</span>
-            </div>
-            <div class="context-menu-item" data-action="move-down">
-                <span class="menu-icon">⬇️</span>
-                <span class="menu-text">Переместить вниз</span>
-            </div>
-            <div class="context-menu-item" data-action="duplicate">
-                <span class="menu-icon">📋</span>
-                <span class="menu-text">Дублировать</span>
-            </div>
-            <div class="context-menu-separator"></div>
-            <div class="context-menu-item danger" data-action="delete">
-                <span class="menu-icon">🗑️</span>
-                <span class="menu-text">Удалить</span>
-            </div>
-        </div>
-    </div>
 
-    <!-- Панель настроек стилей -->
-    <div class="style-panel" id="stylePanel">
-        <div class="style-panel-header">
-            <span class="style-panel-title">🎨 Настройки стиля</span>
-            <button class="style-panel-close" id="stylePanelClose">✕</button>
-        </div>
-        <div class="style-panel-content">
-            <div class="style-section">
-                <h4 class="style-section-title">🎭 Цветовая схема</h4>
-                <div class="color-schemes">
-                    <div class="color-scheme" data-scheme="default">
-                        <div class="scheme-preview default-scheme"></div>
-                        <span>По умолчанию</span>
-                    </div>
-                    <div class="color-scheme" data-scheme="gold">
-                        <div class="scheme-preview gold-scheme"></div>
-                        <span>Золото фараона</span>
-                    </div>
-                    <div class="color-scheme" data-scheme="blue">
-                        <div class="scheme-preview blue-scheme"></div>
-                        <span>Лазурь Нила</span>
-                    </div>
-                    <div class="color-scheme" data-scheme="red">
-                        <div class="scheme-preview red-scheme"></div>
-                        <span>Песок пустыни</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="style-section">
-                <h4 class="style-section-title">🎨 Цвет текста</h4>
-                <div class="color-picker">
-                    <input type="color" id="textColorPicker" value="#ffffff">
-                    <button class="color-reset-btn" id="resetTextColor">Сбросить</button>
-                </div>
-            </div>
-
-            <div class="style-section">
-                <h4 class="style-section-title">📐 Размер шрифта</h4>
-                <div class="font-size-controls">
-                    <button class="font-size-btn" id="decreaseFontSize" title="Уменьшить">А-</button>
-                    <select class="font-size-select" id="fontSizeSelect">
-                        <option value="12">12px</option>
-                        <option value="14">14px</option>
-                        <option value="16" selected>16px</option>
-                        <option value="18">18px</option>
-                        <option value="20">20px</option>
-                        <option value="24">24px</option>
-                        <option value="28">28px</option>
-                        <option value="32">32px</option>
-                        <option value="36">36px</option>
-                        <option value="48">48px</option>
-                    </select>
-                    <button class="font-size-btn" id="increaseFontSize" title="Увеличить">А+</button>
-                </div>
-                <div class="font-size-info">
-                    <small>Выберите текст для изменения размера</small>
-                </div>
-            </div>
-
-            <div class="style-section">
-                <h4 class="style-section-title">📍 Выравнивание</h4>
-                <div class="align-controls">
-                    <button class="align-btn active" data-align="left">⬅️</button>
-                    <button class="align-btn" data-align="center">↔️</button>
-                    <button class="align-btn" data-align="right">➡️</button>
-                </div>
-            </div>
-
-            <div class="style-section">
-                <h4 class="style-section-title">✨ Эффекты</h4>
-                <div class="effect-controls">
-                    <label class="effect-checkbox">
-                        <input type="checkbox" data-effect="shadow">
-                        <span>Тень</span>
-                    </label>
-                    <label class="effect-checkbox">
-                        <input type="checkbox" data-effect="glow">
-                        <span>Свечение</span>
-                    </label>
-                    <label class="effect-checkbox">
-                        <input type="checkbox" data-effect="border">
-                        <span>Рамка</span>
-                    </label>
-                </div>
-            </div>
-        </div>
-    </div>    
     <!-- Логотип сайта -->
     <div class="site-logo">
         <a href="../index.html" title="Вернуться на главную страницу">
             <img src="../images/uploads/logo.png" alt="Пирамида ТОТА - Логотип">
         </a>
+        <a href="../index.html" class="home-link" title="Перейти на главную страницу">Главная</a>
     </div>
 
     <!-- Основной контент -->
     <main class="main-content">
         <div class="container">
             <!-- Заголовок страницы -->
+            <header class="page-header">
+                <h1 class="page-title">Храм Исиды</h1>
+                <div class="page-subtitle-image">
+                    <img src="../images/decor/Symbols.png" alt="Символы" class="symbols-image">
+                </div>
+            </header>
 
             <!-- Основной контент страницы -->
             <div class="page-content">
-                <div class="content-section">
-                    <!-- Контент будет добавлен через систему редактирования -->
-                </div>
+                <!-- Редактор будет инициализирован автоматически -->
             </div>
 
             <!-- Навигация по страницам -->
             <nav class="page-navigation">
-                <a href="pyramid.html" class="nav-btn prev">← Пирамида</a>
-                <a href="rods.html" class="nav-btn next">Жезлы →</a>
+                <a href="pyramid.html" class="nav-btn prev">← Пирамида Тота</a>
+                <a href="court.html" class="nav-btn next">Храмовый мистериальный двор →</a>
             </nav>
         </div>
     </main>    <!-- Подвал сайта -->
@@ -189,7 +82,7 @@
                 <h3>Контакты</h3>
                 <div class="footer-contacts">
                     <div class="footer-contact-item">
-                        <a href="tel:+78129050207">+7 (812) 905 02 07</a>
+                        <a href="https://t.me/V_Isais" target="_blank">Telegram: @V_Isais</a>
                     </div>
                     <div class="footer-contact-item">
                         <a href="mailto:info@piramidaspb.ru">info@piramidaspb.ru</a>
@@ -224,7 +117,8 @@
 
             <!-- Копирайт -->
             <div class="footer-copyright">
-                2019 - 2025г. Все права защищены, Isais ©
+                <div class="footer-year">2017 - <span id="currentYear">2025</span>г.</div>
+                <div class="footer-rights">Все права защищены, Isais ©</div>
             </div>
         </div>
     </footer>
@@ -269,27 +163,42 @@
     </div>
 
     <!-- Подключение скриптов -->
-        <script src="../js/frame-manager.js"></script>
+    <!-- КРИТИЧЕСКИ ВАЖНО: Устанавливаем флаг ПЕРЕД загрузкой main.js -->
+    <script>
+        window.__RICH_TEXT_EDITOR_ACTIVE__ = true;
+        console.log('🚫 Флаг Rich Text Editor установлен, старая система блоков будет отключена');
+    </script>
+
+    <script src="../js/frame-manager.js"></script>
     <script src="../js/forms.js"></script>
     <script src="../js/animations.js"></script>
     <script src="../js/session.js"></script>
     <script src="../js/main.js"></script>
     <script src="../js/modal-auth.js"></script>
-    <script src="../js/blocks-system.js"></script>
-    <script src="../js/new-blocks-system.js"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        // Сначала создаем InlinePageEditor (main.js уже загружен)
-        if (typeof window.InlinePageEditor === 'function' && !window.App) {
-          window.App = new InlinePageEditor();
-        }
 
-        // Затем инициализируем систему блоков
-        if (window.NewBlockSystem && typeof window.NewBlockSystem.initialize === 'function') {
-          window.NewBlockSystem.initialize();
-        }
-      });
-    </script>
+    <!-- Quill.js Library -->
+    <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+
+    <!-- Quill Image Resize Module -->
+    <script src="../js/quill-image-resize.js"></script>
+
+    <!-- Rich Text Editor -->
+    <script src="../js/rich-text-editor.js"></script>
+
+    <!-- Search Component -->
+    <script src="../js/search-component.js"></script>
     <script src="../js/newsletter.js"></script>
+
+    <!-- Автоматическое обновление года в подвале -->
+    <script>
+        // Обновляем год в подвале при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentYearElement = document.getElementById('currentYear');
+            if (currentYearElement) {
+                const currentYear = new Date().getFullYear();
+                currentYearElement.textContent = currentYear;
+            }
+        });
+    </script>
 
 </body></html>

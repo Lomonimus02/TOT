@@ -65,10 +65,17 @@ class FrameManager {
     }
 
     createLoginZone() {
+        // Убеждаемся, что верхняя панель существует (создаем при отсутствии)
+        this.ensureTopPhotoMenu();
+
         // Создаем интерактивную зону для входа в верхней части рамки
-        const loginZone = document.createElement('div');
+        // Это будет либо ссылка на форум, либо кнопка администратора
+        const loginZone = document.createElement('a');
         loginZone.className = 'frame-login-zone';
-        loginZone.id = 'frame-login-zone'; // Добавляем ID для легкого доступа
+        loginZone.id = 'frame-login-zone';
+        loginZone.href = 'https://forum.piramidaspb.ru/index.php?/login/';
+        loginZone.target = '_blank';
+        loginZone.rel = 'noopener noreferrer';
 
         // Создаем текстовый элемент для отображения статуса
         const loginText = document.createElement('span');
@@ -77,20 +84,22 @@ class FrameManager {
         loginZone.appendChild(loginText);
 
         // Устанавливаем начальный title
-        loginZone.title = 'Нажмите для входа в систему';
+        loginZone.title = 'Перейти на форум для входа';
 
         // Добавляем обработчик клика
         loginZone.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.handleLoginZoneClick();
+            this.handleLoginZoneClick(e);
         });
 
-        // Добавляем зону в DOM
+        // Добавляем зону в DOM: теперь напрямую в body для правого верхнего угла
         document.body.appendChild(loginZone);
 
         // Сохраняем ссылку на зону для обновления
         this.loginZone = loginZone;
         this.loginText = loginText;
+
+        // Обновляем статус при загрузке
+        this.updateLoginZoneStatus();
 
         // Обновляем статус при создании
         this.updateLoginZoneStatus();
@@ -98,26 +107,46 @@ class FrameManager {
         console.log('✅ Зона входа в рамке создана');
     }
 
-    handleLoginZoneClick() {
-        // Проверяем, авторизован ли пользователь
-        const userData = this.getCurrentUser();
-
-        if (userData) {
-            // Пользователь авторизован - показываем меню профиля или выход
-            this.showUserMenu();
-        } else {
-            // Пользователь не авторизован - открываем модальное окно входа
-            this.openLoginModal();
+    ensureTopPhotoMenu() {
+        if (!document.querySelector('.top-photo-menu')) {
+            const bar = document.createElement('div');
+            bar.className = 'top-photo-menu';
+            const slot = document.createElement('div');
+            slot.className = 'top-photo-center-slot';
+            bar.appendChild(slot);
+            document.body.insertBefore(bar, document.body.firstChild);
+        } else if (!document.querySelector('.top-photo-center-slot')) {
+            const bar = document.querySelector('.top-photo-menu');
+            const slot = document.createElement('div');
+            slot.className = 'top-photo-center-slot';
+            bar.appendChild(slot);
         }
     }
 
+    handleLoginZoneClick(e) {
+        // Проверяем, авторизован ли администратор
+        const userData = this.getCurrentUser();
+
+        if (userData && userData.role === 'admin') {
+            // Администратор авторизован - предотвращаем переход по ссылке и показываем меню выхода
+            e.preventDefault();
+            e.stopPropagation();
+            this.showAdminMenu();
+        }
+        // Если не администратор - ссылка работает как обычно (переход на форум)
+    }
+
     getCurrentUser() {
-        // Получаем данные пользователя из localStorage
+        // Используем SessionManager если доступен
+        if (window.sessionManager && typeof window.sessionManager.getCurrentUser === 'function') {
+            return window.sessionManager.getCurrentUser();
+        }
+
+        // Fallback: получаем данные пользователя из localStorage
         try {
             const userData = localStorage.getItem('user');
             return userData ? JSON.parse(userData) : null;
         } catch (error) {
-            console.error('Ошибка получения данных пользователя:', error);
             return null;
         }
     }
@@ -181,6 +210,70 @@ class FrameManager {
         }, 10);
     }
 
+    showAdminMenu() {
+        // Показываем диалоговое окно с подтверждением выхода для администратора
+        const userData = this.getCurrentUser();
+        const userName = userData?.name || 'Администратор';
+
+        // Создаем модальное окно
+        const modal = document.createElement('div');
+        modal.className = 'user-menu-modal';
+        modal.innerHTML = `
+            <div class="user-menu-content">
+                <h3>👑 Администратор</h3>
+                <p><strong>Имя:</strong> ${userName}</p>
+                <p><strong>Статус:</strong> Вы вошли как администратор</p>
+                <p style="font-size: 0.9rem; color: rgba(255, 215, 0, 0.8); margin-top: 10px;">
+                    У вас есть расширенные возможности на всех страницах сайта
+                </p>
+                <p style="font-size: 1rem; color: rgba(255, 255, 255, 0.9); margin-top: 15px; font-weight: bold;">
+                    Вы действительно хотите выйти из аккаунта?
+                </p>
+                <div class="user-menu-buttons">
+                    <button class="user-menu-btn cancel">Отмена</button>
+                    <button class="user-menu-btn logout">Выйти из аккаунта</button>
+                </div>
+            </div>
+        `;
+
+        // Добавляем обработчики событий
+        const cancelBtn = modal.querySelector('.cancel');
+        const logoutBtn = modal.querySelector('.logout');
+
+        cancelBtn.addEventListener('click', () => {
+            this.closeUserMenu(modal);
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            this.logout();
+            this.closeUserMenu(modal);
+        });
+
+        // Закрытие по клику на фон
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.closeUserMenu(modal);
+            }
+        });
+
+        // Закрытие по Escape
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                this.closeUserMenu(modal);
+                document.removeEventListener('keydown', handleEscape);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+
+        // Добавляем в DOM и показываем
+        document.body.appendChild(modal);
+
+        // Анимация появления
+        setTimeout(() => {
+            modal.style.opacity = '1';
+        }, 10);
+    }
+
     closeUserMenu(modal) {
         // Анимация исчезновения
         modal.style.opacity = '0';
@@ -192,9 +285,15 @@ class FrameManager {
     }
 
     logout() {
-        // Очищаем данные пользователя
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
+        // Используем SessionManager если доступен
+        if (window.sessionManager && typeof window.sessionManager.destroySession === 'function') {
+            window.sessionManager.destroySession();
+        } else {
+            // Fallback: очищаем данные вручную
+            localStorage.removeItem('user');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userSession');
+        }
 
         // Обновляем статус зоны входа
         this.updateLoginZoneStatus();
@@ -204,26 +303,30 @@ class FrameManager {
     }
 
     updateLoginZoneStatus() {
-        if (!this.loginText || !this.loginZone) return;
+        if (!this.loginText || !this.loginZone) {
+            return;
+        }
 
         const userData = this.getCurrentUser();
 
-        if (userData) {
-            // Пользователь авторизован
-            const isAdmin = userData.role === 'admin' || userData.is_admin === true;
-
-            if (isAdmin) {
-                this.loginText.textContent = 'Администратор';
-                this.loginZone.title = 'Вы вошли как администратор. Нажмите для выхода.';
-            } else {
-                const userName = userData.name || userData.username || 'Пользователь';
-                this.loginText.textContent = userName;
-                this.loginZone.title = `Вы вошли как: ${userName}. Нажмите для выхода.`;
-            }
+        if (userData && userData.role === 'admin') {
+            // Администратор авторизован - меняем кнопку
+            this.loginText.textContent = 'Администратор';
+            this.loginZone.title = 'Вы вошли как администратор. Нажмите для выхода.';
+            // Убираем ссылку на форум для администратора
+            this.loginZone.removeAttribute('href');
+            this.loginZone.removeAttribute('target');
+            this.loginZone.removeAttribute('rel');
+            this.loginZone.style.cursor = 'pointer';
         } else {
-            // Пользователь не авторизован
+            // Обычный пользователь или не авторизован - кнопка ведет на форум
             this.loginText.textContent = 'Вход';
-            this.loginZone.title = 'Нажмите для входа в систему';
+            this.loginZone.title = 'Перейти на форум для входа';
+            // Восстанавливаем ссылку на форум
+            this.loginZone.setAttribute('href', 'https://forum.piramidaspb.ru/index.php?/login/');
+            this.loginZone.setAttribute('target', '_blank');
+            this.loginZone.setAttribute('rel', 'noopener noreferrer');
+            this.loginZone.style.cursor = 'pointer';
         }
     }
 
@@ -438,8 +541,8 @@ class FrameManager {
     }
 }
 
-// Инициализируем менеджер рамки
-const frameManager = new FrameManager();
+// Инициализируем менеджер рамки и делаем его глобальным
+window.frameManager = new FrameManager();
 
 // Экспортируем для глобального использования
 window.FrameManager = frameManager;

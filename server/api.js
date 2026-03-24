@@ -45,7 +45,18 @@ app.post('/api/content/save', checkAuth, async (req, res) => {
             block_data = {}
         } = req.body;
 
+        console.log('💾 POST /api/content/save - получен запрос:', {
+            page_id,
+            element_id,
+            element_type,
+            contentLength: content ? content.length : 0,
+            contentPreview: content ? content.substring(0, 100) + '...' : 'нет контента',
+            selector,
+            user_id: req.user.id
+        });
+
         if (!page_id || !element_id || !content) {
+            console.error('❌ Отсутствуют обязательные поля:', { page_id, element_id, hasContent: !!content });
             return res.status(400).json({
                 error: 'Отсутствуют обязательные поля: page_id, element_id, content'
             });
@@ -61,6 +72,12 @@ app.post('/api/content/save', checkAuth, async (req, res) => {
             block_data
         );
 
+        console.log('✅ Контент успешно сохранен в БД:', {
+            page_id,
+            element_id,
+            result_id: result.id
+        });
+
         res.json({
             success: true,
             message: 'Контент сохранен',
@@ -69,7 +86,7 @@ app.post('/api/content/save', checkAuth, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Ошибка сохранения контента:', error);
+        console.error('❌ Ошибка сохранения контента:', error);
         res.status(500).json({
             error: 'Ошибка сервера при сохранении контента',
             details: error.message
@@ -123,6 +140,40 @@ app.get('/api/content/:pageId', async (req, res) => {
         console.error('Ошибка получения контента:', error);
         res.status(500).json({
             error: 'Ошибка сервера при получении контента',
+            details: error.message
+        });
+    }
+});
+
+// Получение контента rich text редактора для конкретного элемента
+app.get('/api/content/:pageId/:elementId', async (req, res) => {
+    try {
+        const { pageId, elementId } = req.params;
+
+        console.log('📥 GET /api/content/:pageId/:elementId - получен запрос:', {
+            pageId,
+            elementId
+        });
+
+        const element = await db.getElement(pageId, elementId);
+
+        console.log('📦 Результат из БД:', {
+            found: !!element,
+            element_id: element ? element.element_id : null,
+            contentLength: element && element.content ? element.content.length : 0
+        });
+
+        res.json({
+            success: true,
+            data: element,
+            page_id: pageId,
+            element_id: elementId
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения элемента:', error);
+        res.status(500).json({
+            error: 'Ошибка сервера при получении элемента',
             details: error.message
         });
     }
@@ -238,6 +289,44 @@ app.get('/api/page-settings/:pageId', async (req, res) => {
         res.status(500).json({ 
             error: 'Ошибка сервера при получении настроек',
             details: error.message 
+        });
+    }
+});
+
+// Поиск контента по ключевому слову
+app.get('/api/search', async (req, res) => {
+    try {
+        const { query, limit = 20 } = req.query;
+        
+        if (!query || query.trim().length < 2) {
+            return res.json({ 
+                success: true,
+                data: [],
+                message: 'Поисковый запрос должен быть не менее 2 символов' 
+            });
+        }
+
+        // Используем комбинированный поиск (база данных + HTML файлы)
+        const searchResults = await db.searchAll(query, parseInt(limit));
+        
+        res.json({ 
+            success: true, 
+            data: searchResults || [],
+            query: query,
+            results_count: (searchResults || []).length,
+            sources: {
+                database: searchResults.filter(r => r.source === 'database').length,
+                html: searchResults.filter(r => r.source === 'html').length
+            }
+        });
+
+    } catch (error) {
+        console.error('Ошибка поиска:', error);
+        res.json({ 
+            success: false,
+            data: [],
+            error: 'Ошибка поиска контента',
+            details: error.message
         });
     }
 });

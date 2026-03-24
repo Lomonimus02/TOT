@@ -1,0 +1,1039 @@
+/**
+ * Rich Text Editor - Система редактирования контента в стиле Microsoft Word
+ * Использует Quill.js для создания полнофункционального редактора
+ */
+
+class RichTextEditor {
+    constructor(containerId = 'rich-text-editor') {
+        this.containerId = containerId;
+        this.editor = null;
+        this.saveTimeout = null;
+        this.autoSaveDelay = 2000; // 2 секунды
+        this.isInitialized = false;
+    }
+
+    /**
+     * Инициализация редактора
+     */
+    async initialize() {
+        if (this.isInitialized) {
+            console.warn('⚠️ Редактор уже инициализирован');
+            return;
+        }
+
+        console.log('📝 Инициализация Rich Text Editor...');
+
+        // Проверяем наличие Quill
+        if (typeof Quill === 'undefined') {
+            console.error('❌ Quill.js не загружен!');
+            return;
+        }
+
+        // Регистрируем пользовательские шрифты
+        const Font = Quill.import('formats/font');
+        Font.whitelist = ['sans-serif', 'serif', 'monospace', 'cinzel', 'open-sans'];
+        Quill.register(Font, true);
+
+        // Регистрируем размеры шрифтов в пикселях (как в Word)
+        const SizeStyle = Quill.import('attributors/style/size');
+        SizeStyle.whitelist = ['8px', '9px', '10px', '11px', '12px', '14px', '16px', '18px', '20px', '22px', '24px', '26px', '28px', '36px', '48px', '72px'];
+        Quill.register(SizeStyle, true);
+
+        // Создаем контейнер редактора
+        this.createEditorContainer();
+
+        // Настройка панели инструментов (как в Word)
+        const toolbarOptions = [
+            // Шрифты и размеры
+            [{ 'font': ['sans-serif', 'serif', 'monospace', 'cinzel', 'open-sans'] }],
+            [{ 'size': ['8px', '9px', '10px', '11px', '12px', '14px', '16px', '18px', '20px', '22px', '24px', '26px', '28px', '36px', '48px', '72px'] }],
+
+            // Заголовки
+            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+
+            // Форматирование текста
+            ['bold', 'italic', 'underline', 'strike'],
+
+            // Цвета (ВАЖНО: для изменения цвета текста и фона)
+            [{ 'color': [] }, { 'background': [] }],
+
+            // Выравнивание (3 отдельные кнопки: влево, по центру, вправо)
+            [{ 'align': '' }, { 'align': 'center' }, { 'align': 'right' }],
+
+            // Списки (включая чекбоксы для планов)
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }, { 'list': 'check' }],
+
+            // Дополнительные элементы
+            ['blockquote', 'code-block'],
+
+            // Ссылки и изображения
+            ['link', 'image', 'video'],
+
+            // Очистка форматирования
+            ['clean']
+        ];
+
+        // Инициализация Quill
+        this.editor = new Quill(`#${this.containerId}`, {
+            theme: 'snow',
+            modules: {
+                toolbar: {
+                    container: toolbarOptions,
+                    handlers: {
+                        'image': this.imageHandler.bind(this),
+                        'video': this.videoHandler.bind(this)
+                    }
+                },
+                history: {
+                    delay: 1000,
+                    maxStack: 50,
+                    userOnly: true
+                },
+                imageResize: {
+                    // Модуль для изменения размера изображений и видео
+                }
+            },
+            placeholder: 'Начните вводить текст... Используйте панель инструментов для форматирования.',
+            readOnly: true // По умолчанию только для чтения
+        });
+
+        console.log('📋 Quill редактор создан:', {
+            readOnly: this.editor.isEnabled() === false,
+            hasToolbar: !!this.editor.getModule('toolbar')
+        });
+
+        // Загружаем сохраненный контент
+        await this.loadContent();
+
+        // Настраиваем автосохранение
+        this.setupAutoSave();
+
+        // Настраиваем обработку ссылок
+        this.setupLinkHandling();
+
+        this.isInitialized = true;
+        console.log('✅ Rich Text Editor инициализирован');
+
+        // Активируем редактирование только в режиме редактирования
+        this.updateEditMode();
+    }
+
+    /**
+     * Создание контейнера редактора
+     */
+    createEditorContainer() {
+        const pageContent = document.querySelector('.page-content');
+        if (!pageContent) {
+            console.error('❌ Контейнер .page-content не найден');
+            return;
+        }
+
+        console.log('🧹 Очистка старого контента...');
+
+        // КРИТИЧЕСКИ ВАЖНО: Полностью очищаем весь контент, включая текстовые узлы
+        while (pageContent.firstChild) {
+            pageContent.removeChild(pageContent.firstChild);
+        }
+
+        // Создаем новую структуру
+        const container = document.createElement('div');
+        container.className = 'rich-text-editor-container';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'rich-text-editor-wrapper';
+
+        const editorDiv = document.createElement('div');
+        editorDiv.id = this.containerId;
+
+        wrapper.appendChild(editorDiv);
+        container.appendChild(wrapper);
+        pageContent.appendChild(container);
+
+        console.log('✅ Контейнер редактора создан');
+
+        // Создаем индикатор сохранения
+        this.createSaveIndicator();
+
+        // КРИТИЧЕСКИ ВАЖНО: Защита от добавления JSON данных
+        this.setupJsonProtection();
+    }
+
+    /**
+     * Защита от добавления JSON данных в контейнер
+     */
+    setupJsonProtection() {
+        const pageContent = document.querySelector('.page-content');
+        if (!pageContent) return;
+
+        console.log('🛡️ Активация защиты от JSON данных...');
+
+        // Функция для проверки и удаления JSON
+        const removeJsonNodes = (container) => {
+            const walker = document.createTreeWalker(
+                container,
+                NodeFilter.SHOW_TEXT,
+                {
+                    acceptNode: function(node) {
+                        const parent = node.parentElement;
+                        if (parent && (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE')) {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+                        // Пропускаем узлы внутри редактора Quill
+                        if (parent && parent.closest('.ql-editor')) {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+                        return NodeFilter.FILTER_ACCEPT;
+                    }
+                },
+                false
+            );
+
+            const nodesToRemove = [];
+            let node;
+
+            while (node = walker.nextNode()) {
+                const text = node.textContent.trim();
+                // Проверяем, является ли это JSON
+                if (text.length > 10 && ((text.startsWith('{') && text.includes('"')) || (text.startsWith('[') && text.includes('"')))) {
+                    try {
+                        const parsed = JSON.parse(text);
+                        if (typeof parsed === 'object' && parsed !== null) {
+                            console.warn('🗑️ Обнаружены и удалены JSON данные:', text.substring(0, 100));
+                            nodesToRemove.push(node);
+                        }
+                    } catch (e) {
+                        // Не JSON, пропускаем
+                    }
+                }
+            }
+
+            // Удаляем найденные узлы
+            nodesToRemove.forEach(node => {
+                if (node.parentNode) {
+                    node.parentNode.removeChild(node);
+                }
+            });
+
+            return nodesToRemove.length > 0;
+        };
+
+        // MutationObserver для перехвата добавления JSON в реальном времени
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    mutation.addedNodes.forEach((node) => {
+                        // Пропускаем узлы редактора
+                        if (node.nodeType === Node.ELEMENT_NODE && node.closest('.rich-text-editor-container')) {
+                            return;
+                        }
+
+                        // Если добавлен текстовый узел
+                        if (node.nodeType === Node.TEXT_NODE) {
+                            const text = node.textContent.trim();
+                            if (text.length > 10 && ((text.startsWith('{') && text.includes('"')) || (text.startsWith('[') && text.includes('"')))) {
+                                try {
+                                    const parsed = JSON.parse(text);
+                                    if (typeof parsed === 'object' && parsed !== null) {
+                                        console.warn('🗑️ Перехвачены и удалены JSON данные');
+                                        if (node.parentNode) {
+                                            node.parentNode.removeChild(node);
+                                        }
+                                    }
+                                } catch (e) {
+                                    // Не JSON
+                                }
+                            }
+                        }
+                        // Если добавлен элемент, проверяем его содержимое
+                        else if (node.nodeType === Node.ELEMENT_NODE) {
+                            removeJsonNodes(node);
+                        }
+                    });
+                }
+            });
+        });
+
+        // Начинаем наблюдение
+        observer.observe(pageContent, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+
+        // Немедленная очистка существующих JSON данных
+        removeJsonNodes(pageContent);
+
+        // Повторная очистка с задержками
+        setTimeout(() => removeJsonNodes(pageContent), 100);
+        setTimeout(() => removeJsonNodes(pageContent), 500);
+        setTimeout(() => removeJsonNodes(pageContent), 1000);
+
+        console.log('✅ Защита от JSON данных активирована');
+    }
+
+    /**
+     * Обработчик загрузки изображений
+     */
+    imageHandler() {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.click();
+
+        input.onchange = async () => {
+            const file = input.files[0];
+            if (!file) return;
+
+            console.log('📸 Загрузка изображения:', file.name);
+
+            // Проверяем размер файла (максимум 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('Размер изображения не должен превышать 10MB');
+                return;
+            }
+
+            // Создаем FormData для загрузки
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                // Загружаем изображение на сервер
+                const response = await fetch('/api/upload/image', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Ошибка загрузки изображения');
+                }
+
+                const data = await response.json();
+                const imageUrl = data.url;
+
+                console.log('✅ Изображение загружено:', imageUrl);
+
+                // Вставляем изображение в редактор
+                const range = this.editor.getSelection(true);
+                this.editor.insertEmbed(range.index, 'image', imageUrl);
+                this.editor.setSelection(range.index + 1);
+
+            } catch (error) {
+                console.error('❌ Ошибка загрузки изображения:', error);
+                alert('Ошибка загрузки изображения. Попробуйте еще раз.');
+            }
+        };
+    }
+
+    /**
+     * Обработчик загрузки видео
+     */
+    videoHandler() {
+        // Показываем красивый диалог выбора
+        this.showVideoChoiceDialog();
+    }
+
+    /**
+     * Показать диалог выбора способа добавления видео
+     */
+    showVideoChoiceDialog() {
+        // Создаем модальное окно
+        const modal = document.createElement('div');
+        modal.className = 'video-choice-modal';
+        modal.innerHTML = `
+            <div class="video-choice-dialog">
+                <h2 class="video-choice-title">Добавить Видео</h2>
+                <p class="video-choice-message">Выберите способ добавления видео:</p>
+                <div class="video-choice-buttons">
+                    <button class="video-choice-btn primary" data-action="upload">
+                        📤 Загрузить с устройства
+                    </button>
+                    <button class="video-choice-btn secondary" data-action="url">
+                        🔗 Вставить ссылку
+                    </button>
+                    <button class="video-choice-btn cancel" data-action="cancel">
+                        ✖ Отмена
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Добавляем в DOM
+        document.body.appendChild(modal);
+
+        // Показываем модальное окно с анимацией
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 10);
+
+        // Обработчики кнопок
+        const buttons = modal.querySelectorAll('.video-choice-btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const action = e.target.dataset.action;
+
+                // Закрываем модальное окно
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.remove();
+                }, 300);
+
+                // Выполняем действие
+                if (action === 'upload') {
+                    this.uploadVideoFromDevice();
+                } else if (action === 'url') {
+                    this.insertVideoByUrl();
+                }
+            });
+        });
+
+        // Закрытие по клику вне диалога
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.remove();
+                }, 300);
+            }
+        });
+    }
+
+    /**
+     * Загрузка видео с устройства
+     */
+    uploadVideoFromDevice() {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'video/*');
+        input.click();
+
+        input.onchange = async () => {
+            const file = input.files[0];
+            if (!file) return;
+
+            console.log('🎥 Загрузка видео:', file.name);
+
+            // Проверяем размер файла (максимум 100MB)
+            if (file.size > 100 * 1024 * 1024) {
+                alert('Размер видео не должен превышать 100MB');
+                return;
+            }
+
+            // Создаем FormData для загрузки
+            const formData = new FormData();
+            formData.append('video', file);
+
+            try {
+                // Загружаем видео на сервер
+                const response = await fetch('/api/upload/video', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Ошибка загрузки видео');
+                }
+
+                const data = await response.json();
+                const videoUrl = data.url;
+
+                console.log('✅ Видео загружено:', videoUrl);
+
+                // Вставляем видео в редактор
+                const range = this.editor.getSelection(true);
+                this.editor.insertEmbed(range.index, 'video', videoUrl);
+                this.editor.setSelection(range.index + 1);
+
+                // КРИТИЧЕСКИ ВАЖНО: Устанавливаем начальные размеры для video элемента
+                setTimeout(() => {
+                    const videos = this.editor.root.querySelectorAll('video');
+                    videos.forEach(video => {
+                        if (!video.style.width) {
+                            video.style.width = '800px';
+                            video.style.height = '450px';
+                            console.log('✅ Установлены начальные размеры для video:', video);
+                        }
+                    });
+                    this.wrapVideoIframes();
+                }, 100);
+
+            } catch (error) {
+                console.error('❌ Ошибка загрузки видео:', error);
+                alert('Ошибка загрузки видео. Попробуйте еще раз.');
+            }
+        };
+    }
+
+    /**
+     * Вставка видео по ссылке
+     */
+    insertVideoByUrl() {
+        // Создаем модальное окно для ввода URL
+        const modal = document.createElement('div');
+        modal.className = 'video-choice-modal';
+        modal.innerHTML = `
+            <div class="video-choice-dialog">
+                <h2 class="video-choice-title">Вставить Видео по Ссылке</h2>
+                <p class="video-choice-message">Введите ссылку на видео с YouTube, Rutube, Vimeo или прямую ссылку на видео файл:</p>
+                <div style="margin-bottom: 20px;">
+                    <input type="text" id="video-url-input" placeholder="https://www.youtube.com/watch?v=..."
+                           style="width: 100%; padding: 12px; border: 1px solid #d0c4a8; border-radius: 6px;
+                                  font-size: 14px; color: #6b5d4f; background: #ffffff;">
+                </div>
+                <div class="video-choice-buttons">
+                    <button class="video-choice-btn primary" data-action="insert">
+                        ✓ Вставить
+                    </button>
+                    <button class="video-choice-btn cancel" data-action="cancel">
+                        ✖ Отмена
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Добавляем в DOM
+        document.body.appendChild(modal);
+
+        // Показываем модальное окно с анимацией
+        setTimeout(() => {
+            modal.classList.add('show');
+            // Фокусируемся на поле ввода
+            const input = modal.querySelector('#video-url-input');
+            input.focus();
+        }, 10);
+
+        const input = modal.querySelector('#video-url-input');
+
+        // Обработчик Enter в поле ввода
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.processVideoUrl(input.value, modal);
+            }
+        });
+
+        // Обработчики кнопок
+        const buttons = modal.querySelectorAll('.video-choice-btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const action = e.target.dataset.action;
+
+                if (action === 'insert') {
+                    this.processVideoUrl(input.value, modal);
+                } else {
+                    // Закрываем модальное окно
+                    modal.classList.remove('show');
+                    setTimeout(() => {
+                        modal.remove();
+                    }, 300);
+                }
+            });
+        });
+
+        // Закрытие по клику вне диалога
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.remove();
+                }, 300);
+            }
+        });
+    }
+
+    /**
+     * Обработка URL видео и вставка в редактор
+     */
+    processVideoUrl(url, modal) {
+        if (!url || !url.trim()) {
+            alert('Пожалуйста, введите ссылку на видео');
+            return;
+        }
+
+        console.log('🎥 Вставка видео по ссылке:', url);
+
+        try {
+            // Преобразуем URL в embed формат
+            const embedUrl = this.convertToEmbedUrl(url.trim());
+
+            // Вставляем видео в редактор
+            const range = this.editor.getSelection(true);
+            this.editor.insertEmbed(range.index, 'video', embedUrl);
+            this.editor.setSelection(range.index + 1);
+
+            console.log('✅ Видео вставлено по ссылке:', embedUrl);
+
+            // КРИТИЧЕСКИ ВАЖНО: Устанавливаем начальные размеры для iframe
+            setTimeout(() => {
+                const iframes = this.editor.root.querySelectorAll('iframe.ql-video');
+                iframes.forEach(iframe => {
+                    if (!iframe.style.width) {
+                        iframe.style.width = '800px';
+                        iframe.style.height = '450px';
+                        console.log('✅ Установлены начальные размеры для iframe:', iframe);
+                    }
+                });
+                this.wrapVideoIframes();
+            }, 100);
+
+            // Закрываем модальное окно
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.remove();
+            }, 300);
+
+        } catch (error) {
+            console.error('❌ Ошибка вставки видео:', error);
+            alert('Ошибка вставки видео. Проверьте ссылку и попробуйте еще раз.');
+        }
+    }
+
+    /**
+     * Преобразование URL видео в embed формат
+     */
+    convertToEmbedUrl(url) {
+        // YouTube
+        const youtubeId = this.extractYouTubeId(url);
+        if (youtubeId) {
+            return `https://www.youtube.com/embed/${youtubeId}`;
+        }
+
+        // Rutube
+        const rutubeId = this.extractRutubeId(url);
+        if (rutubeId) {
+            return `https://rutube.ru/play/embed/${rutubeId}`;
+        }
+
+        // Vimeo
+        const vimeoId = this.extractVimeoId(url);
+        if (vimeoId) {
+            return `https://player.vimeo.com/video/${vimeoId}`;
+        }
+
+        // Если это уже embed URL или прямая ссылка на видео файл, возвращаем как есть
+        return url;
+    }
+
+    /**
+     * Извлечение YouTube ID из URL
+     */
+    extractYouTubeId(url) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    /**
+     * Извлечение Rutube ID из URL
+     */
+    extractRutubeId(url) {
+        const regExp = /rutube\.ru\/video\/([a-zA-Z0-9]+)/;
+        const match = url.match(regExp);
+        return match ? match[1] : null;
+    }
+
+    /**
+     * Извлечение Vimeo ID из URL
+     */
+    extractVimeoId(url) {
+        const regExp = /vimeo\.com\/(\d+)/;
+        const match = url.match(regExp);
+        return match ? match[1] : null;
+    }
+
+    /**
+     * Создание индикатора сохранения
+     */
+    createSaveIndicator() {
+        const indicator = document.createElement('div');
+        indicator.className = 'editor-save-indicator';
+        indicator.id = 'editor-save-indicator';
+        indicator.innerHTML = '<span class="indicator-icon">💾</span><span class="indicator-text">Сохранено</span>';
+        document.body.appendChild(indicator);
+    }
+
+    /**
+     * Показать индикатор сохранения
+     */
+    showSaveIndicator(type = 'success', message = 'Сохранено') {
+        const indicator = document.getElementById('editor-save-indicator');
+        if (!indicator) return;
+
+        const icon = indicator.querySelector('.indicator-icon');
+        const text = indicator.querySelector('.indicator-text');
+
+        // Устанавливаем тип и сообщение
+        indicator.className = `editor-save-indicator ${type} show`;
+        text.textContent = message;
+
+        if (type === 'success') {
+            icon.textContent = '✅';
+        } else if (type === 'error') {
+            icon.textContent = '❌';
+        } else {
+            icon.textContent = '💾';
+        }
+
+        // Скрываем через 3 секунды
+        setTimeout(() => {
+            indicator.classList.remove('show');
+        }, 3000);
+    }
+
+    /**
+     * УДАЛЕНО: Оборачивание больше не требуется
+     * pointer-events: none в CSS решает проблему
+     */
+    wrapVideoIframes() {
+        // Ничего не делаем - pointer-events: none в CSS достаточно
+        console.log('✅ wrapVideoIframes: pointer-events управляется через CSS');
+    }
+
+    /**
+     * Настройка автосохранения
+     */
+    setupAutoSave() {
+        this.editor.on('text-change', () => {
+            // Очищаем предыдущий таймер
+            if (this.saveTimeout) {
+                clearTimeout(this.saveTimeout);
+            }
+
+            // Устанавливаем новый таймер
+            this.saveTimeout = setTimeout(() => {
+                this.saveContent();
+            }, this.autoSaveDelay);
+        });
+    }
+
+    /**
+     * Настройка обработки ссылок
+     */
+    setupLinkHandling() {
+        // Добавляем обработчик для открытия ссылок в новой вкладке
+        const editorElement = document.querySelector(`#${this.containerId} .ql-editor`);
+        if (editorElement) {
+            editorElement.addEventListener('click', (e) => {
+                if (e.target.tagName === 'A') {
+                    e.preventDefault();
+                    window.open(e.target.href, '_blank');
+                }
+            });
+        }
+    }
+
+    /**
+     * Получение текущего ID страницы
+     */
+    getCurrentPageId() {
+        const path = window.location.pathname;
+        console.log('🔍 Определение page_id:');
+        console.log('   📍 fullPath:', path);
+        console.log('   🌐 hostname:', window.location.hostname);
+        console.log('   🔗 href:', window.location.href);
+
+        // Проверяем разные варианты путей
+        // Вариант 1: /pages/temple.html -> temple
+        let match = path.match(/\/pages\/([^\/]+)\.html/);
+        console.log('   🔎 Проверка паттерна /pages/*.html: match =', match);
+        if (match) {
+            console.log('✅ Найден page_id через /pages/*.html:', match[1]);
+            return match[1];
+        }
+
+        // Вариант 2: /temple.html -> temple
+        match = path.match(/\/([^\/]+)\.html/);
+        console.log('   🔎 Проверка паттерна /*.html: match =', match);
+        if (match && match[1] !== 'index') {
+            console.log('✅ Найден page_id через /*.html:', match[1]);
+            return match[1];
+        }
+
+        // Вариант 3: /temple (без расширения) -> temple
+        match = path.match(/\/([^\/]+)$/);
+        console.log('   🔎 Проверка паттерна /* (без расширения): match =', match);
+        if (match && match[1] !== '' && match[1] !== 'index') {
+            console.log('✅ Найден page_id через /* (без расширения):', match[1]);
+            return match[1];
+        }
+
+        // Вариант 4: путь заканчивается на / или пустой -> index
+        console.log('ℹ️ Используется page_id по умолчанию: index');
+        return 'index';
+    }
+
+    /**
+     * Получение базового URL API
+     */
+    getApiBaseUrl() {
+        return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000'
+            : '';
+    }
+
+    /**
+     * Загрузка контента из базы данных
+     */
+    async loadContent() {
+        try {
+            const pageId = this.getCurrentPageId();
+            const apiUrl = `${this.getApiBaseUrl()}/api/content/${pageId}/rich-text-content`;
+
+            console.log(`📥 Загрузка контента для страницы: ${pageId}`);
+            console.log(`📡 API URL: ${apiUrl}`);
+
+            const response = await fetch(apiUrl);
+
+            if (!response.ok) {
+                console.warn(`⚠️ API вернул статус ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('📦 Ответ от API:', result);
+
+            if (result.success && result.data && result.data.content) {
+                console.log('📄 Контент из БД (первые 500 символов):', result.data.content.substring(0, 500));
+
+                // КРИТИЧЕСКИ ВАЖНО: Проверяем наличие inline стилей в изображениях
+                const imgMatches = result.data.content.match(/<img[^>]*>/g);
+                if (imgMatches) {
+                    console.log('🖼️ Найдено изображений в контенте:', imgMatches.length);
+                    imgMatches.slice(0, 3).forEach((img, i) => {
+                        console.log(`  Изображение ${i + 1}:`, img);
+                    });
+                }
+
+                // Устанавливаем контент в редактор
+                this.editor.root.innerHTML = result.data.content;
+
+                // КРИТИЧЕСКИ ВАЖНО: Проверяем, сохранились ли inline стили после установки
+                setTimeout(() => {
+                    const images = this.editor.root.querySelectorAll('img');
+                    console.log('🖼️ Изображений после загрузки:', images.length);
+                    images.forEach((img, i) => {
+                        if (i < 3) {
+                            console.log(`  Изображение ${i + 1} после загрузки:`, {
+                                src: img.src.substring(0, 50) + '...',
+                                width: img.style.width || img.width || 'не задано',
+                                height: img.style.height || img.height || 'не задано',
+                                hasStyleAttr: img.hasAttribute('style'),
+                                styleAttr: img.getAttribute('style')
+                            });
+                        }
+                    });
+                }, 100);
+
+                console.log('✅ Контент загружен из БД');
+            } else {
+                console.log('ℹ️ Контент не найден, используется пустой редактор');
+                // Устанавливаем пустой контент
+                this.editor.setText('');
+            }
+        } catch (error) {
+            console.error('❌ Ошибка загрузки контента:', error);
+            // В случае ошибки используем пустой редактор
+            if (this.editor) {
+                this.editor.setText('');
+            }
+        }
+    }
+
+    /**
+     * Сохранение контента в базу данных
+     */
+    async saveContent() {
+        try {
+            const pageId = this.getCurrentPageId();
+            const content = this.editor.root.innerHTML;
+
+            console.log('💾 Начало сохранения контента:', {
+                pageId,
+                contentLength: content.length,
+                contentPreview: content.substring(0, 100) + '...'
+            });
+
+            // КРИТИЧЕСКИ ВАЖНО: Проверяем inline стили в изображениях перед сохранением
+            const images = this.editor.root.querySelectorAll('img');
+            console.log('🖼️ Изображений перед сохранением:', images.length);
+            images.forEach((img, i) => {
+                if (i < 3) {
+                    console.log(`  Изображение ${i + 1}:`, {
+                        src: img.src.substring(0, 50) + '...',
+                        width: img.style.width || img.width || 'не задано',
+                        height: img.style.height || img.height || 'не задано',
+                        hasStyleAttr: img.hasAttribute('style'),
+                        styleAttr: img.getAttribute('style')
+                    });
+                }
+            });
+
+            // Проверяем наличие inline стилей в HTML
+            const imgMatches = content.match(/<img[^>]*>/g);
+            if (imgMatches) {
+                console.log('🖼️ Изображений в HTML:', imgMatches.length);
+                imgMatches.slice(0, 3).forEach((img, i) => {
+                    console.log(`  HTML изображения ${i + 1}:`, img);
+                });
+            }
+
+            const response = await fetch(`${this.getApiBaseUrl()}/api/content/save`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    page_id: pageId,
+                    element_id: 'rich-text-content',
+                    element_type: 'rich-text',
+                    selector: '.rich-text-editor-container',
+                    content: content
+                })
+            });
+
+            console.log('📡 Ответ сервера:', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showSaveIndicator('success', 'Сохранено');
+                console.log('✅ Контент успешно сохранен:', result);
+            } else {
+                this.showSaveIndicator('error', 'Ошибка сохранения');
+                console.error('❌ Ошибка сохранения:', result.error);
+            }
+        } catch (error) {
+            this.showSaveIndicator('error', 'Ошибка сохранения');
+            console.error('❌ Ошибка сохранения контента:', error);
+            console.error('Детали ошибки:', {
+                message: error.message,
+                stack: error.stack
+            });
+        }
+    }
+
+    /**
+     * Обновление режима редактирования
+     */
+    updateEditMode() {
+        const isEditMode = document.body.classList.contains('edit-mode');
+
+        console.log('🔄 updateEditMode вызван:', {
+            isEditMode,
+            hasEditor: !!this.editor,
+            bodyClasses: document.body.className,
+            editorEnabled: this.editor ? this.editor.isEnabled() : null
+        });
+
+        if (this.editor) {
+            if (isEditMode) {
+                this.editor.enable();
+                console.log('✅ Редактор ВКЛЮЧЕН - можно редактировать', {
+                    isEnabled: this.editor.isEnabled(),
+                    hasContent: this.editor.getLength() > 1
+                });
+
+                // КРИТИЧЕСКИ ВАЖНО: Оборачиваем все iframe при включении режима редактирования
+                setTimeout(() => {
+                    this.wrapVideoIframes();
+                }, 100);
+            } else {
+                this.editor.disable();
+                console.log('🔒 Редактор ВЫКЛЮЧЕН - только чтение', {
+                    isEnabled: this.editor.isEnabled()
+                });
+            }
+        } else {
+            console.warn('⚠️ Редактор еще не инициализирован');
+        }
+    }
+
+    /**
+     * Получение контента
+     */
+    getContent() {
+        return this.editor ? this.editor.root.innerHTML : '';
+    }
+
+    /**
+     * Установка контента
+     */
+    setContent(html) {
+        if (this.editor) {
+            this.editor.root.innerHTML = html;
+        }
+    }
+
+    /**
+     * Очистка редактора
+     */
+    clear() {
+        if (this.editor) {
+            this.editor.setText('');
+        }
+    }
+}
+
+// Глобальная инициализация
+window.RichTextEditor = RichTextEditor;
+
+// Автоматическая инициализация при загрузке страницы
+// КРИТИЧЕСКИ ВАЖНО: Инициализируем НЕМЕДЛЕННО, ДО других скриптов
+(function() {
+    // Проверяем наличие .page-content сразу при загрузке скрипта
+    const checkAndInit = () => {
+        const pageContent = document.querySelector('.page-content');
+
+        if (pageContent) {
+            console.log('🚀 НЕМЕДЛЕННАЯ инициализация Rich Text Editor...');
+
+            // КРИТИЧЕСКИ ВАЖНО: Немедленно очищаем контейнер от любого контента
+            console.log('🧹 Предварительная очистка .page-content...');
+            while (pageContent.firstChild) {
+                pageContent.removeChild(pageContent.firstChild);
+            }
+
+            // Создаем глобальный флаг, что редактор активен
+            window.__RICH_TEXT_EDITOR_ACTIVE__ = true;
+
+            // Инициализируем редактор
+            window.richTextEditor = new RichTextEditor();
+            window.richTextEditor.initialize().then(() => {
+                console.log('✅ Rich Text Editor полностью инициализирован');
+            });
+
+            // Слушаем изменения режима редактирования
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'class' && window.richTextEditor) {
+                        window.richTextEditor.updateEditMode();
+                    }
+                });
+            });
+
+            observer.observe(document.body, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+        }
+    };
+
+    // Пытаемся инициализировать сразу
+    if (document.readyState === 'loading') {
+        // DOM еще не готов, ждем
+        document.addEventListener('DOMContentLoaded', checkAndInit);
+    } else {
+        // DOM уже готов, инициализируем немедленно
+        checkAndInit();
+    }
+})();
+

@@ -48,6 +48,60 @@ function logBlockCoordinates() {
 // window.toggleDebugMode = toggleDebugMode;
 // window.logBlockCoordinates = logBlockCoordinates;
 
+// ===== ФУНКЦИИ НОРМАЛИЗАЦИИ ИЗОБРАЖЕНИЙ =====
+
+/**
+ * Нормализация изображений в блоке
+ * Убирает отрицательный margin и корректирует позицию блока
+ */
+function normalizeImagesInBlock(block) {
+    if (!block || !block.classList.contains('free-positioned')) {
+        return;
+    }
+
+    const images = block.querySelectorAll('img:not(.image-placeholder)');
+
+    images.forEach(img => {
+        const currentMarginLeft = parseFloat(img.style.marginLeft) || 0;
+        const currentMarginTop = parseFloat(img.style.marginTop) || 0;
+
+        // Если margin отрицательный, нормализуем
+        if (currentMarginLeft < 0 || currentMarginTop < 0) {
+            // Получаем текущую позицию блока
+            const currentLeft = parseFloat(block.dataset.freeLeft) || parseFloat(block.style.left) || 0;
+            const currentTop = parseFloat(block.dataset.freeTop) || parseFloat(block.style.top) || 0;
+
+            // Вычисляем новую позицию блока (сдвигаем на величину отрицательного margin)
+            const newLeft = currentLeft + currentMarginLeft;
+            const newTop = currentTop + currentMarginTop;
+
+            // Получаем размеры изображения
+            const imgWidth = parseFloat(img.style.width) || img.offsetWidth;
+            const imgHeight = parseFloat(img.style.height) || img.offsetHeight;
+
+            // Вычисляем новый размер блока
+            const newBlockWidth = imgWidth + Math.abs(currentMarginLeft);
+            const newBlockHeight = imgHeight + Math.abs(currentMarginTop);
+
+            // Применяем новую позицию блока
+            block.style.setProperty('left', newLeft + 'px', 'important');
+            block.style.setProperty('top', newTop + 'px', 'important');
+            block.dataset.freeLeft = newLeft;
+            block.dataset.freeTop = newTop;
+
+            // Сбрасываем margin изображения
+            img.style.marginLeft = '0px';
+            img.style.marginTop = '0px';
+
+            // Устанавливаем новый размер блока
+            block.style.width = newBlockWidth + 'px';
+            block.style.height = newBlockHeight + 'px';
+
+            console.log(`📐 Изображение нормализовано при загрузке: позиция (${newLeft}, ${newTop}), размер ${newBlockWidth}x${newBlockHeight}`);
+        }
+    });
+}
+
 /**
  * Кастомное диалоговое окно подтверждения удаления блока
  */
@@ -118,36 +172,57 @@ function removeDebugJsonData() {
     const pageContent = document.querySelector('.page-content');
     if (!pageContent) return;
 
-    // Ищем и удаляем JSON данные в текстовых узлах
-    const walker = document.createTreeWalker(
-        pageContent,
-        NodeFilter.SHOW_TEXT,
-        null,
-        false
-    );
+    // КРИТИЧЕСКИ ВАЖНО: Удаляем JSON данные из ВСЕГО документа, не только из .page-content
+    const containers = [pageContent, document.body];
 
-    const textNodesToRemove = [];
-    let node;
+    containers.forEach(container => {
+        if (!container) return;
 
-    while (node = walker.nextNode()) {
-        const text = node.textContent.trim();
-        // Ищем JSON данные с pageId
-        if (text.includes('"pageId"') && text.includes('"blocks"') && text.includes('"timestamp"')) {
-            textNodesToRemove.push(node);
+        // Ищем и удаляем JSON данные в текстовых узлах
+        const walker = document.createTreeWalker(
+            container,
+            NodeFilter.SHOW_TEXT,
+            {
+                acceptNode: function(node) {
+                    // Пропускаем текстовые узлы внутри script и style тегов
+                    const parent = node.parentElement;
+                    if (parent && (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE')) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            },
+            false
+        );
+
+        const textNodesToRemove = [];
+        let node;
+
+        while (node = walker.nextNode()) {
+            const text = node.textContent.trim();
+
+            // Более агрессивная проверка - любой текст, начинающийся с { или [ и содержащий кавычки
+            if ((text.startsWith('{') || text.startsWith('[')) && text.includes('"')) {
+                // Проверяем, является ли это JSON объектом или массивом
+                try {
+                    const parsed = JSON.parse(text);
+                    // Если парсится как JSON и это объект или массив - это отладочные данные, удаляем
+                    if (typeof parsed === 'object' && parsed !== null) {
+                        textNodesToRemove.push(node);
+                    }
+                } catch (e) {
+                    // Не JSON, пропускаем
+                }
+            }
         }
-    }
 
-    // Удаляем найденные текстовые узлы
-    textNodesToRemove.forEach(node => {
-        node.parentNode.removeChild(node);
+        // Удаляем найденные текстовые узлы
+        textNodesToRemove.forEach(node => {
+            if (node.parentNode) {
+                node.parentNode.removeChild(node);
+            }
+        });
     });
-
-    // Также проверяем innerHTML контейнера на наличие JSON данных
-    const content = pageContent.innerHTML;
-    const jsonRegex = /\{"pageId":"[^"]+","blocks":\[\],"timestamp":"[^"]+"\}/g;
-    if (jsonRegex.test(content)) {
-        pageContent.innerHTML = content.replace(jsonRegex, '');
-    }
 }
 
 // ===== ОСНОВНЫЕ ФУНКЦИИ СИСТЕМЫ =====
@@ -174,8 +249,34 @@ async function initializeNewBlockSystem() {
     // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Загружаем блоки для ВСЕХ пользователей
     // Блоки должны быть видны всем, независимо от роли
 
-    // Загружаем сохраненные блоки из БД для всех пользователей
-    await loadBlocksFromDatabase();
+    // КРИТИЧЕСКИ ВАЖНО: Удаляем JSON данные СРАЗУ, ДО загрузки блоков
+    removeDebugJsonData();
+
+    // КРИТИЧЕСКИ ВАЖНО: Восстанавливаем высоту контейнера ДО загрузки блоков
+    // Это предотвращает дерганую подгрузку страницы
+    if (window.FreePositioning && typeof window.FreePositioning.restoreContainerHeight === 'function') {
+        window.FreePositioning.restoreContainerHeight();
+        console.log('📏 Высота контейнера восстановлена ДО загрузки блоков');
+    }
+
+    // КРИТИЧЕСКИ ВАЖНО: Загружаем блоки АСИНХРОННО, не блокируя выполнение
+    // Это позволяет функции завершиться, даже если fetch зависнет
+    loadBlocksFromDatabase().then(() => {
+        // КРИТИЧЕСКИ ВАЖНО: Удаляем JSON данные ПОСЛЕ загрузки блоков
+        removeDebugJsonData();
+
+        // И еще раз через небольшую задержку
+        setTimeout(() => {
+            removeDebugJsonData();
+        }, 100);
+
+        setTimeout(() => {
+            removeDebugJsonData();
+        }, 300);
+    }).catch(error => {
+        // Удаляем JSON данные даже при ошибке
+        removeDebugJsonData();
+    });
 
     // Функции редактирования и создания блоков только для администраторов
     if (isUserAdmin()) {
@@ -262,16 +363,23 @@ function setupDragAndDropHandlers() {
             handleNewBlockDragStart.call(e.target, e);
         }
     });
-    
+
     document.addEventListener('dragend', function(e) {
         if (e.target.classList.contains('block-item') && e.target.draggable) {
             handleDragEnd.call(e.target, e);
         }
     });
-    
+
     // Добавляем глобальный обработчик движения мыши для динамических зон
     document.addEventListener('dragover', handleGlobalDragOver);
-    
+
+    // КРИТИЧЕСКИ ВАЖНО: Добавляем обработчик drop на .page-content для свободного размещения
+    const pageContent = document.querySelector('.page-content');
+    if (pageContent) {
+        pageContent.addEventListener('dragover', handlePageContentDragOver);
+        pageContent.addEventListener('drop', handlePageContentDrop);
+    }
+
     // Добавляем drag handles к существующим блокам
     addDragHandlesToBlocks();
 }
@@ -297,24 +405,29 @@ function addDragHandlesToBlocks() {
     }
 
     const contentBlocks = document.querySelectorAll('.content-block');
+    console.log(`🔧 Добавление drag handles к ${contentBlocks.length} блокам на странице`);
 
     contentBlocks.forEach((block, index) => {
+        console.log(`🔧 Обрабатываем блок ${index}:`, block.className, block.dataset);
+
         // Удаляем старый handle если есть
         const oldHandle = block.querySelector('.new-drag-handle');
         if (oldHandle) oldHandle.remove();
-        
+
         // Создаем новый handle
         const dragHandle = document.createElement('div');
         dragHandle.className = 'new-drag-handle';
         dragHandle.innerHTML = '⋮⋮';
         dragHandle.title = 'Перетащите для перемещения блока';
-        
+
         // Устанавливаем индекс блока
         block.dataset.blockIndex = index;
-        
+
         // Добавляем handle в блок
         block.style.position = 'relative';
         block.appendChild(dragHandle);
+
+        console.log(`✅ Drag handle добавлен к блоку ${index}`);
         
         // Делаем блок перетаскиваемым через handle
         dragHandle.addEventListener('mousedown', (e) => {
@@ -348,25 +461,19 @@ function addDragHandlesToBlocks() {
 function handleNewBlockDragStart(e) {
     const blockId = this.dataset.blockId;
     const categoryKey = this.dataset.category;
-    
+
     draggedBlockData = {
         type: 'new-block',
         blockId,
         categoryKey,
         element: this
     };
-    
+
     // Визуальные эффекты
     this.classList.add('dragging');
     document.body.classList.add('drag-active');
-    
-    // Создаем центральную зону если страница пустая
-    const pageContent = document.querySelector('.page-content');
-    const contentBlocks = Array.from(pageContent.querySelectorAll('.content-block'));
-    
-    if (contentBlocks.length === 0) {
-        createCenterDropZone();
-    }
+
+    // КРИТИЧЕСКИ ВАЖНО: НЕ создаем центральную зону - разрешаем свободное размещение всегда
 }
 
 /**
@@ -415,21 +522,66 @@ function handleDragEnd(e) {
  */
 function handleGlobalDragOver(e) {
     if (!draggedBlockData) return;
-    
+
     e.preventDefault();
-    
+
+    // КРИТИЧЕСКИ ВАЖНО: НЕ создаем зоны - разрешаем свободное размещение всегда
+    // Удаляем все существующие зоны
+    removePositioningZones();
+    return;
+}
+
+/**
+ * Обработчик dragover на .page-content для свободного размещения
+ */
+function handlePageContentDragOver(e) {
+    // КРИТИЧЕСКИ ВАЖНО: Разрешаем drop в любом месте для новых блоков
+    if (draggedBlockData && draggedBlockData.type === 'new-block') {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+}
+
+/**
+ * Обработчик drop на .page-content для свободного размещения
+ */
+function handlePageContentDrop(e) {
+    // Проверяем, что перетаскиваем новый блок из панели
+    if (!draggedBlockData || draggedBlockData.type !== 'new-block') {
+        return;
+    }
+
+    // Проверяем, что drop не на зону вставки
+    if (e.target.classList.contains('new-drop-zone')) {
+        // Drop на зону - пусть обрабатывает handleZoneDrop
+        return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // КРИТИЧЕСКИ ВАЖНО: Получаем позицию курсора относительно .page-content
     const pageContent = document.querySelector('.page-content');
-    const contentBlocks = Array.from(pageContent.querySelectorAll('.content-block'));
-    
-    // Если страница пустая, центральная зона уже создана
-    if (contentBlocks.length === 0) return;
-    
-    // Находим блок, над которым находится курсор
-    const mouseX = e.clientX;
-    const mouseY = e.clientY;
-    
-    // Создаем зоны только для блока под курсором
-    createDynamicZonesForPosition(mouseX, mouseY, contentBlocks);
+    const rect = pageContent.getBoundingClientRect();
+
+    // КРИТИЧЕСКИ ВАЖНО: Вычисляем позицию относительно контейнера БЕЗ скролла
+    // Позиция должна быть относительно самого контейнера, а не viewport
+    const dropX = e.clientX - rect.left;
+    const dropY = e.clientY - rect.top;
+
+    // Ограничиваем позицию внутри контейнера
+    const containerWidth = pageContent.offsetWidth;
+    const containerHeight = pageContent.offsetHeight;
+
+    // Предполагаем размер блока ~200x100 для корректного позиционирования
+    const estimatedBlockWidth = 200;
+    const estimatedBlockHeight = 100;
+
+    const finalX = Math.max(0, Math.min(dropX, containerWidth - estimatedBlockWidth));
+    const finalY = Math.max(0, Math.min(dropY, containerHeight - estimatedBlockHeight));
+
+    // Создаем блок в позиции курсора
+    addNewBlockAtFreePosition(draggedBlockData, finalX, finalY);
 }
 
 /**
@@ -885,6 +1037,78 @@ function addNewBlockAtPosition(blockData, positionType, targetBlockIndex) {
 }
 
 /**
+ * КРИТИЧЕСКИ ВАЖНО: Добавление нового блока в свободную позицию (режим свободного позиционирования)
+ */
+function addNewBlockAtFreePosition(blockData, x, y) {
+    // КРИТИЧЕСКАЯ ПРОВЕРКА: Только администраторы могут добавлять блоки
+    if (!isUserAdmin()) {
+        console.warn('Попытка добавления блока без прав администратора');
+        alert('Добавление блоков разрешено только администраторам');
+        return;
+    }
+
+    // Получаем шаблон блока
+    const blockTemplate = getBlockTemplate(blockData.categoryKey, blockData.blockId);
+    if (!blockTemplate) {
+        console.error('❌ Шаблон блока не найден');
+        return;
+    }
+
+    // Создаем новый блок
+    const newBlock = createBlockElement(blockTemplate, blockData.categoryKey, blockData.blockId);
+
+    // КРИТИЧЕСКИ ВАЖНО: Добавляем блок в .page-content
+    const pageContent = document.querySelector('.page-content');
+    pageContent.appendChild(newBlock);
+
+    // КРИТИЧЕСКИ ВАЖНО: Применяем свободное позиционирование
+    newBlock.classList.add('free-positioned');
+    newBlock.style.setProperty('position', 'absolute', 'important');
+    newBlock.style.setProperty('left', x + 'px', 'important');
+    newBlock.style.setProperty('top', y + 'px', 'important');
+    newBlock.style.setProperty('--free-left', x + 'px');
+    newBlock.style.setProperty('--free-top', y + 'px');
+
+    // Сохраняем позиции в dataset
+    newBlock.dataset.freeLeft = x;
+    newBlock.dataset.freeTop = y;
+    newBlock.dataset.originalLeft = x;
+    newBlock.dataset.originalTop = y;
+
+    // Помечаем блок как новый для последующего обновления контента
+    newBlock.dataset.isNew = 'true';
+
+    // Сохраняем блок в БД с метаданными о свободном позиционировании
+    saveBlockToDatabase(newBlock, blockData.categoryKey, blockData.blockId, {
+        freePositioned: true,
+        freeLeft: x,
+        freeTop: y,
+        containerSelector: '.page-content'
+    });
+
+    // Активируем редактирование для нового блока
+    if (document.body.classList.contains('edit-mode') && typeof window.App !== 'undefined') {
+        setTimeout(() => {
+            try {
+                window.App.makeElementsEditable();
+                // Фокусируемся на новом блоке для редактирования
+                const editableElement = newBlock.querySelector('h1, h2, h3, p') || newBlock;
+                if (editableElement && editableElement.contentEditable === 'true') {
+                    editableElement.focus();
+                }
+            } catch (e) {
+                // Игнорируем ошибки
+            }
+        }, 100);
+    }
+
+    // Обновляем систему
+    updateBlockSystem();
+
+    showBlockNotification('Блок добавлен в свободной позиции!', 'success');
+}
+
+/**
  * Перемещение существующего блока в новую позицию
  */
 function moveExistingBlockToPosition(blockData, positionType, targetBlockIndex) {
@@ -1103,21 +1327,22 @@ function getBlockTemplate(categoryKey, blockId) {
 }
 
 /**
- * Fallback шаблоны для тестирования
+ * Fallback шаблоны для тестирования (с SEO-оптимизацией)
  */
 function getFallbackTemplate(categoryKey, blockId) {
     const fallbackTemplates = {
         'text': {
-            'heading-h2': '<h2 class="content-heading">Новый заголовок H2</h2>',
-            'paragraph': '<p class="content-text">Новый параграф текста. Этот блок был добавлен с помощью новой системы позиционирования.</p>',
-            'quote': '<blockquote class="content-quote">"Новая цитата добавлена через улучшенную систему блоков."<cite>— Система блоков</cite></blockquote>',
-            'list': '<ul class="content-list"><li>Первый пункт списка</li><li>Второй пункт списка</li><li>Третий пункт списка</li></ul>'
+            'heading-h2': '<h2 class="content-heading" itemprop="headline" data-seo-optimized="true">Новый заголовок H2</h2>',
+            'heading-h3': '<h3 class="content-subheading" itemprop="headline" data-seo-optimized="true">Новый заголовок H3</h3>',
+            'paragraph': '<p class="content-text" itemprop="text" data-seo-optimized="true">Новый параграф текста. Этот блок был добавлен с помощью новой системы позиционирования.</p>',
+            'quote': '<blockquote class="content-quote" itemscope itemtype="https://schema.org/Quotation" data-seo-optimized="true">"Новая цитата добавлена через улучшенную систему блоков."<cite itemprop="author">— Система блоков</cite></blockquote>',
+            'list': '<ul class="content-list" itemscope itemtype="https://schema.org/ItemList" data-seo-optimized="true"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">Первый пункт списка</li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">Второй пункт списка</li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">Третий пункт списка</li></ul>'
         },
         'media': {
             'image': '<div class="content-image-placeholder" style="background: rgba(74, 144, 226, 0.2); border: 2px dashed #4A90E2; padding: 40px; text-align: center; border-radius: 8px; color: #4A90E2;"><p>🖼️ Изображение</p><p style="font-size: 12px; opacity: 0.7;">Блок изображения добавлен</p></div>'
         }
     };
-    
+
     return fallbackTemplates[categoryKey]?.[blockId] || `<div class="content-block-placeholder">Блок ${blockId} (${categoryKey})</div>`;
 }
 
@@ -1139,6 +1364,26 @@ function createBlockElement(template, categoryKey = null, blockId = null) {
         wrapper.dataset.blockType = blockId;
         wrapper.dataset.blockCategory = categoryKey;
         wrapper.dataset.isBlock = 'true';
+    }
+
+    // ===== SEO ОПТИМИЗАЦИЯ =====
+    // Применяем SEO-атрибуты к содержимому блока
+    if (blockId && typeof addSEOAttributes === 'function') {
+        // Находим основной элемент внутри блока
+        const mainElement = wrapper.querySelector('h2, h3, p, blockquote, ul, ol');
+        if (mainElement) {
+            addSEOAttributes(mainElement, blockId);
+
+            // Для заголовков генерируем SEO-дружественный ID
+            if (mainElement.tagName === 'H2' || mainElement.tagName === 'H3') {
+                if (typeof generateSEOFriendlyId === 'function') {
+                    const seoId = generateSEOFriendlyId(mainElement.textContent);
+                    if (seoId) {
+                        mainElement.id = seoId;
+                    }
+                }
+            }
+        }
     }
 
     // Добавляем атрибуты для редактирования
@@ -1222,14 +1467,24 @@ function cleanupEmptyContainers() {
 function setupBlockInteractions() {
     // Добавляем обработчики для кнопок добавления блоков
     // Используем делегирование событий для динамически создаваемых элементов
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', async function(e) {
         if (e.target.classList.contains('add-block-btn')) {
             e.stopPropagation();
             const blockItem = e.target.closest('.block-item');
             if (blockItem) {
                 const blockId = blockItem.dataset.blockId;
                 const categoryKey = blockItem.dataset.category;
-                addBlockToEndOfPage(categoryKey, blockId);
+
+                // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Правильная обработка асинхронной функции
+                try {
+                    console.log('🔄 Добавление блока:', { categoryKey, blockId });
+                    await addBlockToEndOfPage(categoryKey, blockId);
+                    console.log('✅ Блок успешно добавлен и сохранен');
+                    showBlockNotification('Блок успешно добавлен!', 'success');
+                } catch (error) {
+                    console.error('❌ Ошибка добавления блока:', error);
+                    showBlockNotification('Ошибка добавления блока!', 'error');
+                }
             }
         }
     });
@@ -1238,7 +1493,7 @@ function setupBlockInteractions() {
 /**
  * Добавление блока в конец страницы (для кнопки добавления)
  */
-function addBlockToEndOfPage(categoryKey, blockId) {
+async function addBlockToEndOfPage(categoryKey, blockId) {
     // КРИТИЧЕСКАЯ ПРОВЕРКА: Только администраторы могут добавлять блоки
     if (!isUserAdmin()) {
         console.warn('Попытка добавления блока без прав администратора');
@@ -1254,16 +1509,32 @@ function addBlockToEndOfPage(categoryKey, blockId) {
 
     const newBlock = createBlockElement(blockTemplate, categoryKey, blockId);
     const pageContent = document.querySelector('.page-content');
+
+    if (!pageContent) {
+        console.error('❌ Контейнер .page-content не найден');
+        showBlockNotification('Ошибка: контейнер не найден!', 'error');
+        return;
+    }
+
     pageContent.appendChild(newBlock);
 
     // Сохраняем блок сразу для корректного позиционирования
     // Помечаем блок как новый для последующего обновления контента
     newBlock.dataset.isNew = 'true';
+    newBlock.dataset.saved = 'false';
 
-    saveBlockToDatabase(newBlock, categoryKey, blockId, {
+    const saveResult = await saveBlockToDatabase(newBlock, categoryKey, blockId, {
         positionType: 'end',
         containerSelector: '.page-content'
     });
+
+    if (!saveResult.success) {
+        console.error('❌ Ошибка сохранения блока:', saveResult.error);
+        // Удаляем блок из DOM если сохранение не удалось
+        newBlock.remove();
+        // Выбрасываем ошибку для правильной обработки в вызывающем коде
+        throw new Error(`Не удалось сохранить блок в базе данных: ${saveResult.error}`);
+    }
 
     // Активируем редактирование для нового блока
     if (document.body.classList.contains('edit-mode') && typeof window.App !== 'undefined') {
@@ -1282,7 +1553,10 @@ function addBlockToEndOfPage(categoryKey, blockId) {
     }
 
     updateBlockSystem();
-    showBlockNotification('Блок добавлен в конец страницы!', 'success');
+    console.log('✅ Блок успешно добавлен и сохранен в БД');
+
+    // Возвращаем успешный результат
+    return { success: true, block: newBlock };
 }
 
 /**
@@ -1361,9 +1635,17 @@ function getApiBaseUrl() {
 async function loadBlocksFromDatabase() {
     try {
         const pageId = getCurrentPageId();
-        const apiUrl = getApiBaseUrl();
+        const apiUrl = `${getApiBaseUrl()}/api/blocks/${pageId}`;
 
-        const response = await fetch(`${apiUrl}/api/blocks/${pageId}`);
+        // Добавляем таймаут для fetch запроса
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+        }, 10000);
+
+        const response = await fetch(apiUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
         const result = await response.json();
 
         if (result.success && result.data.length > 0) {
@@ -1372,6 +1654,7 @@ async function loadBlocksFromDatabase() {
 
             // Создаем все блоки сначала
             const createdBlocks = [];
+
             for (const blockData of sortedBlocks) {
                 const blockElement = await createBlockFromData(blockData);
                 if (blockElement) {
@@ -1390,19 +1673,37 @@ async function loadBlocksFromDatabase() {
                     } catch (e) {
                         // Игнорируем ошибки
                     }
-                }, 100);
+                }, 200);
             }
 
             // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Убираем drag handles для не-администраторов после загрузки блоков
             if (!isUserAdmin()) {
                 setTimeout(() => {
                     removeAllDragHandles();
-                }, 200);
+                }, 300);
             }
+
+            // ВАЖНО: Восстановление позиций и режима свободного позиционирования
+            // происходит в free-positioning.js через DOMContentLoaded
+            // Не вызываем здесь, чтобы избежать конфликтов
+
+            // КРИТИЧЕСКИ ВАЖНО: Отправляем событие о завершении загрузки блоков
+            // Это позволит free-positioning.js дождаться загрузки перед восстановлением позиций
+            window.dispatchEvent(new CustomEvent('blocksLoaded', {
+                detail: { count: sortedBlocks.length }
+            }));
+        } else {
+            // Отправляем событие даже если блоков нет
+            window.dispatchEvent(new CustomEvent('blocksLoaded', {
+                detail: { count: 0 }
+            }));
         }
 
     } catch (error) {
-        // Игнорируем ошибки загрузки
+        // Отправляем событие даже при ошибке
+        window.dispatchEvent(new CustomEvent('blocksLoaded', {
+            detail: { count: 0, error: true }
+        }));
     }
 }
 
@@ -1415,9 +1716,17 @@ async function restoreBlockLayout(createdBlocks) {
 
     const blocksByContainer = new Map();
     const singleBlocks = [];
+    const freePositionedBlocks = []; // НОВОЕ: Отдельный массив для блоков со свободным позиционированием
 
     for (const { element, data } of createdBlocks) {
         const layoutInfo = data.block_metadata?.layoutInfo;
+        const isFreePositioned = element.classList.contains('free-positioned');
+
+        // КРИТИЧЕСКИ ВАЖНО: Блоки со свободным позиционированием обрабатываем отдельно!
+        if (isFreePositioned) {
+            freePositionedBlocks.push({ element, data });
+            continue; // Пропускаем обычную логику размещения
+        }
 
         if (layoutInfo?.isInHorizontalContainer) {
             const containerPos = layoutInfo.containerPosition;
@@ -1449,12 +1758,86 @@ async function restoreBlockLayout(createdBlocks) {
 
     for (const item of allItems) {
         if (item.type === 'single') {
+            // КРИТИЧЕСКИ ВАЖНО: Сохраняем стили перед добавлением в DOM
+            const savedStyles = item.element.style.cssText;
+            const savedClasses = item.element.className;
+            const savedDataset = { ...item.element.dataset };
+            const isFreePositioned = item.element.classList.contains('free-positioned');
+            const savedLeft = item.element.style.left;
+            const savedTop = item.element.style.top;
+
             container.appendChild(item.element);
+
+            // Восстанавливаем стили после добавления в DOM
+            item.element.style.cssText = savedStyles;
+            item.element.className = savedClasses;
+            Object.assign(item.element.dataset, savedDataset);
+
+            // Если блок имеет свободное позиционирование, применяем позиции с !important
+            if (isFreePositioned && savedLeft && savedTop) {
+                item.element.style.setProperty('position', 'absolute', 'important');
+                item.element.style.setProperty('left', savedLeft, 'important');
+                item.element.style.setProperty('top', savedTop, 'important');
+            }
         } else {
             const horizontalContainer = document.createElement('div');
             horizontalContainer.className = 'horizontal-container';
-            item.blocks.forEach(block => horizontalContainer.appendChild(block));
+
+            item.blocks.forEach(block => {
+                // КРИТИЧЕСКИ ВАЖНО: Сохраняем стили перед добавлением в DOM
+                const savedStyles = block.style.cssText;
+                const savedClasses = block.className;
+                const savedDataset = { ...block.dataset };
+                const isFreePositioned = block.classList.contains('free-positioned');
+                const savedLeft = block.style.left;
+                const savedTop = block.style.top;
+
+                horizontalContainer.appendChild(block);
+
+                // Восстанавливаем стили после добавления в DOM
+                block.style.cssText = savedStyles;
+                block.className = savedClasses;
+                Object.assign(block.dataset, savedDataset);
+
+                // Если блок имеет свободное позиционирование, применяем позиции с !important
+                if (isFreePositioned && savedLeft && savedTop) {
+                    block.style.setProperty('position', 'absolute', 'important');
+                    block.style.setProperty('left', savedLeft, 'important');
+                    block.style.setProperty('top', savedTop, 'important');
+                }
+            });
+
             container.appendChild(horizontalContainer);
+        }
+    }
+
+    // КРИТИЧЕСКИ ВАЖНО: Размещаем блоки со свободным позиционированием В КОНЦЕ
+    // Для них не важен порядок в DOM, они позиционируются по координатам
+    for (const { element, data } of freePositionedBlocks) {
+        const savedStyles = element.style.cssText;
+        const savedClasses = element.className;
+        const savedDataset = { ...element.dataset };
+        let savedLeft = element.style.left;
+        let savedTop = element.style.top;
+
+        // КРИТИЧЕСКИ ВАЖНО: Если позиций нет в стилях, берем из dataset
+        if ((!savedLeft || !savedTop) && element.dataset.freeLeft && element.dataset.freeTop) {
+            savedLeft = element.dataset.freeLeft + 'px';
+            savedTop = element.dataset.freeTop + 'px';
+        }
+
+        container.appendChild(element);
+
+        // Восстанавливаем ВСЕ стили
+        element.style.cssText = savedStyles;
+        element.className = savedClasses;
+        Object.assign(element.dataset, savedDataset);
+
+        // Применяем позиции с !important для гарантии
+        if (savedLeft && savedTop) {
+            element.style.setProperty('position', 'absolute', 'important');
+            element.style.setProperty('left', savedLeft, 'important');
+            element.style.setProperty('top', savedTop, 'important');
         }
     }
 }
@@ -1534,7 +1917,8 @@ async function createBlockFromData(blockData) {
             block_category,
             content,
             css_classes,
-            css_styles
+            css_styles,
+            block_metadata
         } = blockData;
 
         // Проверяем, не существует ли уже элемент с таким ID
@@ -1564,9 +1948,54 @@ async function createBlockFromData(blockData) {
         blockElement.dataset.saved = 'true';
         blockElement.setAttribute('contenteditable', 'false');
 
-        // Применяем стили
+        // Восстанавливаем данные о свободном позиционировании из metadata СНАЧАЛА
+        if (block_metadata) {
+            if (block_metadata.freePositioned) {
+                blockElement.classList.add('free-positioned');
+            }
+            if (block_metadata.freeLeft !== undefined && block_metadata.freeLeft !== null) {
+                blockElement.dataset.freeLeft = block_metadata.freeLeft;
+            }
+            if (block_metadata.freeTop !== undefined && block_metadata.freeTop !== null) {
+                blockElement.dataset.freeTop = block_metadata.freeTop;
+            }
+        }
+
+        // Применяем стили ПОСЛЕ восстановления metadata
         if (css_styles) {
             blockElement.style.cssText = css_styles;
+        }
+
+        // КРИТИЧЕСКИ ВАЖНО: Если блок имеет свободное позиционирование,
+        // применяем позиции с !important для переопределения CSS правил
+        if (blockElement.classList.contains('free-positioned')) {
+            let left = blockElement.style.left;
+            let top = blockElement.style.top;
+
+            // Если позиций нет в css_styles, берем из dataset (из metadata)
+            if ((!left || !top) && blockElement.dataset.freeLeft && blockElement.dataset.freeTop) {
+                left = blockElement.dataset.freeLeft + 'px';
+                top = blockElement.dataset.freeTop + 'px';
+            }
+
+            if (left && top) {
+                blockElement.style.setProperty('position', 'absolute', 'important');
+                blockElement.style.setProperty('left', left, 'important');
+                blockElement.style.setProperty('top', top, 'important');
+            }
+        }
+
+        // КРИТИЧЕСКИ ВАЖНО: Нормализуем изображения в блоке
+        // Убираем отрицательный margin и корректируем позицию блока
+        normalizeImagesInBlock(blockElement);
+
+        // КРИТИЧЕСКИ ВАЖНО: Добавляем обработчик контекстного меню для администраторов
+        if (isUserAdmin()) {
+            if (typeof handleBlockContextMenu === 'function') {
+                blockElement.addEventListener('contextmenu', handleBlockContextMenu);
+            } else if (typeof window.BlocksSystem !== 'undefined' && typeof window.BlocksSystem.handleBlockContextMenu === 'function') {
+                blockElement.addEventListener('contextmenu', window.BlocksSystem.handleBlockContextMenu);
+            }
         }
 
         return blockElement;
@@ -1580,27 +2009,55 @@ async function createBlockFromData(blockData) {
  * Размещение блока в правильной позиции
  */
 function placeBlockAtCorrectPosition(blockElement, container, positionIndex) {
-    // Получаем все существующие блоки, исключая тот, который мы добавляем
-    const existingBlocks = Array.from(container.querySelectorAll('.content-block'))
-        .filter(block => block !== blockElement);
+    console.log('🔄 placeBlockAtCorrectPosition:', {
+        positionIndex,
+        containerChildren: container.children.length
+    });
 
-    if (positionIndex === undefined || positionIndex === null || positionIndex >= existingBlocks.length) {
+    // Получаем все существующие элементы в контейнере (не только блоки)
+    const allElements = Array.from(container.children);
+
+    // Преобразуем positionIndex в реальный индекс
+    // positionIndex хранится с шагом 100, поэтому делим на 100
+    let targetIndex;
+
+    if (typeof positionIndex === 'number' && positionIndex >= 0) {
+        // Интерпретируем positionIndex с шагом 100
+        targetIndex = Math.floor(positionIndex / 100);
+        console.log('📍 Вычисленный targetIndex:', targetIndex);
+    } else {
+        // Если позиция не определена, добавляем в конец
+        targetIndex = allElements.length;
+        console.log('📍 Позиция не определена, добавляем в конец');
+    }
+
+    // Убеждаемся, что блок не находится уже в контейнере
+    if (blockElement.parentNode === container) {
+        container.removeChild(blockElement);
+    }
+
+    if (targetIndex >= allElements.length) {
         // Добавляем в конец
         container.appendChild(blockElement);
-    } else if (positionIndex <= 0) {
+        console.log('✅ Блок добавлен в конец контейнера');
+    } else if (targetIndex <= 0) {
         // Добавляем в начало
-        if (existingBlocks.length > 0) {
-            container.insertBefore(blockElement, existingBlocks[0]);
+        if (allElements.length > 0) {
+            container.insertBefore(blockElement, allElements[0]);
+            console.log('✅ Блок добавлен в начало контейнера');
         } else {
             container.appendChild(blockElement);
+            console.log('✅ Блок добавлен в пустой контейнер');
         }
     } else {
         // Вставляем в указанную позицию
-        const targetBlock = existingBlocks[positionIndex];
-        if (targetBlock) {
-            container.insertBefore(blockElement, targetBlock);
+        const targetElement = allElements[targetIndex];
+        if (targetElement) {
+            container.insertBefore(blockElement, targetElement);
+            console.log('✅ Блок вставлен в позицию:', targetIndex);
         } else {
             container.appendChild(blockElement);
+            console.log('✅ Блок добавлен в конец (целевой элемент не найден)');
         }
     }
 }
@@ -1619,11 +2076,32 @@ async function saveBlockToDatabase(blockElement, categoryKey, blockId, positionD
 
         // Вычисляем позицию блока
         const positionIndex = calculateBlockPosition(blockElement);
+        const containerPosition = Math.floor(positionIndex / 100);
 
         // Получаем информацию о блоке из библиотеки
         const blockInfo = getBlockInfo(categoryKey, blockId);
 
+        // Определяем информацию о позиционировании
+        const horizontalContainer = blockElement.closest('.horizontal-container');
+        const layoutInfo = {
+            containerPosition: containerPosition,
+            isInHorizontalContainer: !!horizontalContainer
+        };
 
+        if (horizontalContainer) {
+            // Дополнительная информация для горизонтальных контейнеров
+            const blocksInContainer = Array.from(horizontalContainer.querySelectorAll('.content-block'));
+            layoutInfo.horizontalPosition = blocksInContainer.indexOf(blockElement);
+            layoutInfo.totalBlocksInContainer = blocksInContainer.length;
+        }
+
+        // ===== SEO ОПТИМИЗАЦИЯ =====
+        // Анализируем контент блока на наличие ключевых слов
+        let seoData = { score: 0, keywords: [], hasKeywords: false };
+        if (typeof analyzeTextForSEO === 'function') {
+            const textContent = blockElement.textContent || blockElement.innerText || '';
+            seoData = analyzeTextForSEO(textContent);
+        }
 
         // Подготавливаем данные для сохранения
         const blockData = {
@@ -1637,25 +2115,49 @@ async function saveBlockToDatabase(blockElement, categoryKey, blockId, positionD
                 blockName: blockInfo?.name || blockId,
                 blockDescription: blockInfo?.description || '',
                 createdAt: new Date().toISOString(),
-                ...positionData
+                updatedAt: new Date().toISOString(),
+                ...positionData,
+                layoutInfo: layoutInfo,
+                // Добавляем SEO-метаданные
+                seo: {
+                    score: seoData.score,
+                    keywords: seoData.keywords.map(k => k.keyword),
+                    keywordDetails: seoData.keywords,
+                    hasKeywords: seoData.hasKeywords,
+                    optimized: true,
+                    analyzedAt: new Date().toISOString()
+                }
             },
             containerSelector: positionData.containerSelector || '.page-content',
             cssClasses: blockElement.className,
             cssStyles: blockElement.style.cssText || null
         };
 
+        console.log('💾 Сохраняем блок с данными:', {
+            elementId,
+            blockType: blockId,
+            positionIndex,
+            layoutInfo
+        });
+
+        // Подготавливаем данные для отправки
+        const requestData = {
+            page_id: getCurrentPageId(),
+            block_data: blockData
+        };
+
         // Отправляем запрос на сохранение
-        const apiUrl = getApiBaseUrl();
-        const response = await fetch(`${apiUrl}/api/blocks/save`, {
+        const response = await fetch(`${getApiBaseUrl()}/api/blocks/save`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                page_id: getCurrentPageId(),
-                block_data: blockData
-            })
+            body: JSON.stringify(requestData)
         });
+
+        console.log('📡 ОТВЕТ СЕРВЕРА:');
+        console.log('Status:', response.status);
+        console.log('Status Text:', response.statusText);
 
         const result = await response.json();
 
@@ -1725,9 +2227,17 @@ function getElementSelector(element) {
 function getCurrentPageId() {
     const path = window.location.pathname;
     const pageName = path.split('/').pop().replace('.html', '');
-    if (pageName === 'index') return 'home';
-    if (pageName === 'test-blocks-system') return 'test-blocks-system';
-    return pageName || 'home';
+    let pageId;
+    if (pageName === 'index') pageId = 'home';
+    else if (pageName === 'test-blocks-system') pageId = 'test-blocks-system';
+    else pageId = pageName || 'home';
+
+    console.log('🔍 getCurrentPageId():');
+    console.log('- path:', path);
+    console.log('- pageName:', pageName);
+    console.log('- pageId:', pageId);
+
+    return pageId;
 }
 
 /**
@@ -1786,6 +2296,13 @@ function setupBlockAutoSave() {
     document.addEventListener('blur', (e) => {
         const blockElement = e.target.closest('.content-block[data-is-block="true"]');
         if (blockElement) {
+            // ===== SEO ОПТИМИЗАЦИЯ =====
+            // Обновляем SEO-атрибуты при потере фокуса
+            if (typeof updateSEOOnEdit === 'function') {
+                const editedElement = e.target;
+                updateSEOOnEdit(editedElement);
+            }
+
             // Сохраняем сразу при потере фокуса
             saveBlockContentToDatabase(blockElement);
         }
@@ -1796,6 +2313,13 @@ function setupBlockAutoSave() {
         if (blockElement) {
             clearTimeout(blockElement.saveTimeout);
             blockElement.saveTimeout = setTimeout(() => {
+                // ===== SEO ОПТИМИЗАЦИЯ =====
+                // Обновляем SEO-атрибуты при редактировании
+                if (typeof updateSEOOnEdit === 'function') {
+                    const editedElement = e.target;
+                    updateSEOOnEdit(editedElement);
+                }
+
                 saveBlockContentToDatabase(blockElement);
             }, 1000);
         }
@@ -1828,6 +2352,14 @@ async function saveBlockContentToDatabase(blockElement) {
             containerPosition: Array.from(document.querySelector('.page-content').children).indexOf(blockElement)
         };
 
+        // ===== SEO ОПТИМИЗАЦИЯ =====
+        // Анализируем контент на наличие ключевых слов
+        let seoData = { score: 0, keywords: [], hasKeywords: false };
+        if (typeof analyzeTextForSEO === 'function') {
+            const textContent = blockElement.textContent || blockElement.innerText || '';
+            seoData = analyzeTextForSEO(textContent);
+        }
+
         const blockData = {
             elementId: elementId,
             blockType: blockElement.dataset.blockType || 'text',
@@ -1837,7 +2369,19 @@ async function saveBlockContentToDatabase(blockElement) {
             positionIndex: positionIndex,
             metadata: {
                 updatedAt: new Date().toISOString(),
-                layoutInfo: layoutInfo
+                layoutInfo: layoutInfo,
+                // Добавляем данные о свободном позиционировании
+                freePositioned: blockElement.classList.contains('free-positioned'),
+                freeLeft: blockElement.dataset.freeLeft || null,
+                freeTop: blockElement.dataset.freeTop || null,
+                // Добавляем SEO-метаданные
+                seo: {
+                    score: seoData.score,
+                    keywords: seoData.keywords.map(k => k.keyword),
+                    hasKeywords: seoData.hasKeywords,
+                    optimized: true,
+                    analyzedAt: new Date().toISOString()
+                }
             },
             cssClasses: blockElement.className || 'content-block',
             cssStyles: inlineStyles
@@ -1849,8 +2393,7 @@ async function saveBlockContentToDatabase(blockElement) {
             blockData.containerSelector = '.page-content';
         }
 
-        const apiUrl = getApiBaseUrl();
-        const response = await fetch(`${apiUrl}/api/blocks/save`, {
+        const response = await fetch(`${getApiBaseUrl()}/api/blocks/save`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1922,8 +2465,7 @@ async function updateAllBlockPositions() {
  */
 async function saveBlockWithPosition(block, elementId, position, layoutInfo) {
     try {
-        const apiUrl = getApiBaseUrl();
-        await fetch(`${apiUrl}/api/blocks/save`, {
+        await fetch(`${getApiBaseUrl()}/api/blocks/save`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1977,8 +2519,7 @@ async function deleteBlockFromDatabase(blockElement) {
         const elementId = blockElement.dataset.editId || blockElement.dataset.blockId;
         if (!elementId) return { success: false, error: 'Нет ID элемента' };
 
-        const apiUrl = getApiBaseUrl();
-        const response = await fetch(`${apiUrl}/api/blocks/delete`, {
+        const response = await fetch(`${getApiBaseUrl()}/api/blocks/delete`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json'
@@ -2016,6 +2557,13 @@ async function deleteBlock(blockElement) {
         // Обновляем позиции оставшихся блоков
         await updateAllBlockPositions();
 
+        // КРИТИЧЕСКИ ВАЖНО: Обновляем высоту контейнера после удаления блока
+        if (window.FreePositioning && typeof window.FreePositioning.updateContainerHeight === 'function') {
+            setTimeout(() => {
+                window.FreePositioning.updateContainerHeight();
+            }, 100);
+        }
+
         if (result.success) {
             showBlockNotification('Блок удален!', 'success');
         } else {
@@ -2038,7 +2586,10 @@ window.NewBlockSystem = {
     updatePositions: updateAllBlockPositions,
     deleteBlock: deleteBlock,
     deleteBlockFromDatabase: deleteBlockFromDatabase,
-    forceAllBlocksSave: forceAllBlocksSave
+    forceAllBlocksSave: forceAllBlocksSave,
+    addDragHandles: addDragHandlesToBlocks,
+    removeDragHandles: removeAllDragHandles,
+    removeDebugJsonData: removeDebugJsonData
 };
 
 // Если на странице присутствует InlinePageEditor из main.js, сохраним ссылку глобально
@@ -2080,6 +2631,7 @@ window.NewBlockSystem = {
     saveBlockContent: saveBlockContentToDatabase,
     forceAllBlocksSave: forceAllBlocksSave,
     updatePositions: updateAllBlockPositions,
+    removeDebugJsonData: removeDebugJsonData,
     moveBlockDown: function(blockElement) {
         return moveBlockDown(blockElement);
     },

@@ -1,0 +1,965 @@
+/* ===== RICH TEXT EDITOR - СТИЛЬ WORD ===== */
+
+/* Импорт Quill CSS */
+@import url('https://cdn.quilljs.com/1.3.7/quill.snow.css');
+
+/* Контейнер редактора */
+.rich-text-editor-container {
+    position: relative;
+    width: 100%;
+    max-width: 2040px; /* Увеличено в 1.7 раза (1200px * 1.7 = 2040px) */
+    margin: 0 auto;
+    padding: 40px 20px;
+    min-height: calc(100vh - 200px);
+}
+
+/* Обертка редактора с прозрачным фоном */
+.rich-text-editor-wrapper {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    position: relative; /* КРИТИЧЕСКИ ВАЖНО для позиционирования resize контейнера */
+}
+
+/* Контейнер Quill должен быть relative для правильного позиционирования */
+.ql-container {
+    position: relative;
+}
+
+/* Панель инструментов - стилизация под сайт */
+.ql-toolbar.ql-snow {
+    background: rgba(248, 244, 230, 0.95);
+    border: 2px solid rgba(255, 215, 0, 0.4); /* Золотая граница, более заметная */
+    border-bottom: 2px solid rgba(255, 215, 0, 0.6); /* Нижняя граница еще более заметная */
+    border-radius: 8px 8px 0 0;
+    padding: 12px 16px;
+    box-shadow:
+        inset 0 2px 4px rgba(240, 225, 153, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.1),
+        0 0 20px rgba(255, 215, 0, 0.15); /* Легкое золотое свечение */
+
+    /* Мягкая матовая текстура как у подвала */
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(245, 230, 163, 0.95) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(240, 225, 153, 0.95) 0%, transparent 50%),
+        linear-gradient(135deg,
+            rgba(245, 230, 163, 1) 0%,
+            rgba(240, 225, 153, 1) 25%,
+            rgba(235, 220, 143, 1) 50%,
+            rgba(230, 215, 133, 1) 75%,
+            rgba(225, 210, 123, 1) 100%);
+
+    position: sticky;
+    top: 80px;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+    display: none; /* Скрываем по умолчанию */
+}
+
+/* Показываем панель инструментов только в режиме редактирования */
+body.edit-mode .ql-toolbar.ql-snow {
+    display: block;
+}
+
+/* Кнопки панели инструментов */
+.ql-toolbar.ql-snow .ql-formats {
+    margin-right: 15px;
+}
+
+.ql-toolbar.ql-snow button {
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+    margin: 0 2px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    background: transparent;
+    border: 1px solid transparent;
+}
+
+.ql-toolbar.ql-snow button:hover {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.3);
+}
+
+.ql-toolbar.ql-snow button.ql-active {
+    background: rgba(255, 215, 0, 0.3);
+    border-color: rgba(255, 215, 0, 0.5);
+}
+
+.ql-toolbar.ql-snow .ql-stroke {
+    stroke: #4b2e14;
+}
+
+.ql-toolbar.ql-snow .ql-fill {
+    fill: #4b2e14;
+}
+
+.ql-toolbar.ql-snow button:hover .ql-stroke {
+    stroke: #FFD700;
+}
+
+.ql-toolbar.ql-snow button:hover .ql-fill {
+    fill: #FFD700;
+}
+
+.ql-toolbar.ql-snow button.ql-active .ql-stroke {
+    stroke: #FFD700;
+}
+
+.ql-toolbar.ql-snow button.ql-active .ql-fill {
+    fill: #FFD700;
+}
+
+/* Выпадающие списки */
+.ql-toolbar.ql-snow .ql-picker {
+    color: #4b2e14;
+}
+
+.ql-toolbar.ql-snow .ql-picker-label {
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 4px 8px;
+    transition: all 0.2s ease;
+}
+
+.ql-toolbar.ql-snow .ql-picker-label:hover {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.3);
+}
+
+.ql-toolbar.ql-snow .ql-picker-options {
+    background: #f8f4e6;
+    border: 1px solid #e8dcc6;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 4px;
+}
+
+.ql-toolbar.ql-snow .ql-picker-item {
+    color: #4b2e14;
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.ql-toolbar.ql-snow .ql-picker-item:hover {
+    background: rgba(255, 215, 0, 0.2);
+}
+
+.ql-toolbar.ql-snow .ql-picker-item.ql-selected {
+    background: rgba(255, 215, 0, 0.3);
+    color: #4b2e14;
+}
+
+/* Размеры шрифтов в выпадающем списке */
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="8px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="8px"]::before {
+    content: '8';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="9px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="9px"]::before {
+    content: '9';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="10px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="10px"]::before {
+    content: '10';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="11px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="11px"]::before {
+    content: '11';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="12px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="12px"]::before {
+    content: '12';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="14px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="14px"]::before {
+    content: '14';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="16px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="16px"]::before {
+    content: '16';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="18px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="18px"]::before {
+    content: '18';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="20px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="20px"]::before {
+    content: '20';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="22px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="22px"]::before {
+    content: '22';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="24px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="24px"]::before {
+    content: '24';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="26px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="26px"]::before {
+    content: '26';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="28px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="28px"]::before {
+    content: '28';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="36px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="36px"]::before {
+    content: '36';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="48px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="48px"]::before {
+    content: '48';
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="72px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="72px"]::before {
+    content: '72';
+}
+
+/* Основное поле редактора - БЕЗ рамки вне режима редактирования */
+.ql-container.ql-snow {
+    background: transparent;
+    border: none; /* Убираем рамку по умолчанию */
+    border-radius: 0;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #ffffff; /* БЕЛЫЙ ЦВЕТ ПО УМОЛЧАНИЮ */
+    min-height: 600px;
+    box-shadow: none; /* Убираем свечение вне режима редактирования */
+}
+
+/* В режиме редактирования показываем рамку (кроме верхней, т.к. есть панель инструментов) */
+body.edit-mode .ql-container.ql-snow {
+    border: 2px solid rgba(255, 215, 0, 0.4); /* Золотая граница */
+    border-top: none; /* Убираем верхнюю границу (т.к. есть панель инструментов) */
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.15); /* Легкое золотое свечение */
+}
+
+.ql-editor {
+    padding: 40px 60px;
+    min-height: 600px;
+    background: transparent;
+    color: #ffffff !important; /* БЕЛЫЙ ЦВЕТ ПО УМОЛЧАНИЮ */
+}
+
+/* Placeholder - показываем ТОЛЬКО в режиме редактирования */
+body:not(.edit-mode) .ql-editor.ql-blank::before {
+    display: none !important; /* Скрываем placeholder вне режима редактирования */
+}
+
+body.edit-mode .ql-editor.ql-blank::before {
+    color: rgba(255, 255, 255, 0.5); /* Белый полупрозрачный для placeholder */
+    font-style: italic;
+    left: 60px;
+    right: 60px;
+}
+
+/* Стили текста в редакторе - ВСЕ БЕЛЫМ ЦВЕТОМ */
+.ql-editor h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 32px; /* Размер в пикселях, как в Word */
+    font-weight: 600;
+    color: #ffffff !important;
+    margin: 0.67em 0;
+    line-height: 1.2;
+}
+
+.ql-editor h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 24px; /* Размер в пикселях, как в Word */
+    font-weight: 600;
+    color: #ffffff !important;
+    margin: 0.75em 0;
+    line-height: 1.3;
+}
+
+.ql-editor h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 18px; /* Размер в пикселях, как в Word */
+    font-weight: 500;
+    color: #ffffff !important;
+    margin: 0.83em 0;
+    line-height: 1.4;
+}
+
+.ql-editor h4 {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: #ffffff !important;
+    margin: 0.83em 0;
+    line-height: 1.4;
+}
+
+.ql-editor h5 {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff !important;
+    margin: 0.83em 0;
+    line-height: 1.4;
+}
+
+.ql-editor h6 {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #ffffff !important;
+    margin: 0.83em 0;
+    line-height: 1.4;
+}
+
+.ql-editor p {
+    margin: 1em 0;
+    color: #ffffff !important;
+    font-size: 16px; /* Размер в пикселях, как в Word */
+}
+
+.ql-editor strong {
+    font-weight: 600;
+    color: inherit; /* Наследует цвет от родителя */
+}
+
+.ql-editor em {
+    font-style: italic;
+    color: inherit;
+}
+
+.ql-editor u {
+    text-decoration: underline;
+    color: inherit;
+}
+
+.ql-editor a {
+    color: #FFD700;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+    transition: all 0.3s ease;
+    outline: none; /* Убираем рамку при нажатии */
+}
+
+.ql-editor a:hover {
+    color: #FFA500;
+    border-bottom-color: #FFA500;
+}
+
+.ql-editor a:focus,
+.ql-editor a:active {
+    outline: none; /* Убираем рамку при фокусе и активном состоянии */
+}
+
+.ql-editor blockquote {
+    border-left: 4px solid #FFD700;
+    padding-left: 16px;
+    margin: 1em 0;
+    color: #ffffff !important;
+    font-style: italic;
+    background: rgba(255, 215, 0, 0.05);
+    padding: 12px 16px;
+    border-radius: 0 4px 4px 0;
+}
+
+.ql-editor ul,
+.ql-editor ol {
+    padding-left: 1.5em;
+    margin: 1em 0;
+}
+
+.ql-editor li {
+    margin: 0.5em 0;
+    color: #ffffff !important; /* БЕЛЫЙ ЦВЕТ для элементов списка */
+}
+
+/* Стили для чекбоксов (списки с галочками для планов) */
+.ql-editor ul[data-checked="true"],
+.ql-editor ul[data-checked="false"] {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.ql-editor li[data-checked="true"],
+.ql-editor li[data-checked="false"] {
+    position: relative;
+    padding-left: 2em;
+    color: #ffffff !important;
+}
+
+.ql-editor li[data-checked="true"]::before,
+.ql-editor li[data-checked="false"]::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.25em;
+    width: 1.2em;
+    height: 1.2em;
+    border: 2px solid #FFD700;
+    border-radius: 3px;
+    background: rgba(255, 215, 0, 0.1);
+}
+
+.ql-editor li[data-checked="true"]::before {
+    background: #FFD700;
+}
+
+.ql-editor li[data-checked="true"]::after {
+    content: '✓';
+    position: absolute;
+    left: 0.3em;
+    top: 0.1em;
+    color: #3a1f0f;
+    font-weight: bold;
+    font-size: 1em;
+}
+
+/* Стили для изображений */
+.ql-editor img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 0.5em;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-block;
+    vertical-align: top;
+}
+
+.ql-editor img:hover {
+    box-shadow: 0 6px 16px rgba(255, 215, 0, 0.4);
+}
+
+/* Выравнивание изображений с обтеканием текстом */
+.ql-editor img.align-left {
+    float: left;
+    margin-right: 1em;
+    margin-left: 0;
+}
+
+.ql-editor img.align-center {
+    display: block;
+    float: none;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.ql-editor img.align-right {
+    float: right;
+    margin-left: 1em;
+    margin-right: 0;
+}
+
+/* УДАЛЕНО: Старые общие стили для video/iframe конфликтовали с resize
+   Теперь используем только специфичные правила ниже */
+
+/* КРИТИЧЕСКИ ВАЖНО: .ql-video это САМ IFRAME, а не обертка! */
+.ql-editor iframe.ql-video {
+    /* НЕ задаем width и height здесь - они устанавливаются через inline стили при resize */
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-block;
+    vertical-align: top;
+    margin: 0.5em;
+}
+
+/* Начальные размеры для iframe без inline стилей */
+.ql-editor iframe.ql-video:not([style*="width"]) {
+    width: 800px;
+    height: 450px;
+}
+
+/* Стили для обычных video элементов (загруженные файлы) */
+.ql-editor video {
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-block;
+    vertical-align: top;
+    margin: 0.5em;
+}
+
+/* Начальные размеры для video без inline стилей */
+.ql-editor video:not([style*="width"]) {
+    width: 800px;
+    height: 450px;
+}
+
+.ql-editor iframe.ql-video:hover,
+.ql-editor video:hover {
+    box-shadow: 0 6px 16px rgba(255, 215, 0, 0.4);
+}
+
+/* КРИТИЧЕСКИ ВАЖНО: В режиме редактирования отключаем pointer-events на iframe и video */
+body.edit-mode .ql-editor iframe.ql-video,
+body.edit-mode .ql-editor video {
+    pointer-events: none;
+}
+
+/* В режиме просмотра включаем события обратно */
+body:not(.edit-mode) .ql-editor iframe.ql-video,
+body:not(.edit-mode) .ql-editor video,
+.ql-container.ql-disabled .ql-editor iframe.ql-video,
+.ql-container.ql-disabled .ql-editor video {
+    pointer-events: auto;
+}
+
+/* Выравнивание видео с обтеканием текстом */
+.ql-editor video.align-left,
+.ql-editor iframe.ql-video.align-left {
+    float: left;
+    margin-right: 1em;
+    margin-left: 0;
+}
+
+.ql-editor video.align-center,
+.ql-editor iframe.ql-video.align-center {
+    display: block;
+    float: none;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.ql-editor video.align-right,
+.ql-editor iframe.ql-video.align-right {
+    float: right;
+    margin-left: 1em;
+    margin-right: 0;
+}
+
+/* ===== RESIZE КОНТЕЙНЕР ДЛЯ МЕДИА ===== */
+.ql-editor .resize-container {
+    position: absolute;
+    border: 2px dashed #FFD700;
+    pointer-events: none;
+    z-index: 1999;
+    box-sizing: border-box;
+}
+
+.ql-editor .resize-container.active {
+    pointer-events: auto;
+}
+
+/* Resize handles */
+.ql-editor .resize-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #FFD700;
+    border: 2px solid #4A2C17;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    z-index: 2000;
+    border-radius: 2px;
+}
+
+/* Позиционирование handles */
+.ql-editor .resize-handle-nw {
+    top: -5px;
+    left: -5px;
+    cursor: nw-resize;
+}
+
+.ql-editor .resize-handle-n {
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: n-resize;
+}
+
+.ql-editor .resize-handle-ne {
+    top: -5px;
+    right: -5px;
+    cursor: ne-resize;
+}
+
+.ql-editor .resize-handle-e {
+    top: 50%;
+    right: -5px;
+    transform: translateY(-50%);
+    cursor: e-resize;
+}
+
+.ql-editor .resize-handle-se {
+    bottom: -5px;
+    right: -5px;
+    cursor: se-resize;
+}
+
+.ql-editor .resize-handle-s {
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: s-resize;
+}
+
+.ql-editor .resize-handle-sw {
+    bottom: -5px;
+    left: -5px;
+    cursor: sw-resize;
+}
+
+.ql-editor .resize-handle-w {
+    top: 50%;
+    left: -5px;
+    transform: translateY(-50%);
+    cursor: w-resize;
+}
+
+/* Панель инструментов для медиа */
+.ql-editor .media-resize-toolbar {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(248, 244, 230, 0.95);
+    border: 2px solid #FFD700;
+    border-radius: 8px;
+    padding: 4px 8px;
+    display: flex;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    pointer-events: auto;
+}
+
+.ql-editor .media-align-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    color: #4A2C17;
+}
+
+.ql-editor .media-align-btn:hover {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: #FFD700;
+    transform: scale(1.1);
+}
+
+.ql-editor .media-align-btn:active {
+    transform: scale(0.95);
+}
+
+/* Выделение текста */
+.ql-editor ::selection {
+    background: rgba(255, 215, 0, 0.3);
+}
+
+/* Курсор */
+.ql-editor .ql-cursor {
+    background-color: #4b2e14;
+}
+
+/* Режим только для чтения */
+.ql-container.ql-disabled .ql-editor {
+    cursor: default;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .rich-text-editor-container {
+        padding: 20px 10px;
+    }
+    
+    .ql-editor {
+        padding: 20px 30px;
+    }
+    
+    .ql-editor.ql-blank::before {
+        left: 30px;
+        right: 30px;
+    }
+    
+    .ql-toolbar.ql-snow {
+        padding: 8px 12px;
+        top: 60px;
+    }
+    
+    .ql-toolbar.ql-snow button {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+/* Анимация появления */
+@keyframes fadeInEditor {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.rich-text-editor-wrapper {
+    animation: fadeInEditor 0.5s ease-out;
+}
+
+/* Индикатор сохранения */
+.editor-save-indicator {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: rgba(248, 244, 230, 0.95);
+    border: 1px solid #e8dcc6;
+    border-radius: 8px;
+    padding: 12px 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 14px;
+    color: #4b2e14;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.editor-save-indicator.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.editor-save-indicator.success {
+    border-color: #4CAF50;
+}
+
+.editor-save-indicator.error {
+    border-color: #f44336;
+}
+
+/* Пользовательские шрифты для Quill */
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="cinzel"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="cinzel"]::before {
+    content: 'Cinzel';
+    font-family: 'Cinzel', serif !important;
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="open-sans"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="open-sans"]::before {
+    content: 'Open Sans';
+    font-family: 'Open Sans', sans-serif !important;
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="serif"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="serif"]::before {
+    content: 'Serif';
+    font-family: serif !important;
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="monospace"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="monospace"]::before {
+    content: 'Monospace';
+    font-family: monospace !important;
+}
+
+/* Применение шрифтов в редакторе */
+.ql-font-cinzel {
+    font-family: 'Cinzel', serif !important;
+}
+
+.ql-font-open-sans {
+    font-family: 'Open Sans', sans-serif !important;
+}
+
+.ql-font-serif {
+    font-family: serif !important;
+}
+
+.ql-font-monospace {
+    font-family: monospace !important;
+}
+
+/* Размеры шрифтов в пикселях (как в Microsoft Word) */
+.ql-size-8px { font-size: 8px !important; }
+.ql-size-9px { font-size: 9px !important; }
+.ql-size-10px { font-size: 10px !important; }
+.ql-size-11px { font-size: 11px !important; }
+.ql-size-12px { font-size: 12px !important; }
+.ql-size-14px { font-size: 14px !important; }
+.ql-size-16px { font-size: 16px !important; }
+.ql-size-18px { font-size: 18px !important; }
+.ql-size-20px { font-size: 20px !important; }
+.ql-size-22px { font-size: 22px !important; }
+.ql-size-24px { font-size: 24px !important; }
+.ql-size-26px { font-size: 26px !important; }
+.ql-size-28px { font-size: 28px !important; }
+.ql-size-36px { font-size: 36px !important; }
+.ql-size-48px { font-size: 48px !important; }
+.ql-size-72px { font-size: 72px !important; }
+
+/* Белый цвет для всех элементов с размерами */
+.ql-editor [class*="ql-size-"] {
+    color: inherit;
+}
+
+/* ===== МОДАЛЬНОЕ ОКНО ВЫБОРА СПОСОБА ДОБАВЛЕНИЯ ВИДЕО ===== */
+
+.video-choice-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.video-choice-modal.show {
+    display: flex;
+    opacity: 1;
+}
+
+.video-choice-dialog {
+    background: #f8f4e6;
+    border: 2px solid #e8dcc6;
+    border-radius: 12px;
+    box-shadow:
+        inset 0 2px 4px rgba(240, 225, 153, 0.3),
+        0 12px 40px rgba(0, 0, 0, 0.4);
+
+    /* Мягкая матовая текстура как у подвала */
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(245, 230, 163, 0.95) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(232, 220, 198, 0.9) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(248, 244, 230, 0.95) 0%, rgba(232, 220, 198, 0.95) 100%);
+
+    padding: 30px;
+    min-width: 400px;
+    max-width: 500px;
+    text-align: center;
+    transform: scale(0.9) translateY(-20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.video-choice-modal.show .video-choice-dialog {
+    transform: scale(1) translateY(0);
+}
+
+.video-choice-title {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #4b2e14;
+    text-shadow:
+        1px 1px 2px rgba(255, 255, 255, 0.8),
+        2px 2px 4px rgba(184, 148, 31, 0.2);
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+}
+
+.video-choice-message {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 15px;
+    color: #6b5d4f;
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+.video-choice-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.video-choice-btn {
+    padding: 12px 24px;
+    background: #8b7355;
+    color: #ffffff;
+    border: 1px solid #8b7355;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.5px;
+    min-width: 180px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.video-choice-btn:hover {
+    background: #6b5d4f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.video-choice-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.video-choice-btn.primary {
+    background: linear-gradient(135deg, #8b7355 0%, #6b5d4f 100%);
+    border-color: #6b5d4f;
+}
+
+.video-choice-btn.secondary {
+    background: #a89080;
+    border-color: #a89080;
+}
+
+.video-choice-btn.secondary:hover {
+    background: #8b7355;
+}
+
+.video-choice-btn.cancel {
+    background: transparent;
+    color: #8b7355;
+    border-color: #d0c4a8;
+}
+
+.video-choice-btn.cancel:hover {
+    background: rgba(139, 115, 85, 0.1);
+    border-color: #8b7355;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .video-choice-dialog {
+        min-width: 90%;
+        max-width: 90%;
+        padding: 25px;
+    }
+
+    .video-choice-title {
+        font-size: 20px;
+    }
+
+    .video-choice-message {
+        font-size: 14px;
+    }
+
+    .video-choice-buttons {
+        flex-direction: column;
+    }
+
+    .video-choice-btn {
+        width: 100%;
+        min-width: auto;
+    }
+}

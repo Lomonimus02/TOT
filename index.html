@@ -3,11 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Пирамида ТОТА</title>
+
+    <!-- SEO Оптимизация -->
+    <title>Пирамида ТОТА - Древние Знания Египта, Таро, Магия, Реинкарнация | Школа Эзотерики</title>
+    <meta name="description" content="Пирамида ТОТА - центр древних знаний Египта. Обучение таро, магии, работа с чакрами и аурой. Познайте тайны арканов, реинкарнации, судьбы. Экстрасенсорика, зодиак, египетские боги. Храм Исиды, магические практики, духовное развитие души.">
+    <meta name="keywords" content="пирамида тота, таро, магия, египет, боги египта, реинкарнация, арканы, судьба, будущее, чудо, душа, магический, волшебный, экстрасенсы, зодиак, пирамида, проклятье, перерождение, заклятье, аура, чакры, эзотерика, мистика, оккультизм, предсказание, гадание, карты таро, древние знания, храм исиды, духовное развитие, энергетика, медитация, астрология, нумерология, руны, мантика, ясновидение, целительство, биоэнергетика, кармическая астрология">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pyramid-tota.ru/">
+    <meta property="og:title" content="Пирамида ТОТА - Древние Знания Египта, Таро, Магия, Реинкарнация">
+    <meta property="og:description" content="Центр древних знаний Египта. Обучение таро, магии, работа с чакрами и аурой. Познайте тайны арканов, реинкарнации, судьбы. Экстрасенсорика, зодиак, египетские боги.">
+    <meta property="og:image" content="https://pyramid-tota.ru/images/uploads/logo.png">
+    <meta property="og:locale" content="ru_RU">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://pyramid-tota.ru/">
+    <meta property="twitter:title" content="Пирамида ТОТА - Древние Знания Египта, Таро, Магия">
+    <meta property="twitter:description" content="Центр древних знаний Египта. Обучение таро, магии, работа с чакрами и аурой. Познайте тайны арканов, реинкарнации, судьбы.">
+    <meta property="twitter:image" content="https://pyramid-tota.ru/images/uploads/logo.png">
+
+    <!-- Дополнительные SEO теги -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="author" content="Пирамида ТОТА">
+    <meta name="language" content="Russian">
+    <meta name="revisit-after" content="7 days">
+    <meta name="theme-color" content="#1a1a2e">
+    <link rel="canonical" href="https://pyramid-tota.ru/">
+
+    <!-- Structured Data / Schema.org -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": "Пирамида ТОТА",
+      "description": "Центр древних знаний Египта. Обучение таро, магии, эзотерике, работа с энергиями",
+      "url": "https://pyramid-tota.ru",
+      "logo": "https://pyramid-tota.ru/images/uploads/logo.png",
+      "sameAs": [
+        "https://vk.com/pyramid_tota",
+        "https://t.me/pyramid_tota"
+      ],
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "RU",
+        "addressLocality": "Россия"
+      },
+      "offers": {
+        "@type": "Offer",
+        "category": "Эзотерическое образование"
+      }
+    }
+    </script>
+
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/frame.css">
+    <link rel="stylesheet" href="css/search.css">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Предзагрузка фоновых изображений для плавного переключения -->
+    <link rel="preload" href="images/backgrounds/cosmic-bg.webp" as="image" type="image/webp">
+    <link rel="preload" href="images/backgrounds/cosmic-bg.jpg" as="image" type="image/jpeg">
+    <link rel="preload" href="images/decor/frame_extracted.png" as="image" type="image/png">
 </head>
 <body class="homepage">
     <!-- Полноэкранная египетская рамка -->
@@ -16,11 +75,18 @@
     <!-- Космический фон -->
     <div class="cosmic-background"></div>
 
+    <!-- Верхнее фото-меню с центральным слотом для кнопки входа -->
+    <div class="top-photo-menu">
+        <div class="top-photo-center-slot"></div>
+    </div>
+
+
     <!-- Логотип сайта -->
     <div class="site-logo">
         <a href="index.html" title="Главная страница">
             <img src="images/uploads/logo.png" alt="Пирамида ТОТА - Логотип">
         </a>
+        <a href="index.html" class="home-link" title="Перейти на главную страницу">Главная</a>
     </div>
 
 
@@ -29,16 +95,19 @@
         <div class="container">
             <!-- Заголовок сайта -->
             <header class="site-header">
-                <h1 class="site-title" data-edit-id="site-title">Пирамида ТОТА</h1>
-                <p class="site-subtitle" data-edit-id="site-subtitle">Древние знания для современного мира</p>
+                <h1 class="site-title" data-edit-id="site-title">Пирамида Тота и храм Исиды</h1>
+                <div class="site-subtitle-image">
+                    <img src="images/decor/Symbols.png" alt="Символы Пирамиды Тота и храма Исиды" class="symbols-image">
+                </div>
             </header>
 
             <!-- Основные картуши -->
             <div class="cartouches-container">
                 <!-- Левый картуш - Основное меню (заменено изображением) -->
                 <div class="cartouche left-cartouche image-cartouche">
+                    <h2 class="cartouche-title">КОМПЛЕКС ПИРАМИДЫ ТОТА</h2>
                     <div class="image-container main-menu-image">
-                        <img src="images/uploads/ChatGPT Image 15 авг. 2025 г., 23_49_46.png"
+                        <img src="images/uploads/cartouche-background-new.png"
                              alt="Основное меню - Пирамида Тота"
                              class="cartouche-image responsive-image"
                              loading="lazy">
@@ -85,8 +154,9 @@
 
                 <!-- Правый картуш - Обучение (заменено изображением) -->
                 <div class="cartouche right-cartouche image-cartouche">
+                    <h2 class="cartouche-title">ШКОЛА МАГИИ ПИРАМИДЫ ТОТА</h2>
                     <div class="image-container education-image">
-                        <img src="images/uploads/ChatGPT Image 16 авг. 2025 г., 00_06_27.png"
+                        <img src="images/uploads/cartouche-background-new.png"
                              alt="Обучение - Школы и семинары"
                              class="cartouche-image responsive-image"
                              loading="lazy">
@@ -108,7 +178,7 @@
                                      loading="lazy">
                                 <img src="images/uploads/button_12.png"
                                      alt="Обучение пункт 4"
-                                     class="overlay-image two-line-button"
+                                     class="overlay-image"
                                      loading="lazy">
                                 <img src="images/uploads/button_13.png"
                                      alt="Обучение пункт 5"
@@ -144,7 +214,7 @@
                 <h3>Контакты</h3>
                 <div class="footer-contacts">
                     <div class="footer-contact-item">
-                        <a href="tel:+78129050207">+7 (812) 905 02 07</a>
+                        <a href="https://t.me/V_Isais" target="_blank">Telegram: @V_Isais</a>
                     </div>
                     <div class="footer-contact-item">
                         <a href="mailto:info@piramidaspb.ru">info@piramidaspb.ru</a>
@@ -179,7 +249,8 @@
 
             <!-- Копирайт -->
             <div class="footer-copyright">
-                2019 - 2025г. Все права защищены, Isais ©
+                <div class="footer-year">2017 - <span id="currentYear">2025</span>г.</div>
+                <div class="footer-rights">Все права защищены, Isais ©</div>
             </div>
         </div>
     </footer>
@@ -258,5 +329,25 @@
     <script src="js/modal-auth.js"></script>
     <script src="js/edit-mode.js"></script>
     <script src="js/newsletter.js"></script>
+    <!-- SEO Helper для системы блоков -->
+    <script src="js/seo-helper.js"></script>
+    <!-- Система блоков папируса -->
+    <script src="js/blocks-system.js"></script>
+    <script src="js/new-blocks-system.js"></script>
+    <script src="js/free-positioning.js"></script>
+    <!-- Компонент поиска -->
+    <script src="js/search-component.js"></script>
+
+    <!-- Автоматическое обновление года в подвале -->
+    <script>
+        // Обновляем год в подвале при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentYearElement = document.getElementById('currentYear');
+            if (currentYearElement) {
+                const currentYear = new Date().getFullYear();
+                currentYearElement.textContent = currentYear;
+            }
+        });
+    </script>
 </body>
 </html>

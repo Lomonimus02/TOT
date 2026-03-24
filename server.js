@@ -5,7 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs').promises;
 const cheerio = require('cheerio');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 require('dotenv').config();
@@ -18,13 +18,76 @@ const pool = new Pool({
     connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_mE67QfaoVbGj@ep-rough-term-a92qmgeu-pooler.gwc.azure.neon.tech/neondb?sslmode=require&channel_binding=require',
     ssl: {
         rejectUnauthorized: false
+    },
+    // Настройки для стабильной работы с Neon PostgreSQL
+    max: 20, // Максимальное количество соединений в пуле
+    idleTimeoutMillis: 30000, // Закрывать неактивные соединения через 30 секунд
+    connectionTimeoutMillis: 10000, // Таймаут подключения 10 секунд
+    keepAlive: true, // Поддерживать соединение активным
+    keepAliveInitialDelayMillis: 10000 // Начальная задержка для keep-alive
+});
+
+// Обработка ошибок пула соединений
+pool.on('error', (err, client) => {
+    console.error('❌ Неожиданная ошибка в пуле PostgreSQL:', err);
+    // Не выходим из процесса, позволяем пулу переподключиться
+});
+
+// Обработка подключения
+pool.on('connect', (client) => {
+    console.log('✅ Новое соединение с PostgreSQL установлено');
+});
+
+// Обработка удаления соединения
+pool.on('remove', (client) => {
+    console.log('🔌 Соединение с PostgreSQL удалено из пула');
+});
+
+// ОТЛАДКА: Простейший тест
+app.get('/debug', (req, res) => {
+    res.send(`
+        <h1>ОТЛАДКА</h1>
+        <p>Время: ${new Date()}</p>
+        <p><a href="/raw-news">Показать RAW news.html</a></p>
+        <p><a href="/raw-forum">Показать RAW forum.html</a></p>
+        <p><a href="/pages/news.html">Обычный news.html</a></p>
+        <p><a href="/pages/forum.html">Обычный forum.html</a></p>
+    `);
+});
+
+app.get('/raw-news', async (req, res) => {
+    try {
+        const fs = require('fs').promises;
+        const path = require('path');
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'news.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.send('СОДЕРЖИМОЕ news.html:\n\n' + htmlContent);
+    } catch (error) {
+        res.send('ОШИБКА: ' + error.message);
     }
 });
 
+app.get('/raw-forum', async (req, res) => {
+    try {
+        const fs = require('fs').promises;
+        const path = require('path');
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'forum.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.send('СОДЕРЖИМОЕ forum.html:\n\n' + htmlContent);
+    } catch (error) {
+        res.send('ОШИБКА: ' + error.message);
+    }
+});
+
+// ПРИОРИТЕТНЫЕ РЕДИРЕКТЫ (должны быть ПЕРВЫМИ)
+app.get('/pages/news.html', (req, res) => res.redirect(301, '/news'));
+app.get('/pages/forum.html', (req, res) => res.redirect(301, '/forum'));
+
 // Middleware
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Увеличиваем лимит размера запроса для Rich Text Editor (до 50MB)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Перенесено ниже после htmlMiddleware, чтобы HTML обрабатывался Cheerio перед отдачей
 // app.use(express.static('.'));
 
@@ -62,6 +125,40 @@ const upload = multer({
             cb(null, true);
         } else {
             cb(new Error('Разрешены только изображения'));
+        }
+    }
+});
+
+// Настройка multer для загрузки видео
+const videoStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const uploadDir = path.join(__dirname, 'videos', 'uploads');
+        // Создаем папку если её нет
+        fs.mkdir(uploadDir, { recursive: true }).then(() => {
+            cb(null, uploadDir);
+        }).catch(err => {
+            console.error('Ошибка создания папки videos/uploads:', err);
+            cb(err, uploadDir);
+        });
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, 'video-' + uniqueSuffix + ext);
+    }
+});
+
+const uploadVideo = multer({
+    storage: videoStorage,
+    limits: {
+        fileSize: 100 * 1024 * 1024 // 100MB максимум для видео
+    },
+    fileFilter: function (req, file, cb) {
+        // Проверяем тип файла
+        if (file.mimetype.startsWith('video/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Разрешены только видео файлы'));
         }
     }
 });
@@ -201,81 +298,9 @@ async function initDatabase() {
             )
         `);
 
-        // Проверяем и создаем администратора по умолчанию, если его нет
-        await createDefaultAdmin();
-
-        // Исправляем последовательности для автоинкремента
-        await fixSequences();
-
         console.log('База данных инициализирована успешно');
     } catch (error) {
         console.error('Ошибка инициализации базы данных:', error);
-    }
-}
-
-// Функция для создания администратора по умолчанию
-async function createDefaultAdmin() {
-    try {
-        // Проверяем, есть ли уже администратор
-        const adminCheck = await pool.query('SELECT * FROM users WHERE role = $1 LIMIT 1', ['admin']);
-
-        if (adminCheck.rows.length === 0) {
-            // Создаем администратора по умолчанию
-            const defaultAdminEmail = 'admin@gmail.com';
-            const defaultAdminPassword = 'admin123456';
-            const saltRounds = 10;
-            const hashedPassword = await bcrypt.hash(defaultAdminPassword, saltRounds);
-
-            await pool.query(
-                'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4)',
-                ['Администратор', defaultAdminEmail, hashedPassword, 'admin']
-            );
-
-            console.log('✅ Создан администратор по умолчанию:');
-            console.log('   Email:', defaultAdminEmail);
-            console.log('   Пароль:', defaultAdminPassword);
-        } else {
-            console.log('✅ Администратор уже существует в базе данных');
-        }
-    } catch (error) {
-        console.error('Ошибка при создании администратора по умолчанию:', error);
-    }
-}
-
-// Функция для исправления последовательностей автоинкремента
-async function fixSequences() {
-    try {
-        console.log('🔧 Исправление последовательностей автоинкремента...');
-
-        // Исправляем последовательность для таблицы users
-        await pool.query(`
-            SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1), true);
-        `);
-
-        // Исправляем последовательность для таблицы contact_forms
-        await pool.query(`
-            SELECT setval('contact_forms_id_seq', COALESCE((SELECT MAX(id) FROM contact_forms), 1), true);
-        `);
-
-        // Исправляем последовательность для таблицы program_bookings
-        await pool.query(`
-            SELECT setval('program_bookings_id_seq', COALESCE((SELECT MAX(id) FROM program_bookings), 1), true);
-        `);
-
-        // Исправляем последовательность для таблицы newsletter_subscriptions
-        await pool.query(`
-            SELECT setval('newsletter_subscriptions_id_seq', COALESCE((SELECT MAX(id) FROM newsletter_subscriptions), 1), true);
-        `);
-
-        // Исправляем последовательность для таблицы page_content
-        await pool.query(`
-            SELECT setval('page_content_id_seq', COALESCE((SELECT MAX(id) FROM page_content), 1), true);
-        `);
-
-        console.log('✅ Последовательности автоинкремента исправлены');
-
-    } catch (error) {
-        console.error('Ошибка при исправлении последовательностей:', error);
     }
 }
 
@@ -335,28 +360,7 @@ app.post('/api/register', async (req, res) => {
         });
     } catch (error) {
         console.error('Ошибка регистрации:', error);
-
-        // Специальная обработка ошибки дублирования первичного ключа
-        if (error.code === '23505' && error.constraint === 'users_pkey') {
-            return res.status(500).json({
-                error: 'Ошибка базы данных: конфликт первичных ключей. Попробуйте исправить последовательности через /api/admin/fix-sequences',
-                code: 'SEQUENCE_ERROR',
-                details: 'Необходимо исправить последовательности автоинкремента'
-            });
-        }
-
-        // Обработка других ошибок уникальности
-        if (error.code === '23505') {
-            return res.status(400).json({
-                error: 'Пользователь с такими данными уже существует',
-                code: 'DUPLICATE_ERROR'
-            });
-        }
-
-        res.status(500).json({
-            error: 'Внутренняя ошибка сервера',
-            code: error.code || 'UNKNOWN_ERROR'
-        });
+        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
     }
 });
 
@@ -378,38 +382,9 @@ app.post('/api/login', async (req, res) => {
         const user = result.rows[0];
         console.log('Найден пользователь:', { id: user.id, email: user.email, role: user.role });
 
-        // Проверка пароля (поддержка как хешированных, так и обычных паролей)
-        let isValidPassword = false;
-
-        // Сначала пробуем сравнить как хешированный пароль
-        try {
-            isValidPassword = await bcrypt.compare(password, user.password);
-            console.log('Проверка хешированного пароля:', isValidPassword);
-        } catch (error) {
-            console.log('Ошибка при проверке хешированного пароля:', error.message);
-        }
-
-        // Если хешированный пароль не подошел, проверяем как обычный текст
-        if (!isValidPassword) {
-            isValidPassword = (password === user.password);
-            console.log('Проверка обычного пароля:', isValidPassword);
-
-            // Если пароль совпал как обычный текст, обновляем его на хешированный
-            if (isValidPassword) {
-                try {
-                    const saltRounds = 10;
-                    const hashedPassword = await bcrypt.hash(password, saltRounds);
-                    await pool.query(
-                        'UPDATE users SET password = $1 WHERE id = $2',
-                        [hashedPassword, user.id]
-                    );
-                    console.log('Пароль автоматически хеширован и обновлен в БД');
-                } catch (hashError) {
-                    console.error('Ошибка при хешировании пароля:', hashError);
-                    // Продолжаем работу, даже если не удалось обновить пароль
-                }
-            }
-        }
+        // Проверка пароля
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        console.log('Пароль корректен:', isValidPassword);
 
         if (!isValidPassword) {
             console.log('Неверный пароль');
@@ -803,99 +778,217 @@ app.get('/api/debug/users', async (req, res) => {
     }
 });
 
-// Endpoint для хеширования всех обычных паролей в БД
-app.post('/api/admin/hash-passwords', authenticateToken, requireAdmin, async (req, res) => {
+// Функция поиска в HTML файлах
+async function searchInHtmlFiles(query, limit = 20) {
+    const results = [];
+    const searchTerm = query.toLowerCase();
+    
     try {
-        // Получаем всех пользователей
-        const users = await pool.query('SELECT id, email, password FROM users');
-        let updatedCount = 0;
-
-        for (const user of users.rows) {
-            // Проверяем, является ли пароль уже хешированным
-            const isHashed = user.password.startsWith('$2b$') || user.password.startsWith('$2a$');
-
-            if (!isHashed) {
-                // Хешируем обычный пароль
-                const saltRounds = 10;
-                const hashedPassword = await bcrypt.hash(user.password, saltRounds);
-
-                await pool.query(
-                    'UPDATE users SET password = $1 WHERE id = $2',
-                    [hashedPassword, user.id]
-                );
-
-                updatedCount++;
-                console.log(`Хеширован пароль для пользователя: ${user.email}`);
+        // Получаем список всех HTML файлов в папке pages
+        const pagesDir = path.join(__dirname, 'pages');
+        const files = await fs.readdir(pagesDir);
+        const htmlFiles = files.filter(f => f.endsWith('.html'));
+        
+        // Добавляем index.html из корня
+        htmlFiles.push('../index.html');
+        
+        for (const file of htmlFiles) {
+            try {
+                const filePath = path.join(pagesDir, file);
+                const htmlContent = await fs.readFile(filePath, 'utf8');
+                const $ = cheerio.load(htmlContent);
+                
+                // Удаляем скрипты и стили из поиска
+                $('script, style').remove();
+                
+                // Получаем заголовок страницы
+                const pageTitle = $('title').text() || $('h1').first().text() || file.replace('.html', '');
+                
+                // Определяем pageId
+                let pageId = file.replace('.html', '');
+                if (file === '../index.html') {
+                    pageId = 'index';
+                }
+                
+                // Ищем в различных элементах с приоритетами
+                const searchElements = [
+                    { selector: 'title', weight: 10 },
+                    { selector: 'h1', weight: 8 },
+                    { selector: 'h2', weight: 6 },
+                    { selector: 'h3', weight: 4 },
+                    { selector: 'meta[name="description"]', attr: 'content', weight: 7 },
+                    { selector: 'p', weight: 2 },
+                    { selector: 'li', weight: 2 },
+                    { selector: 'div', weight: 1 }
+                ];
+                
+                for (const { selector, attr, weight } of searchElements) {
+                    $(selector).each((i, elem) => {
+                        const text = attr ? $(elem).attr(attr) : $(elem).text();
+                        if (text && text.toLowerCase().includes(searchTerm)) {
+                            // Извлекаем контекст вокруг найденного текста
+                            const lowerText = text.toLowerCase();
+                            const index = lowerText.indexOf(searchTerm);
+                            const start = Math.max(0, index - 50);
+                            const end = Math.min(text.length, index + searchTerm.length + 50);
+                            let snippet = text.substring(start, end).trim();
+                            
+                            if (start > 0) snippet = '...' + snippet;
+                            if (end < text.length) snippet = snippet + '...';
+                            
+                            results.push({
+                                page_id: pageId,
+                                page_name: pageTitle,
+                                element_type: selector,
+                                content: text.substring(0, 200),
+                                context: snippet,
+                                snippet: snippet,
+                                weight: weight,
+                                source: 'html'
+                            });
+                        }
+                    });
+                }
+            } catch (fileError) {
+                console.error(`Ошибка чтения файла ${file}:`, fileError.message);
             }
         }
-
-        res.json({
-            success: true,
-            message: `Обновлено паролей: ${updatedCount} из ${users.rows.length}`,
-            updated_count: updatedCount,
-            total_users: users.rows.length
-        });
-
+        
+        // Сортируем по весу и ограничиваем количество результатов
+        results.sort((a, b) => b.weight - a.weight);
+        return results.slice(0, limit);
+        
     } catch (error) {
-        console.error('Ошибка хеширования паролей:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Ошибка при хешировании паролей',
-            details: error.message
-        });
+        console.error('Ошибка поиска в HTML файлах:', error);
+        return [];
     }
-});
+}
 
-// Endpoint для исправления последовательностей автоинкремента
-app.post('/api/admin/fix-sequences', authenticateToken, requireAdmin, async (req, res) => {
+// Функция поиска в базе данных
+async function searchInDatabase(query, limit = 20) {
     try {
-        console.log('🔧 Ручное исправление последовательностей...');
+        // Список доступных для пользователей страниц
+        const allowedPages = [
+            'index',
+            'home',
+            'pyramid',
+            'temple',
+            'complex',
+            'court',
+            'forum',
+            'news',
+            'programs',
+            'seminars',
+            'school-tota',
+            'school-isais',
+            'rods',
+            'visit',
+            'recordings',
+            'consultations'
+        ];
 
-        const results = [];
+        const searchPattern = `%${query}%`;
 
-        // Исправляем последовательность для таблицы users
-        const usersResult = await pool.query(`
-            SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1), true);
-        `);
-        results.push({ table: 'users', new_sequence_value: usersResult.rows[0].setval });
+        // Поиск в content_changes (только в доступных страницах)
+        const result1 = await pool.query(
+            `SELECT
+                page_id,
+                element_id,
+                element_type,
+                content,
+                selector,
+                updated_at
+            FROM content_changes
+            WHERE LOWER(content) LIKE LOWER($1) AND page_id = ANY($2)
+            ORDER BY updated_at DESC
+            LIMIT $3`,
+            [searchPattern, allowedPages, limit]
+        );
 
-        // Исправляем последовательность для таблицы contact_forms
-        const contactsResult = await pool.query(`
-            SELECT setval('contact_forms_id_seq', COALESCE((SELECT MAX(id) FROM contact_forms), 1), true);
-        `);
-        results.push({ table: 'contact_forms', new_sequence_value: contactsResult.rows[0].setval });
+        // Поиск в page_content (новая таблица для блоков, только в доступных страницах)
+        const result2 = await pool.query(
+            `SELECT
+                page_id,
+                element_id,
+                element_type,
+                content,
+                selector,
+                updated_at
+            FROM page_content
+            WHERE LOWER(content) LIKE LOWER($1) AND page_id = ANY($2)
+            ORDER BY updated_at DESC
+            LIMIT $3`,
+            [searchPattern, allowedPages, limit]
+        );
+        
+        // Объединяем результаты из обеих таблиц
+        const allRows = [...result1.rows, ...result2.rows];
+        
+        return allRows.map(row => {
+            // Удаляем HTML теги для snippet
+            const textContent = row.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+            const snippet = textContent.substring(0, 150) + (textContent.length > 150 ? '...' : '');
+            
+            return {
+                page_id: row.page_id,
+                page_name: row.page_id,
+                element_id: row.element_id,
+                element_type: row.element_type,
+                content: textContent,
+                context: snippet,
+                snippet: snippet,
+                source: 'database',
+                updated_at: row.updated_at
+            };
+        });
+    } catch (error) {
+        console.error('Ошибка поиска в базе данных:', error);
+        return [];
+    }
+}
 
-        // Исправляем последовательность для таблицы program_bookings
-        const bookingsResult = await pool.query(`
-            SELECT setval('program_bookings_id_seq', COALESCE((SELECT MAX(id) FROM program_bookings), 1), true);
-        `);
-        results.push({ table: 'program_bookings', new_sequence_value: bookingsResult.rows[0].setval });
+// API endpoint для поиска
+app.get('/api/search', async (req, res) => {
+    try {
+        const query = req.query.q || req.query.query;
+        const limit = parseInt(req.query.limit) || 20;
 
-        // Исправляем последовательность для таблицы newsletter_subscriptions
-        const newsletterResult = await pool.query(`
-            SELECT setval('newsletter_subscriptions_id_seq', COALESCE((SELECT MAX(id) FROM newsletter_subscriptions), 1), true);
-        `);
-        results.push({ table: 'newsletter_subscriptions', new_sequence_value: newsletterResult.rows[0].setval });
+        if (!query || query.trim().length < 2) {
+            return res.json({
+                success: true,
+                data: [],
+                message: 'Поисковый запрос должен быть не менее 2 символов'
+            });
+        }
 
-        // Исправляем последовательность для таблицы page_content
-        const contentResult = await pool.query(`
-            SELECT setval('page_content_id_seq', COALESCE((SELECT MAX(id) FROM page_content), 1), true);
-        `);
-        results.push({ table: 'page_content', new_sequence_value: contentResult.rows[0].setval });
+        console.log('Поиск:', query);
+
+        // Ищем ТОЛЬКО в базе данных (content_changes и page_content)
+        // Это гарантирует, что ищем только контент, добавленный администратором
+        const dbResults = await searchInDatabase(query, limit);
+
+        // Ограничиваем общее количество результатов
+        const finalResults = dbResults.slice(0, limit);
+
+        console.log(`Найдено результатов: ${finalResults.length} (только из БД)`);
 
         res.json({
             success: true,
-            message: 'Последовательности автоинкремента исправлены',
-            results: results
+            data: finalResults,
+            query: query,
+            results_count: finalResults.length,
+            sources: {
+                database: dbResults.length,
+                html: 0
+            }
         });
-
-        console.log('✅ Последовательности исправлены через API');
-
+        
     } catch (error) {
-        console.error('Ошибка при исправлении последовательностей через API:', error);
-        res.status(500).json({
+        console.error('Ошибка поиска:', error);
+        res.json({ 
             success: false,
-            error: 'Ошибка при исправлении последовательностей',
+            data: [],
+            error: 'Ошибка поиска контента',
             details: error.message
         });
     }
@@ -906,49 +999,140 @@ app.post('/api/admin/fix-sequences', authenticateToken, requireAdmin, async (req
 // Получить контент страницы
 app.get('/api/content/:pageId', async (req, res) => {
     console.log('GET /api/content/' + req.params.pageId + ' - получен запрос');
-    try {
-        const { pageId } = req.params;
 
-        // Получаем контент
-        const contentResult = await pool.query(
-            'SELECT * FROM content_changes WHERE page_id = $1',
-            [pageId]
-        );
+    const maxRetries = 3;
+    let lastError = null;
 
-        // Получаем список удаленных элементов
-        const deletedResult = await pool.query(
-            'SELECT element_id FROM deleted_elements WHERE page_id = $1',
-            [pageId]
-        );
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const { pageId } = req.params;
 
-        const deletedElements = deletedResult.rows.map(row => row.element_id);
+            // Получаем контент
+            const contentResult = await pool.query(
+                'SELECT * FROM content_changes WHERE page_id = $1',
+                [pageId]
+            );
 
-        // Преобразуем в формат, ожидаемый фронтендом
-        const changes = {};
-        contentResult.rows.forEach(row => {
-            changes[row.element_id] = {
-                element_type: row.element_type,
-                content: row.content,
-                selector: row.selector,
-                updated_at: row.updated_at
-            };
-        });
+            // Получаем список удаленных элементов
+            const deletedResult = await pool.query(
+                'SELECT element_id FROM deleted_elements WHERE page_id = $1',
+                [pageId]
+            );
 
-        res.json({
-            success: true,
-            data: {
-                changes,
-                deleted_elements: deletedElements
+            const deletedElements = deletedResult.rows.map(row => row.element_id);
+
+            // Преобразуем в формат, ожидаемый фронтендом
+            const changes = {};
+            contentResult.rows.forEach(row => {
+                changes[row.element_id] = {
+                    element_type: row.element_type,
+                    content: row.content,
+                    selector: row.selector,
+                    updated_at: row.updated_at
+                };
+            });
+
+            res.json({
+                success: true,
+                data: {
+                    changes,
+                    deleted_elements: deletedElements
+                }
+            });
+
+            return; // Успешно выполнено, выходим
+
+        } catch (error) {
+            lastError = error;
+            console.error(`❌ Ошибка чтения контента (попытка ${attempt}/${maxRetries}):`, error.message);
+
+            // Если это ошибка соединения и есть еще попытки, ждем и пробуем снова
+            if (attempt < maxRetries && (
+                error.message.includes('Connection terminated') ||
+                error.message.includes('ECONNRESET') ||
+                error.message.includes('ETIMEDOUT')
+            )) {
+                console.log(`⏳ Ожидание перед повторной попыткой...`);
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Экспоненциальная задержка
+                continue;
             }
-        });
 
-    } catch (error) {
-        console.error('Error reading content:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+            // Если это последняя попытка или другая ошибка, возвращаем ошибку
+            break;
+        }
     }
+
+    // Если все попытки исчерпаны
+    console.error('❌ Все попытки чтения контента исчерпаны');
+    res.status(500).json({
+        success: false,
+        error: lastError ? lastError.message : 'Ошибка чтения контента'
+    });
+});
+
+// Получение контента rich text редактора для конкретного элемента
+app.get('/api/content/:pageId/:elementId', async (req, res) => {
+    const { pageId, elementId } = req.params;
+
+    console.log('📥 GET /api/content/:pageId/:elementId - получен запрос:', {
+        pageId,
+        elementId
+    });
+
+    const maxRetries = 3;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            // Получаем элемент из базы данных
+            const result = await pool.query(
+                'SELECT * FROM page_content WHERE page_id = $1 AND element_id = $2 LIMIT 1',
+                [pageId, elementId]
+            );
+
+            const element = result.rows[0] || null;
+
+            console.log('📦 Результат из БД:', {
+                found: !!element,
+                element_id: element ? element.element_id : null,
+                contentLength: element && element.content ? element.content.length : 0
+            });
+
+            res.json({
+                success: true,
+                data: element,
+                page_id: pageId,
+                element_id: elementId
+            });
+
+            return; // Успешно выполнено, выходим
+
+        } catch (error) {
+            lastError = error;
+            console.error(`❌ Ошибка получения элемента (попытка ${attempt}/${maxRetries}):`, error.message);
+
+            // Если это ошибка соединения и есть еще попытки, ждем и пробуем снова
+            if (attempt < maxRetries && (
+                error.message.includes('Connection terminated') ||
+                error.message.includes('ECONNRESET') ||
+                error.message.includes('ETIMEDOUT')
+            )) {
+                console.log(`⏳ Ожидание перед повторной попыткой...`);
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Экспоненциальная задержка
+                continue;
+            }
+
+            // Если это последняя попытка или другая ошибка, возвращаем ошибку
+            break;
+        }
+    }
+
+    // Если все попытки исчерпаны
+    console.error('❌ Все попытки получения элемента исчерпаны');
+    res.status(500).json({
+        error: 'Ошибка сервера при получении элемента',
+        details: lastError ? lastError.message : 'Неизвестная ошибка'
+    });
 });
 
 // Сохранить изменение
@@ -964,9 +1148,16 @@ app.post('/api/content/save', async (req, res) => {
             });
         }
 
-        // Используем UPSERT (INSERT ... ON CONFLICT)
+        console.log('💾 Сохранение в page_content:', {
+            page_id,
+            element_id,
+            element_type: element_type || 'rich-text',
+            contentLength: content ? content.length : 0
+        });
+
+        // Используем UPSERT (INSERT ... ON CONFLICT) для таблицы page_content
         const result = await pool.query(`
-            INSERT INTO content_changes (page_id, element_id, element_type, content, selector, updated_at)
+            INSERT INTO page_content (page_id, element_id, element_type, content, selector, updated_at)
             VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
             ON CONFLICT (page_id, element_id)
             DO UPDATE SET
@@ -975,7 +1166,13 @@ app.post('/api/content/save', async (req, res) => {
                 selector = EXCLUDED.selector,
                 updated_at = CURRENT_TIMESTAMP
             RETURNING *
-        `, [page_id, element_id, element_type, content, selector]);
+        `, [page_id, element_id, element_type || 'rich-text', content, selector]);
+
+        console.log('✅ Контент успешно сохранен в page_content:', {
+            id: result.rows[0].id,
+            page_id: result.rows[0].page_id,
+            element_id: result.rows[0].element_id
+        });
 
         res.json({
             success: true,
@@ -988,7 +1185,7 @@ app.post('/api/content/save', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error saving content:', error);
+        console.error('❌ Error saving content:', error);
         res.status(500).json({
             success: false,
             error: error.message
@@ -1258,7 +1455,21 @@ async function htmlMiddleware(req, res, next) {
             // Читаем оригинальный HTML файл
             const htmlContent = await fs.readFile(htmlFilePath, 'utf8');
 
-            // Применяем изменения из БД
+            // ВРЕМЕННО: для news и forum страниц возвращаем файлы как есть, без изменений из БД
+            if (pageId === 'news' || pageId === 'forum') {
+                console.log(`🔧 ВРЕМЕННО: Возвращаем ${pageId}.html без изменений из БД`);
+                console.log(`📁 Путь к файлу: ${htmlFilePath}`);
+                console.log(`📄 Размер файла: ${htmlContent.length} символов`);
+                console.log(`🔍 Содержит "ПАПИРУС БЛОКОВ": ${htmlContent.includes('ПАПИРУС БЛОКОВ')}`);
+                console.log(`🔍 Содержит "{{PREV_TITLE}}": ${htmlContent.includes('{{PREV_TITLE}}')}`);
+                console.log(`🔍 Навигация preview: ${htmlContent.match(/<nav class="page-navigation">[\s\S]*?<\/nav>/)?.[0]?.substring(0, 200) || 'НЕ НАЙДЕНО'}`);
+
+                res.setHeader('Content-Type', 'text/html; charset=utf-8');
+                res.send(htmlContent);
+                return;
+            }
+
+            // Применяем изменения из БД для остальных страниц
             const modifiedHTML = await applyChangesToHTML(htmlContent, pageId);
 
             // Отправляем модифицированный HTML
@@ -1273,6 +1484,263 @@ async function htmlMiddleware(req, res, next) {
 
     next();
 }
+
+// РАБОЧИЕ МАРШРУТЫ для news и forum (обходят БД)
+app.get('/news', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'news.html'), 'utf8');
+        console.log('📰 Возвращаем news.html (рабочая версия)');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/forum', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'forum.html'), 'utf8');
+        console.log('💬 Возвращаем forum.html (рабочая версия)');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+// РЕДИРЕКТЫ с длинных URL на короткие
+app.get('/pages/complex.html', (req, res) => res.redirect(301, '/complex'));
+app.get('/pages/pyramid.html', (req, res) => res.redirect(301, '/pyramid'));
+app.get('/pages/temple.html', (req, res) => res.redirect(301, '/temple'));
+app.get('/pages/court.html', (req, res) => res.redirect(301, '/court'));
+app.get('/pages/visit.html', (req, res) => res.redirect(301, '/visit'));
+app.get('/pages/programs.html', (req, res) => res.redirect(301, '/programs'));
+app.get('/pages/media.html', (req, res) => res.redirect(301, '/media'));
+app.get('/pages/news-pyramid.html', (req, res) => res.redirect(301, '/news-pyramid'));
+app.get('/pages/school-tota.html', (req, res) => res.redirect(301, '/school-tota'));
+app.get('/pages/school-isais.html', (req, res) => res.redirect(301, '/school-isais'));
+app.get('/pages/consultations.html', (req, res) => res.redirect(301, '/consultations'));
+app.get('/pages/artifacts.html', (req, res) => res.redirect(301, '/artifacts'));
+app.get('/pages/projects.html', (req, res) => res.redirect(301, '/projects'));
+app.get('/pages/seminars.html', (req, res) => res.redirect(301, '/seminars'));
+app.get('/pages/about-isais.html', (req, res) => res.redirect(301, '/about-isais'));
+
+// МАРШРУТЫ для всех страниц (короткие URL)
+app.get('/complex', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'complex.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/pyramid', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'pyramid.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/temple', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'temple.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/court', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'court.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/visit', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'visit.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/programs', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'programs.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/media', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'media.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/news-pyramid', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'news-pyramid.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/school-tota', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'school-tota.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/school-isais', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'school-isais.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/consultations', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'consultations.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/artifacts', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'artifacts.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/projects', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'projects.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/seminars', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'seminars.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/about-isais', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'about-isais.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+// ТЕСТОВЫЕ МАРШРУТЫ для отладки (оставляем для совместимости)
+app.get('/test/news', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'news.html'), 'utf8');
+        console.log('🔧 ТЕСТ: Читаем news.html напрямую');
+        console.log(`📄 Размер файла: ${htmlContent.length} символов`);
+        console.log(`🔍 Содержит "ПАПИРУС БЛОКОВ": ${htmlContent.includes('ПАПИРУС БЛОКОВ')}`);
+        console.log(`🔍 Содержит "{{PREV_TITLE}}": ${htmlContent.includes('{{PREV_TITLE}}')}`);
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
+app.get('/test/forum', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'forum.html'), 'utf8');
+        console.log('🔧 ТЕСТ: Читаем forum.html напрямую');
+        console.log(`📄 Размер файла: ${htmlContent.length} символов`);
+        console.log(`🔍 Содержит "ПАПИРУС БЛОКОВ": ${htmlContent.includes('ПАПИРУС БЛОКОВ')}`);
+        console.log(`🔍 Содержит "{{PREV_TITLE}}": ${htmlContent.includes('{{PREV_TITLE}}')}`);
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения файла:', error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+});
+
 
 // Применяем middleware для HTML файлов ДО раздачи статических файлов
 app.use(htmlMiddleware);
@@ -1293,14 +1761,29 @@ app.get('/', (req, res) => {
     // Обработка уже выполнена в middleware
 });
 
+// Страница входа администратора
+app.get('/admin-login', async (req, res) => {
+    try {
+        const htmlContent = await fs.readFile(path.join(__dirname, 'admin-login.html'), 'utf8');
+        console.log('🔐 Возвращаем страницу входа администратора');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Ошибка чтения admin-login.html:', error);
+        res.status(500).send('Ошибка загрузки страницы входа');
+    }
+});
+
 // Запуск сервера
 async function startServer() {
     await initDatabase();
-    
+
     app.listen(PORT, () => {
         console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
         console.log(`📊 База данных Neon PostgreSQL подключена`);
         console.log(`🌟 Сайт "Пирамида ТОТА" готов к работе!`);
+        console.log(`🔐 Страница входа администратора: http://localhost:${PORT}/admin-login`);
     });
 }
 
@@ -1553,6 +2036,41 @@ app.post('/api/upload/image', upload.single('image'), async (req, res) => {
     }
 });
 
+// Загрузка видео
+app.post('/api/upload/video', uploadVideo.single('video'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                error: 'Видео файл не загружен'
+            });
+        }
+
+        console.log('🎥 Видео загружено:', {
+            filename: req.file.filename,
+            size: req.file.size,
+            mimetype: req.file.mimetype
+        });
+
+        const videoUrl = `/videos/uploads/${req.file.filename}`;
+
+        res.json({
+            success: true,
+            message: 'Видео загружено успешно',
+            videoUrl: videoUrl,
+            url: videoUrl,
+            filename: req.file.filename
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка загрузки видео:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 // Удаление элемента контента
 app.delete('/api/content/:pageId/:elementId', authenticateToken, requireAdmin, async (req, res) => {
     try {
@@ -1673,10 +2191,20 @@ app.get('/api/images/gallery', authenticateToken, requireAdmin, async (req, res)
 
 // Сохранение блока
 app.post('/api/blocks/save', async (req, res) => {
+    console.log('🔄 POST /api/blocks/save - ПОЛУЧЕН ЗАПРОС НА СОХРАНЕНИЕ БЛОКА');
+    console.log('📋 Request Body:', JSON.stringify(req.body, null, 2));
+
     try {
         const { page_id, block_data } = req.body;
 
+        console.log('📊 Проверка обязательных полей:');
+        console.log('- page_id:', page_id);
+        console.log('- block_data:', !!block_data);
+        console.log('- block_data.elementId:', block_data?.elementId);
+        console.log('- block_data.blockType:', block_data?.blockType);
+
         if (!page_id || !block_data) {
+            console.error('❌ ОШИБКА: Отсутствуют обязательные поля');
             return res.status(400).json({
                 success: false,
                 error: 'page_id и block_data обязательны'
@@ -1713,13 +2241,23 @@ app.post('/api/blocks/save', async (req, res) => {
 
         const element_type = `block_${block_type}`;
 
+        console.log('🔍 Извлеченные данные блока:');
+        console.log('- element_id:', element_id);
+        console.log('- block_type:', block_type);
+        console.log('- block_category:', block_category);
+        console.log('- element_type:', element_type);
+        console.log('- position_index:', position_index);
+        console.log('- block_metadata:', block_metadata);
+
         if (!element_id) {
+            console.error('❌ ОШИБКА: element_id обязателен');
             return res.status(400).json({
                 success: false,
                 error: 'element_id обязателен'
             });
         }
 
+        console.log('💾 ВЫПОЛНЕНИЕ ЗАПРОСА К БД...');
         // Используем UPSERT для сохранения блока
         const result = await pool.query(`
             INSERT INTO page_content (
@@ -1754,6 +2292,9 @@ app.post('/api/blocks/save', async (req, res) => {
             before_element_id, after_element_id, position_index
         ]);
 
+        console.log('✅ БЛОК УСПЕШНО СОХРАНЕН В БД');
+        console.log('📋 Результат:', result.rows[0]);
+
         res.json({
             success: true,
             message: 'Блок сохранен успешно',
@@ -1761,7 +2302,9 @@ app.post('/api/blocks/save', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Ошибка сохранения блока:', error);
+        console.error('❌ КРИТИЧЕСКАЯ ОШИБКА СОХРАНЕНИЯ БЛОКА:', error);
+        console.error('📋 Request Body:', req.body);
+        console.error('🔍 Stack Trace:', error.stack);
         res.status(500).json({
             success: false,
             error: error.message

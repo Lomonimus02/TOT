@@ -7,12 +7,12 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     pointer-events: none; /* Рамка не блокирует взаимодействие с контентом */
     z-index: 10000; /* Поверх всего контента */
     background-image: url('../images/decor/frame_extracted.png');
-    background-size: 100% 100%; /* Растягиваем рамку на весь экран */
+    background-size: cover; /* Занимает весь экран без полос */
     background-repeat: no-repeat;
     background-position: center;
     opacity: 1; /* Полностью непрозрачная рамка */
@@ -29,7 +29,7 @@
 @media (max-width: 768px) {
     .fullscreen-frame {
         /* Начинаем использовать "умное масштабирование" */
-        background-size: 120% 100%; /* Увеличиваем ширину, боковые части уходят за экран */
+        background-size: 120% auto; /* Увеличиваем ширину, высота автоматическая для полного покрытия */
         background-position: center center;
     }
 }
@@ -37,7 +37,7 @@
 @media (max-width: 480px) {
     .fullscreen-frame {
         /* Увеличиваем горизонтальное масштабирование для лучшего вида верха/низа */
-        background-size: 140% 100%; /* Боковые части сильнее уходят за экран */
+        background-size: 140% auto; /* Боковые части сильнее уходят за экран, высота автоматическая */
         background-position: center center;
     }
 }
@@ -46,7 +46,7 @@
 @media (max-width: 375px) {
     .fullscreen-frame {
         /* Еще больше увеличиваем горизонтальное масштабирование */
-        background-size: 160% 100%; /* Верх и низ рамки выглядят менее сжатыми */
+        background-size: 160% auto; /* Верх и низ рамки выглядят менее сжатыми, высота автоматическая */
         background-position: center center;
     }
 }
@@ -55,7 +55,7 @@
 @media (max-width: 320px) {
     .fullscreen-frame {
         /* Максимальное горизонтальное масштабирование для самых маленьких экранов */
-        background-size: 180% 100%; /* Боковые части полностью за экраном, верх/низ естественные */
+        background-size: 180% auto; /* Боковые части полностью за экраном, верх/низ естественные */
         background-position: center center;
     }
 }
@@ -117,14 +117,14 @@
 /* Улучшенная адаптивность для планшетов */
 @media (min-width: 481px) and (max-width: 1024px) {
     .fullscreen-frame {
-        background-size: 100% 100%;
+        background-size: 110% 100%;
     }
 }
 
 /* Специальные настройки для очень широких экранов */
 @media (min-width: 1920px) {
     .fullscreen-frame {
-        background-size: 100% 100%;
+        background-size: 110% 100%;
     }
 }
 
@@ -132,7 +132,7 @@
 @media (orientation: portrait) and (max-width: 768px) {
     .fullscreen-frame {
         /* В портретной ориентации увеличиваем горизонтальное масштабирование еще больше */
-        background-size: 130% 100%; /* Боковые части уходят за экран, верх/низ выглядят лучше */
+        background-size: 130% auto; /* Боковые части уходят за экран, верх/низ выглядят лучше */
         background-position: center center;
     }
 }
@@ -141,7 +141,7 @@
 @media (orientation: portrait) and (max-width: 480px) {
     .fullscreen-frame {
         /* Еще больше увеличиваем для портретной ориентации */
-        background-size: 150% 100%; /* Сильное горизонтальное масштабирование */
+        background-size: 150% auto; /* Сильное горизонтальное масштабирование, высота автоматическая */
         background-position: center center;
     }
 }
@@ -167,7 +167,7 @@
 /* Настройки для широких экранов (альбомная ориентация) */
 @media (orientation: landscape) and (max-height: 600px) {
     .fullscreen-frame {
-        background-size: 100% 100%;
+        background-size: 110% 100%;
         background-position: center center;
     }
 }
@@ -214,7 +214,7 @@
 @media only screen and (max-width: 320px) and (max-height: 568px) {
     .fullscreen-frame {
         /* Экстремальное горизонтальное масштабирование для iPhone SE */
-        background-size: 200% 100%; /* Боковые части далеко за экраном */
+        background-size: 200% auto; /* Боковые части далеко за экраном, высота автоматическая */
         background-position: center center;
     }
 }
@@ -255,13 +255,15 @@
         top: 0;
         left: 0;
         background-repeat: no-repeat;
+        background-size: auto 100% !important;
         /* Предотвращаем горизонтальную прокрутку от увеличенной ширины фона */
         overflow: hidden;
     }
-    
+
     /* Скрываем возможную горизонтальную прокрутку на body */
     body {
         overflow-x: hidden;
+        background: transparent;
     }
 }
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
@@ -277,8 +279,8 @@
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
+    width: 100% !important;
+    height: 100% !important;
     z-index: 10000 !important;
     pointer-events: none !important;
 }
@@ -311,98 +313,150 @@ body {
     transition: opacity 0.2s ease;
 }
 
-/* Интерактивная зона в верхней части рамки для входа */
+/* НОВАЯ СИСТЕМА АДАПТИВНОСТИ КНОПКИ ВХОДА */
+/* Базовые стили для интерактивной зоны входа */
 .frame-login-zone {
-    position: fixed;
-    top: -20px; /* Передвинуто выше на 20px */
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: 600px; /* Увеличено в 2 раза с 300px */
-    height: 160px; /* Увеличено в 2 раза с 80px */
-    z-index: 10001;
-    pointer-events: auto;
+    position: absolute !important; /* ИЗМЕНЕНО: absolute вместо fixed для прокрутки с контентом */
+    /* НОВОЕ ПОЗИЦИОНИРОВАНИЕ: правый верхний угол, на уровне логотипа */
+    top: 124px !important; /* чуть ниже центра логотипа */
+    right: 20px !important; /* отступ от правого края */
+    left: auto !important;
+    transform: none !important; /* убираем центрирование */
+    z-index: 1001 !important; /* ниже верхней панели, но выше контента */
+
+    /* РАЗМЕРЫ - более вытянутая в длину */
+    width: auto;
+    height: auto !important;
+    padding: 10px 32px; /* увеличенные горизонтальные отступы для вытянутости */
+
+    /* Стили оформления - БЕЗ обводки и фона */
+    background: transparent; /* убран фон */
+    border: none !important; /* убрана обводка */
+    border-radius: 8px;
     cursor: pointer;
-    background: transparent;
-    transition: background-color 0.3s ease;
-    border-radius: 0 0 30px 30px; /* Увеличено в 2 раза с 15px */
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    right: auto !important;
+    pointer-events: auto;
+
+    /* Центрирование содержимого */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Плавные переходы */
+    transition: all 0.3s ease;
+
+    /* Сброс отступов */
+    margin: 0 !important;
+
+    /* Убрана тень */
+    box-shadow: none !important;
+
+    /* Убираем обводку при фокусе и нажатии */
+    outline: none !important;
+
+    /* Стили для текста */
+    text-decoration: none !important;
+    color: inherit;
+}
+
+.frame-login-zone:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.frame-login-zone:active {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .frame-login-zone:hover {
-    background-color: rgba(255, 215, 0, 0.1);
+    background-color: transparent; /* убран фон при hover */
+    border: none !important; /* убрана обводка при hover */
+    box-shadow: none !important; /* убрано свечение при hover */
+    text-decoration: none !important; /* убрано подчеркивание при hover */
+    outline: none !important; /* убрана обводка при hover */
 }
 
-/* Стили для текста в зоне входа */
+/* Базовые стили для текста кнопки входа */
 .frame-login-text {
-    position: absolute;
-    top: 50%; /* Изменено с bottom на top и центрирование по вертикали */
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important; /* Центрирование по обеим осям */
+    position: relative;
     color: var(--gold-color);
-    font-size: 28px; /* Увеличено в 2 раза с 14px */
-    font-weight: bold;
-    opacity: 0.8;
-    transition: opacity 0.3s ease;
-    text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.8); /* Увеличено в 2 раза */
+
+    /* Центрирование текста */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Базовый размер шрифта - увеличен в 1.5 раза (16px * 1.5 = 24px) */
+    font-size: 24px;
+    font-weight: 600;
+    opacity: 0.9;
+
+    /* Оформление */
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
     font-family: 'Cinzel', serif;
     text-align: center !important;
-    width: auto !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    right: auto !important;
-    pointer-events: none; /* Текст не должен перехватывать клики */
+    letter-spacing: 1.5px;
+    white-space: nowrap;
+
+    /* Сброс стилей */
+    margin: 0 !important;
+    padding: 0 !important;
+    pointer-events: none;
+
+    /* Плавные переходы */
+    transition: all 0.3s ease;
 }
 
-.frame-login-zone:hover .frame-login-text {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1.05) !important; /* Обновлено для центрирования */
-    left: 50% !important;
-    text-align: center !important;
-}
+/* АДАПТАЦИЯ КНОПКИ ВХОДА ДЛЯ РАЗНЫХ РАЗМЕРОВ ЭКРАНА */
+/* Адаптация позиции под высоту верхней панели */
 
-/* Адаптивность зоны входа для мобильных устройств */
-@media (max-width: 768px) {
+/* Большие экраны (>768px) - хедер 80px */
+@media (min-width: 769px) {
     .frame-login-zone {
-        width: 400px; /* Увеличено в 2 раза с 200px */
-        height: 120px; /* Увеличено в 2 раза с 60px */
-    }
-
-    .frame-login-text {
-        font-size: 24px; /* Увеличено в 2 раза с 12px */
+        top: 121px !important; /* выровнено с центром логотипа */
     }
 }
 
+/* Средние экраны (481px-768px) - хедер 70px */
+@media (max-width: 768px) and (min-width: 481px) {
+    .frame-login-zone {
+        top: 100px !important; /* чуть ниже центра логотипа */
+        right: 15px !important;
+        height: auto;
+        padding: 0 24px;
+        border: none !important;
+        align-items: center;
+        display: flex;
+        justify-content: center;
+    }
+    .frame-login-text {
+        font-size: 21px; /* 14px * 1.5 */
+    }
+}
+
+/* Маленькие экраны (≤480px) - хедер 60px */
 @media (max-width: 480px) {
     .frame-login-zone {
-        width: 360px; /* Увеличено в 2 раза с 180px */
-        height: 100px; /* Увеличено в 2 раза с 50px */
+        top: 87px !important; /* чуть ниже центра логотипа */
+        right: 10px !important;
+        height: auto;
+        padding: 0 20px;
+        border: none !important;
+        align-items: center;
+        display: flex;
+        justify-content: center;
     }
-
     .frame-login-text {
-        font-size: 22px; /* Увеличено в 2 раза с 11px */
+        font-size: 18px; /* 12px * 1.5 */
+        letter-spacing: 0.75px;
     }
 }
 
-@media (max-width: 375px) {
-    .frame-login-zone {
-        width: 320px; /* Увеличено в 2 раза с 160px */
-        height: 90px; /* Увеличено в 2 раза с 45px */
-    }
 
-    .frame-login-text {
-        font-size: 20px; /* Увеличено в 2 раза с 10px */
-    }
-}
 
-@media (max-width: 320px) {
-    .frame-login-zone {
-        width: 280px; /* Увеличено в 2 раза с 140px */
-        height: 80px; /* Увеличено в 2 раза с 40px */
-    }
-
-    .frame-login-text {
-        font-size: 18px; /* Увеличено в 2 раза с 9px */
-    }
+/* Hover эффекты */
+.frame-login-zone:hover .frame-login-text {
+    opacity: 1;
 }

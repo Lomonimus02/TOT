@@ -259,6 +259,35 @@ class Database {
         });
     }
 
+    // Получение конкретного элемента
+    async getElement(pageId, elementId) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                SELECT * FROM page_content
+                WHERE page_id = ? AND element_id = ?
+                LIMIT 1
+            `;
+
+            this.db.get(query, [pageId, elementId], (err, row) => {
+                if (err) {
+                    console.error('Ошибка получения элемента:', err);
+                    reject(err);
+                } else {
+                    // Обрабатываем JSON поля
+                    if (row && row.block_metadata) {
+                        try {
+                            row.block_metadata = JSON.parse(row.block_metadata);
+                        } catch (e) {
+                            console.warn('Ошибка парсинга block_metadata:', e);
+                            row.block_metadata = {};
+                        }
+                    }
+                    resolve(row || null);
+                }
+            });
+        });
+    }
+
     // Удаление элемента
     async deleteElement(pageId, elementId) {
         return new Promise((resolve, reject) => {
@@ -339,6 +368,220 @@ class Database {
                 }
             });
         });
+    }
+
+    // Поиск контента по ключевому слову (только в базе данных)
+    async searchContent(query, limit = 20) {
+        return new Promise((resolve, reject) => {
+            try {
+                // Список доступных для пользователей страниц
+                const allowedPages = [
+                    'index',
+                    'home',
+                    'pyramid',
+                    'temple',
+                    'complex',
+                    'court',
+                    'forum',
+                    'news',
+                    'programs',
+                    'seminars',
+                    'school-tota',
+                    'school-isais',
+                    'rods',
+                    'visit',
+                    'recordings',
+                    'consultations'
+                ];
+
+                const searchQuery = `%${query}%`;
+                const sql = `
+                    SELECT DISTINCT
+                        page_id,
+                        element_id,
+                        content,
+                        block_type,
+                        created_at,
+                        LENGTH(content) as content_length
+                    FROM page_content
+                    WHERE content LIKE ? AND page_id IN (${allowedPages.map(() => '?').join(',')})
+                    ORDER BY
+                        CASE
+                            WHEN content LIKE ? THEN 1
+                            WHEN content LIKE ? THEN 2
+                            ELSE 3
+                        END,
+                        LENGTH(content) ASC,
+                        created_at DESC
+                    LIMIT ?
+                `;
+
+                // Поиск: точное совпадение в начале (вес 1), совпадение в слове (вес 2), любое совпадение (вес 3)
+                const params = [
+                    searchQuery,
+                    ...allowedPages,       // Добавляем список доступных страниц
+                    query + '%',           // Начинается с query
+                    '% ' + query + '%',    // query в начале слова
+                    limit
+                ];
+
+                this.db.all(sql, params, (err, rows) => {
+                    if (err) {
+                        console.error('Ошибка поиска контента:', err);
+                        // Возвращаем пустой массив вместо ошибки
+                        resolve([]);
+                    } else {
+                        // Группируем результаты по страницам и добавляем контекст
+                        const results = (rows || []).map(row => {
+                            try {
+                                // Извлекаем фрагмент контекста
+                                const contentStr = String(row.content || '');
+                                const contentIndex = contentStr.toLowerCase().indexOf(query.toLowerCase());
+                                let contextStart = Math.max(0, contentIndex - 50);
+                                let contextEnd = Math.min(contentStr.length, contentIndex + query.length + 50);
+                                let context = contentStr.substring(contextStart, contextEnd).trim();
+                                
+                                if (contextStart > 0) context = '...' + context;
+                                if (contextEnd < contentStr.length) context = context + '...';
+
+                                return {
+                                    page_id: row.page_id,
+                                    element_id: row.element_id,
+                                    block_type: row.block_type,
+                                    context: context,
+                                    full_content: row.content,
+                                    created_at: row.created_at,
+                                    source: 'database'
+                                };
+                            } catch (mapErr) {
+                                console.error('Ошибка обработки результата поиска:', mapErr);
+                                return null;
+                            }
+                        }).filter(item => item !== null);
+
+                        resolve(results);
+                    }
+                });
+            } catch (err) {
+                console.error('Ошибка в методе searchContent:', err);
+                resolve([]);
+            }
+        });
+    }
+
+    // Поиск контента в HTML файлах
+    async searchInHtmlFiles(query, limit = 20) {
+        const fs = require('fs').promises;
+        const cheerio = require('cheerio');
+        
+        try {
+            const results = [];
+            const pagesDir = path.join(__dirname, '..', 'pages');
+            const indexFile = path.join(__dirname, '..', 'index.html');
+            
+            // Список всех HTML файлов для поиска
+            const filesToSearch = [
+                { path: indexFile, pageId: 'index' }
+            ];
+            
+            // Добавляем файлы из папки pages
+            try {
+                const pageFiles = await fs.readdir(pagesDir);
+                pageFiles.forEach(file => {
+                    if (file.endsWith('.html') && file !== 'template.html') {
+                        filesToSearch.push({
+                            path: path.join(pagesDir, file),
+                            pageId: file.replace('.html', '')
+                        });
+                    }
+                });
+            } catch (err) {
+                console.error('Ошибка чтения папки pages:', err);
+            }
+            
+            // Поиск в каждом файле
+            for (const file of filesToSearch) {
+                try {
+                    const html = await fs.readFile(file.path, 'utf-8');
+                    const $ = cheerio.load(html);
+                    
+                    // Удаляем скрипты и стили
+                    $('script, style, noscript').remove();
+                    
+                    // Ищем в различных элементах
+                    const searchableElements = [
+                        { selector: 'title', weight: 1 },
+                        { selector: 'h1, h2, h3', weight: 2 },
+                        { selector: 'meta[name="description"]', attr: 'content', weight: 3 },
+                        { selector: 'meta[name="keywords"]', attr: 'content', weight: 4 },
+                        { selector: 'p, div, span, li, td, th', weight: 5 }
+                    ];
+                    
+                    for (const { selector, attr, weight } of searchableElements) {
+                        $(selector).each((i, elem) => {
+                            const text = attr ? $(elem).attr(attr) : $(elem).text();
+                            if (!text) return;
+                            
+                            const cleanText = text.trim().replace(/\s+/g, ' ');
+                            const lowerText = cleanText.toLowerCase();
+                            const lowerQuery = query.toLowerCase();
+                            
+                            if (lowerText.includes(lowerQuery)) {
+                                const index = lowerText.indexOf(lowerQuery);
+                                let contextStart = Math.max(0, index - 50);
+                                let contextEnd = Math.min(cleanText.length, index + query.length + 50);
+                                let context = cleanText.substring(contextStart, contextEnd).trim();
+                                
+                                if (contextStart > 0) context = '...' + context;
+                                if (contextEnd < cleanText.length) context = context + '...';
+                                
+                                results.push({
+                                    page_id: file.pageId,
+                                    element_id: `html_${selector.replace(/[^a-z0-9]/gi, '_')}_${i}`,
+                                    block_type: selector.split(',')[0].trim(),
+                                    context: context,
+                                    full_content: cleanText.substring(0, 500),
+                                    weight: weight,
+                                    source: 'html'
+                                });
+                                
+                                // Ограничиваем количество результатов с одной страницы
+                                if (results.filter(r => r.page_id === file.pageId).length >= 3) {
+                                    return false; // break из each
+                                }
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.error(`Ошибка поиска в файле ${file.path}:`, err);
+                }
+            }
+            
+            // Сортируем по весу и ограничиваем количество
+            results.sort((a, b) => a.weight - b.weight);
+            return results.slice(0, limit);
+            
+        } catch (err) {
+            console.error('Ошибка поиска в HTML файлах:', err);
+            return [];
+        }
+    }
+
+    // Комбинированный поиск (ТОЛЬКО база данных - контент, добавленный администратором)
+    async searchAll(query, limit = 20) {
+        try {
+            // Поиск ТОЛЬКО в базе данных (page_content и content_changes)
+            // Это гарантирует, что ищем только контент, добавленный администратором
+            const dbResults = await this.searchContent(query, limit);
+
+            // Возвращаем только результаты из БД
+            // HTML файлы НЕ ищутся, так как они содержат служебный контент и скрытые элементы
+            return dbResults.slice(0, limit);
+            
+        } catch (err) {
+            console.error('Ошибка комбинированного поиска:', err);
+            return [];
+        }
     }
 
     // Закрытие соединения с базой данных

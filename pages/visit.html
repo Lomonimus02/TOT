@@ -1,12 +1,29 @@
 <!DOCTYPE html><html lang="ru"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Посетить пирамиду - Пирамида ТОТА</title>
+
+    <!-- SEO Оптимизация -->
+    <title>Посетить Пирамиду Тота - Экскурсии, Медитации, Энергия Места Силы | Пирамида ТОТА</title>
+    <meta name="description" content="Посетите Пирамиду Тота - место силы и древних знаний. Экскурсии, медитации, энергетические практики. Прикоснитесь к тайнам Египта, богов, магии. Работа с чакрами и аурой, духовное развитие, целительство.">
+    <meta name="keywords" content="посетить пирамиду, пирамида тота экскурсии, место силы, медитации в пирамиде, энергия пирамиды, древний египет, боги египта, магия, чакры, аура, духовное развитие, целительство, энергетические практики, экскурсии, туры">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://pyramid-tota.ru/pages/visit.html">
+    <meta property="og:title" content="Посетить Пирамиду Тота - Экскурсии, Медитации, Энергия Места Силы">
+    <meta property="og:description" content="Посетите Пирамиду Тота - место силы и древних знаний. Экскурсии, медитации, энергетические практики.">
+    <meta property="og:image" content="https://pyramid-tota.ru/images/uploads/logo.png">
+
+    <!-- Дополнительные SEO теги -->
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://pyramid-tota.ru/pages/visit.html">
+
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/animations.css">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&amp;family=Open+Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/frame.css">
     <link rel="stylesheet" href="../css/new-blocks-system.css">
+    <link rel="stylesheet" href="../css/search.css">
     <script>window.isHomePage = function(){ return false; };</script>
 </head>
 <body>
@@ -20,6 +37,7 @@
         <a href="../index.html" title="Вернуться на главную страницу">
             <img src="../images/uploads/logo.png" alt="Пирамида ТОТА - Логотип">
         </a>
+        <a href="../index.html" class="home-link" title="Перейти на главную страницу">Главная</a>
     </div>
 
     <!-- Основной контент -->
@@ -36,8 +54,8 @@
 
             <!-- Навигация по страницам -->
             <nav class="page-navigation">
-                <a href="complex.html" class="nav-btn prev">← Комплекс</a>
-                <a href="court.html" class="nav-btn next">Суд →</a>
+                <a href="court.html" class="nav-btn prev">← Храмовый мистериальный двор</a>
+                <a href="programs.html" class="nav-btn next">Программы →</a>
             </nav>
         </div>
     </main>    <!-- Подвал сайта -->
@@ -48,7 +66,7 @@
                 <h3>Контакты</h3>
                 <div class="footer-contacts">
                     <div class="footer-contact-item">
-                        <a href="tel:+78129050207">+7 (812) 905 02 07</a>
+                        <a href="https://t.me/V_Isais" target="_blank">Telegram: @V_Isais</a>
                     </div>
                     <div class="footer-contact-item">
                         <a href="mailto:info@piramidaspb.ru">info@piramidaspb.ru</a>
@@ -82,8 +100,17 @@
             </div>
 
             <!-- Копирайт -->
+
+
             <div class="footer-copyright">
-                2019 - 2025г. Все права защищены, Isais ©
+
+
+                <div class="footer-year">2017 - <span id="currentYear">2025</span>г.</div>
+
+
+                <div class="footer-rights">Все права защищены, Isais ©</div>
+
+
             </div>
         </div>
     </footer>
@@ -173,6 +200,51 @@
                 <h4 class="style-section-title">🎨 Цвет текста</h4>
                 <div class="color-picker"><input type="color" id="textColorPicker" value="#ffffff"><button class="color-reset-btn" id="resetTextColor">Сбросить</button></div>
             </div>
+
+            <div class="style-section">
+                <h4 class="style-section-title">✍️ Форматирование текста</h4>
+                <div class="text-format-controls">
+                    <button class="format-btn" data-format="bold" title="Жирный (Ctrl+B)"><strong>Ж</strong></button>
+                    <button class="format-btn" data-format="italic" title="Курсив (Ctrl+I)"><em>К</em></button>
+                    <button class="format-btn" data-format="underline" title="Подчеркнутый (Ctrl+U)"><u>П</u></button>
+                    <button class="format-btn" data-format="strikethrough" title="Зачеркнутый"><s>З</s></button>
+                </div>
+                <div class="font-size-info">
+                    <small>Выделите текст для форматирования</small>
+                </div>
+            </div>
+
+            <div class="style-section">
+                <h4 class="style-section-title">🔤 Шрифт</h4>
+                <select class="font-family-select" id="fontFamilySelect">
+                    <option value="default">По умолчанию</option>
+                    <option value="'Lora', serif">Lora (основной)</option>
+                    <option value="'Cinzel', serif">Cinzel (заголовки)</option>
+                    <option value="'Playfair Display', serif">Playfair Display</option>
+                    <option value="'Merriweather', serif">Merriweather</option>
+                    <option value="'Georgia', serif">Georgia</option>
+                    <option value="'Times New Roman', serif">Times New Roman</option>
+                    <option value="'Arial', sans-serif">Arial</option>
+                    <option value="'Helvetica', sans-serif">Helvetica</option>
+                    <option value="'Verdana', sans-serif">Verdana</option>
+                    <option value="'Courier New', monospace">Courier New</option>
+                </select>
+                <div class="font-size-info">
+                    <small>Выделите текст для изменения шрифта</small>
+                </div>
+            </div>
+
+            <div class="style-section">
+                <h4 class="style-section-title">🔗 Гиперссылка</h4>
+                <div class="hyperlink-controls">
+                    <input type="url" class="hyperlink-input" id="hyperlinkUrl" placeholder="https://example.com">
+                    <button class="hyperlink-btn" id="createHyperlink">Создать ссылку</button>
+                    <button class="hyperlink-btn remove" id="removeHyperlink">Удалить ссылку</button>
+                </div>
+                <div class="font-size-info">
+                    <small>Выделите текст и введите URL</small>
+                </div>
+            </div>
             <div class="style-section">
                 <h4 class="style-section-title">📐 Размер шрифта</h4>
                 <div class="font-size-controls">
@@ -219,8 +291,13 @@
     <script src="../js/session.js"></script>
     <script src="../js/main.js"></script>
     <script src="../js/modal-auth.js"></script>
+    <!-- SEO Helper для системы блоков (загружается ПЕРЕД blocks-system.js) -->
+    <script src="../js/seo-helper.js"></script>
+    
+
     <script src="../js/blocks-system.js"></script>
     <script src="../js/new-blocks-system.js"></script>
+    <script src="../js/search-component.js"></script>
 
     <script>
       // Инициализация блоков и редактора на всех внутренних страницах
@@ -237,5 +314,17 @@
       });
     </script>
     <script src="../js/newsletter.js"></script>
+
+    <!-- Автоматическое обновление года в подвале -->
+    <script>
+        // Обновляем год в подвале при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentYearElement = document.getElementById('currentYear');
+            if (currentYearElement) {
+                const currentYear = new Date().getFullYear();
+                currentYearElement.textContent = currentYear;
+            }
+        });
+    </script>
 
 </body></html>

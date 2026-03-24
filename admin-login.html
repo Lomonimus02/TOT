@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход администратора - Пирамида ТОТА</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/frame.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .admin-login-container {
+            background: rgba(22, 33, 62, 0.95);
+            border: 2px solid var(--gold-color);
+            border-radius: 15px;
+            padding: 3rem;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+
+        .admin-login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .admin-login-header h1 {
+            color: var(--gold-color);
+            font-family: 'Cinzel', serif;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .admin-login-header p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95rem;
+        }
+
+        .admin-login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            color: var(--gold-color);
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            padding: 0.9rem 1.2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--gold-color);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .admin-login-btn {
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--gold-color) 0%, #d4af37 100%);
+            color: var(--text-dark);
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: 'Cinzel', serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .admin-login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+        }
+
+        .admin-login-btn:active {
+            transform: translateY(0);
+        }
+
+        .admin-login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid #e94560;
+            color: #ff6b6b;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .success-message {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            color: #4caf50;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .back-link a {
+            color: rgba(255, 215, 0, 0.8);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .back-link a:hover {
+            color: var(--gold-color);
+            text-decoration: underline;
+        }
+
+        /* Анимация загрузки */
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: var(--gold-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+
+        .loading-spinner.show {
+            display: block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Полноэкранная египетская рамка -->
+    <div class="fullscreen-frame"></div>
+
+    <!-- Космический фон -->
+    <div class="cosmic-background"></div>
+
+    <!-- Контейнер входа администратора -->
+    <div class="admin-login-container">
+        <div class="admin-login-header">
+            <h1>🔐 Вход администратора</h1>
+            <p>Панель управления сайтом "Пирамида Тота и храм Исиды"</p>
+        </div>
+
+        <!-- Сообщения об ошибках и успехе -->
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+
+        <!-- Форма входа -->
+        <form id="adminLoginForm" class="admin-login-form">
+            <div class="form-group">
+                <label for="adminEmail">Email администратора</label>
+                <input 
+                    type="email" 
+                    id="adminEmail" 
+                    name="email" 
+                    placeholder="admin@piramidaspb.ru" 
+                    required
+                    autocomplete="email"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="adminPassword">Пароль</label>
+                <input 
+                    type="password" 
+                    id="adminPassword" 
+                    name="password" 
+                    placeholder="Введите пароль" 
+                    required
+                    autocomplete="current-password"
+                >
+            </div>
+
+            <div class="loading-spinner" id="loadingSpinner"></div>
+
+            <button type="submit" id="loginButton" class="admin-login-btn">
+                Войти в панель управления
+            </button>
+        </form>
+
+        <div class="back-link">
+            <a href="index.html">← Вернуться на главную</a>
+        </div>
+    </div>
+
+    <!-- Подключение скриптов -->
+    <script src="js/frame-manager.js"></script>
+    <script src="js/animations.js"></script>
+    <script src="js/admin-login.js"></script>
+</body>
+</html>
+

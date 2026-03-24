@@ -148,11 +148,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Инициализация системы блоков (теперь в отдельном файле)
     // initializeBlocksSystem();
 
-    // Инициализация новой системы папирус блоков
-    if (window.NewBlockSystem && window.NewBlockSystem.initialize) {
-        await window.NewBlockSystem.initialize();
-        console.log('Система папирус блоков инициализирована');
-    }
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Инициализация новой системы папирус блоков
+    // перенесена в каждую страницу (например, temple.html) для избежания двойного вызова
+    // if (window.NewBlockSystem && window.NewBlockSystem.initialize) {
+    //     await window.NewBlockSystem.initialize();
+    //     console.log('Система папирус блоков инициализирована');
+    // }
 
     // Инициализация встроенного редактора страниц
     // Контент уже применен на сервере, клиентская загрузка не нужна
@@ -462,7 +463,7 @@ class InlinePageEditor {
         }
 
         const editableSelectors = [
-            '.page-title',
+            // ВАЖНО: .page-title НЕ редактируется, это статичный заголовок страницы
             '.page-subtitle',
             '.content-section h2',
             '.content-section h3',
@@ -1000,6 +1001,18 @@ class InlinePageEditor {
 
     async loadPageChanges() {
         const pageId = this.getCurrentPageId();
+
+        // КРИТИЧЕСКИ ВАЖНО: Проверяем, используется ли на странице Rich Text Editor
+        // Если да, то НЕ загружаем контент через старую систему блоков
+        const hasRichTextEditor = window.__RICH_TEXT_EDITOR_ACTIVE__ ||
+                                  document.querySelector('.rich-text-editor-container') ||
+                                  window.richTextEditor;
+
+        if (hasRichTextEditor) {
+            console.log('🚫 Обнаружен Rich Text Editor, пропускаем загрузку через старую систему блоков');
+            this.showContent();
+            return;
+        }
 
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем, был ли контент уже применен на сервере
         const isServerContentApplied = document.body.hasAttribute('data-server-content-applied');
@@ -2015,6 +2028,8 @@ function createStars() {
 // Инициализация звездного неба
 document.addEventListener('DOMContentLoaded', createStars);
 
+
+
 // Инициализация кликабельности кнопок
 function initializeButtonClicks() {
     console.log('Инициализация кликабельности кнопок...');
@@ -2022,24 +2037,24 @@ function initializeButtonClicks() {
     // Маппинг кнопок на страницы
     const buttonPageMap = {
         // Левый картуш - основное меню
-        'button_01.png': 'pages/pyramid.html',      // Пирамида
-        'button_02.png': 'pages/temple.html',       // Храм
-        'button_03.png': 'pages/rods.html',         // Жезлы
-        'button_04.png': 'pages/complex.html',      // Комплекс
-        'button_05.png': 'pages/visit.html',        // Посещение
-        'button_06.png': 'pages/court.html',        // Суд
-        'button_07.png': 'pages/forum.html',        // Форум
-        'button_08.png': 'pages/news.html',         // СМИ о пирамиде
+        'button_01.png': 'pages/complex.html',      // Комплекс пирамида Тота и Храм Исиды
+        'button_02.png': 'pages/pyramid.html',      // Пирамида Тота
+        'button_03.png': 'pages/temple.html',       // Храм Исиды
+        'button_04.png': 'pages/court.html',        // Храмовый мистериальный двор
+        'button_05.png': 'pages/visit.html',        // Посетить пирамиду
+        'button_06.png': 'pages/programs.html',     // Программы
+        'button_07.png': 'pages/media.html',        // СМИ о Пирамиде Тота
+        'button_08.png': 'pages/news-pyramid.html', // Новости Пирамиды Тота
 
         // Правый картуш - обучение
-        'button_09.png': 'pages/school-tota.html',  // Школа ТОТА
-        'button_10.png': 'pages/school-isais.html', // Школа ИСАИС
-        'button_11.png': 'pages/seminars.html',     // Семинары
-        'button_12.png': 'pages/programs.html',     // Программы
-        'button_13.png': 'pages/consultations.html',// Консультации
-        'button_14.png': 'pages/recordings.html',   // Записи
-        'button_15.png': 'pages/template.html',     // Шаблон
-        'button_16.png': 'pages/template.html'      // Шаблон
+        'button_09.png': 'pages/school-tota.html',  // Школа пирамиды Тота
+        'button_10.png': 'pages/school-isais.html', // Женская школа Isais
+        'button_11.png': 'https://forum.piramidaspb.ru/', // Форум (внешняя ссылка)
+        'button_12.png': 'pages/consultations.html',// Личные приемы
+        'button_13.png': 'pages/artifacts.html',    // Артефакты из египта
+        'button_14.png': 'pages/projects.html',     // Наши проекты
+        'button_15.png': 'pages/seminars.html',     // Выездные семинары
+        'button_16.png': 'pages/about-isais.html'   // Об isais
     };
 
     // Находим все кнопки overlay-image

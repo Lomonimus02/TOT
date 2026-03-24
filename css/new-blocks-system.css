@@ -250,15 +250,15 @@
         min-height: 50px;
         font-size: 12px;
     }
-    
+
     .zone-label {
         font-size: 12px;
     }
-    
+
     .center-zone .zone-label {
         font-size: 16px;
     }
-    
+
     .new-drag-handle {
         width: 20px;
         height: 20px;
@@ -266,9 +266,69 @@
         top: 5px;
         right: 5px;
     }
-    
+
     .horizontal-container {
         gap: 10px;
+    }
+
+    /* Адаптивность для блоков контента */
+    .content-block {
+        padding: 1rem !important;
+        margin-bottom: 1rem !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    /* Адаптивность для заголовков в блоках */
+    .content-block h2,
+    .content-block .content-heading {
+        font-size: 1.5rem !important;
+    }
+
+    .content-block h3,
+    .content-block .content-subheading {
+        font-size: 1.25rem !important;
+    }
+
+    /* Адаптивность для текста в блоках */
+    .content-block p,
+    .content-block .content-text {
+        font-size: 0.95rem !important;
+        line-height: 1.6 !important;
+    }
+
+    /* Адаптивность для изображений в блоках */
+    .content-block img,
+    .content-block .content-image img,
+    .content-block .cartouche-image {
+        max-width: 100% !important;
+        height: auto !important;
+        object-fit: contain !important;
+    }
+
+    /* Адаптивность для цитат */
+    .content-block blockquote,
+    .content-block .content-quote {
+        padding: 1rem !important;
+        font-size: 0.9rem !important;
+    }
+
+    /* Адаптивность для списков */
+    .content-block ul,
+    .content-block ol,
+    .content-block .content-list {
+        padding-left: 1.5rem !important;
+    }
+
+    /* Адаптивность для двухколоночных блоков */
+    .content-block .content-two-columns {
+        flex-direction: column !important;
+    }
+
+    .content-block .column-left,
+    .content-block .column-right {
+        width: 100% !important;
+        margin-bottom: 1rem !important;
     }
 }
 
@@ -277,9 +337,103 @@
     .new-drop-zone {
         min-height: 45px;
     }
-    
+
     .horizontal-container {
         gap: 15px;
+    }
+
+    /* Адаптивность для блоков контента на планшетах */
+    .content-block {
+        padding: 1.5rem !important;
+        max-width: 100% !important;
+    }
+
+    /* Адаптивность для заголовков */
+    .content-block h2,
+    .content-block .content-heading {
+        font-size: 1.75rem !important;
+    }
+
+    .content-block h3,
+    .content-block .content-subheading {
+        font-size: 1.4rem !important;
+    }
+
+    /* Адаптивность для изображений */
+    .content-block img,
+    .content-block .content-image img,
+    .content-block .cartouche-image {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+}
+
+/* Очень маленькие экраны (мобильные телефоны) */
+@media (max-width: 480px) {
+    /* Адаптивность для блоков контента на маленьких экранах */
+    .content-block {
+        padding: 0.75rem !important;
+        margin-bottom: 0.75rem !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    /* Адаптивность для заголовков */
+    .content-block h2,
+    .content-block .content-heading {
+        font-size: 1.25rem !important;
+        line-height: 1.3 !important;
+    }
+
+    .content-block h3,
+    .content-block .content-subheading {
+        font-size: 1.1rem !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Адаптивность для текста */
+    .content-block p,
+    .content-block .content-text {
+        font-size: 0.875rem !important;
+        line-height: 1.5 !important;
+    }
+
+    /* Адаптивность для цитат */
+    .content-block blockquote,
+    .content-block .content-quote {
+        padding: 0.75rem !important;
+        font-size: 0.85rem !important;
+        margin: 0.5rem 0 !important;
+    }
+
+    /* Адаптивность для списков */
+    .content-block ul,
+    .content-block ol,
+    .content-block .content-list {
+        padding-left: 1.25rem !important;
+        font-size: 0.875rem !important;
+    }
+
+    .content-block li {
+        margin-bottom: 0.5rem !important;
+    }
+
+    /* Адаптивность для карточек */
+    .content-block .content-card {
+        padding: 1rem !important;
+    }
+
+    .content-block .card-title {
+        font-size: 1.1rem !important;
+    }
+
+    .content-block .card-text {
+        font-size: 0.875rem !important;
+    }
+
+    /* Уменьшаем gap для горизонтальных контейнеров */
+    .horizontal-container {
+        gap: 8px !important;
     }
 }
 
@@ -319,6 +473,97 @@
     }
 }
 
+/* ===== СВОБОДНОЕ ПОЗИЦИОНИРОВАНИЕ ===== */
+
+/* Блок с включенным свободным позиционированием */
+.content-block.free-positioned {
+    position: absolute !important;
+    z-index: 100;
+    margin: 0 !important; /* Убираем margin, чтобы не было смещения */
+    transition: none !important; /* Убираем анимации для плавного перетаскивания */
+}
+
+/* Визуальный индикатор режима свободного позиционирования */
+.content-block.free-positioning-enabled {
+    outline: 3px dashed rgba(74, 144, 226, 0.5);
+    outline-offset: 5px;
+    cursor: move !important;
+    user-select: none;
+}
+
+.content-block.free-positioning-enabled:hover {
+    outline-color: rgba(74, 144, 226, 0.8);
+    outline-width: 4px;
+}
+
+/* Блок во время свободного перетаскивания */
+.content-block.dragging-free {
+    opacity: 0.85;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+    transform: scale(1.03);
+    cursor: move !important;
+    z-index: 10000 !important;
+    outline-color: rgba(255, 215, 0, 0.8) !important;
+    outline-width: 4px !important;
+}
+
+/* Контейнер для свободного позиционирования */
+.page-content.free-positioning-container {
+    position: relative;
+    min-height: 100vh;
+}
+
+/* Когда режим свободного позиционирования НЕ активен, блоки располагаются нормально */
+.content-block:not(.free-positioned) {
+    position: relative !important;
+    margin-bottom: 2rem;
+}
+
+/* ===== АДАПТИВНОСТЬ ДЛЯ СВОБОДНОГО ПОЗИЦИОНИРОВАНИЯ ===== */
+
+/* Мобильные устройства - ограничиваем свободное позиционирование */
+@media (max-width: 768px) {
+    /* Блоки со свободным позиционированием на мобильных */
+    .content-block.free-positioned {
+        max-width: calc(100vw - 40px) !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Уменьшаем outline для мобильных */
+    .content-block.free-positioning-enabled {
+        outline-width: 2px !important;
+        outline-offset: 3px !important;
+    }
+
+    .content-block.free-positioning-enabled:hover {
+        outline-width: 3px !important;
+    }
+
+    /* Уменьшаем эффект при перетаскивании */
+    .content-block.dragging-free {
+        transform: scale(1.01) !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+    }
+}
+
+/* Очень маленькие экраны */
+@media (max-width: 480px) {
+    /* Блоки со свободным позиционированием на очень маленьких экранах */
+    .content-block.free-positioned {
+        max-width: calc(100vw - 30px) !important;
+    }
+
+    /* Еще меньше outline */
+    .content-block.free-positioning-enabled {
+        outline-width: 1px !important;
+        outline-offset: 2px !important;
+    }
+
+    .content-block.free-positioning-enabled:hover {
+        outline-width: 2px !important;
+    }
+}
+
 /* ===== ТЕМНАЯ ТЕМА ===== */
 
 @media (prefers-color-scheme: dark) {
@@ -326,19 +571,23 @@
         background: rgba(74, 144, 226, 0.15);
         border-color: rgba(74, 144, 226, 0.6);
     }
-    
+
     .new-drop-zone.center-zone {
         background: rgba(255, 215, 0, 0.15);
         border-color: rgba(255, 215, 0, 0.7);
     }
-    
+
     .new-drag-handle {
         background: rgba(74, 144, 226, 0.9);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }
-    
+
     .block-notification {
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    }
+
+    .content-block.free-positioning-enabled {
+        outline-color: rgba(74, 144, 226, 0.6);
     }
 }
 

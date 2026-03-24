@@ -1,0 +1,46 @@
+# Robots.txt для Пирамида ТОТА
+# Разрешаем индексацию всем поисковым системам
+
+User-agent: *
+Allow: /
+
+# Запрещаем индексацию служебных директорий
+Disallow: /node_modules/
+Disallow: /server/
+Disallow: /scripts/
+Disallow: /.git/
+Disallow: /css/
+Disallow: /js/
+
+# Разрешаем индексацию страниц
+Allow: /index.html
+Allow: /pages/
+
+# Разрешаем индексацию изображений
+Allow: /images/
+
+# Указываем путь к карте сайта
+Sitemap: https://pyramid-tota.ru/sitemap.xml
+
+# Специальные правила для Яндекса
+User-agent: Yandex
+Allow: /
+Disallow: /node_modules/
+Disallow: /server/
+Disallow: /scripts/
+Clean-param: utm_source&utm_medium&utm_campaign
+
+# Специальные правила для Google
+User-agent: Googlebot
+Allow: /
+Disallow: /node_modules/
+Disallow: /server/
+Disallow: /scripts/
+
+# Разрешаем индексацию изображений для Google Images
+User-agent: Googlebot-Image
+Allow: /images/
+
+# Время задержки между запросами (в секундах)
+Crawl-delay: 1
+

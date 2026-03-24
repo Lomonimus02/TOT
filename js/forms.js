@@ -342,6 +342,14 @@ class FormHandler {
                     role: result.user.role
                 });
 
+                // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Переинициализируем систему блоков после авторизации
+                if (result.user.role === 'admin' && window.NewBlockSystem && window.NewBlockSystem.initialize) {
+                    console.log('🔄 Переинициализация системы блоков для администратора');
+                    setTimeout(() => {
+                        window.NewBlockSystem.initialize();
+                    }, 100);
+                }
+
                 // Закрыть модальное окно
                 const modal = form.closest('.modal');
                 if (modal && window.PyramidTOTA) {
@@ -440,6 +448,14 @@ class FormHandler {
                     email: result.user.email,
                     role: result.user.role
                 });
+
+                // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Переинициализируем систему блоков после регистрации
+                if (result.user.role === 'admin' && window.NewBlockSystem && window.NewBlockSystem.initialize) {
+                    console.log('🔄 Переинициализация системы блоков для нового администратора');
+                    setTimeout(() => {
+                        window.NewBlockSystem.initialize();
+                    }, 100);
+                }
 
                 // Закрыть модальное окно
                 const modal = form.closest('.modal');

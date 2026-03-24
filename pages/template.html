@@ -8,6 +8,11 @@
     <link rel="stylesheet" href="../css/animations.css">
     <link rel="stylesheet" href="../css/frame.css">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Предзагрузка фоновых изображений для плавного переключения -->
+    <link rel="preload" href="../images/backgrounds/cosmic-bg.webp" as="image" type="image/webp">
+    <link rel="preload" href="../images/backgrounds/cosmic-bg.jpg" as="image" type="image/jpeg">
+    <link rel="preload" href="../images/decor/frame_extracted.png" as="image" type="image/png">
 </head>
 <body>
     <!-- Полноэкранная египетская рамка -->
@@ -21,6 +26,7 @@
         <a href="../index.html" title="Вернуться на главную страницу">
             <img src="../images/uploads/logo.png" alt="Пирамида ТОТА - Логотип">
         </a>
+        <a href="../index.html" class="home-link" title="Перейти на главную страницу">Главная</a>
     </div>
 
 
@@ -52,7 +58,7 @@
                 <h3>Контакты</h3>
                 <div class="footer-contacts">
                     <div class="footer-contact-item">
-                        <a href="tel:+78129050207">+7 (812) 905 02 07</a>
+                        <a href="https://t.me/V_Isais" target="_blank">Telegram: @V_Isais</a>
                     </div>
                     <div class="footer-contact-item">
                         <a href="mailto:info@piramidaspb.ru">info@piramidaspb.ru</a>
@@ -87,7 +93,8 @@
 
             <!-- Копирайт -->
             <div class="footer-copyright">
-                2019 - 2025г. Все права защищены, Isais ©
+                <div class="footer-year">2017 - <span id="currentYear">2025</span>г.</div>
+                <div class="footer-rights">Все права защищены, Isais ©</div>
             </div>
         </div>
     </footer>
@@ -143,6 +150,18 @@
     <script src="../js/new-blocks-system.js"></script>
     <script src="js/newsletter.js"></script>
 
+
+    <!-- Автоматическое обновление года в подвале -->
+    <script>
+        // Обновляем год в подвале при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentYearElement = document.getElementById('currentYear');
+            if (currentYearElement) {
+                const currentYear = new Date().getFullYear();
+                currentYearElement.textContent = currentYear;
+            }
+        });
+    </script>
 
 </body>
 </html>

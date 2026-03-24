@@ -11,11 +11,9 @@ const footerHTML = `
                 <h3>Контакты</h3>
                 <div class="footer-contacts">
                     <div class="footer-contact-item">
-                        <span>📞</span>
-                        <a href="tel:+78129050207">+7 (812) 905 02 07</a>
+                        <a href="https://t.me/V_Isais" target="_blank">Telegram: @V_Isais</a>
                     </div>
                     <div class="footer-contact-item">
-                        <span>✉️</span>
                         <a href="mailto:info@piramidaspb.ru">info@piramidaspb.ru</a>
                     </div>
                 </div>

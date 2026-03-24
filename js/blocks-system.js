@@ -1,6 +1,172 @@
 // Система блоков "Конструктор Пирамиды"
 // Отдельный файл для избежания конфликтов
 
+// ===== SEO ОПТИМИЗАЦИЯ ДЛЯ БЛОКОВ ПАПИРУСА =====
+
+// Ключевые слова для SEO оптимизации (русская аудитория)
+const SEO_KEYWORDS = {
+    primary: [
+        'пирамида тота', 'таро', 'магия', 'египет', 'боги египта',
+        'реинкарнация', 'арканы', 'судьба', 'будущее', 'чудо'
+    ],
+    secondary: [
+        'душа', 'магический', 'волшебный', 'экстрасенсы', 'зодиак',
+        'пирамида', 'проклятье', 'перерождение', 'заклятье', 'аура', 'чакры'
+    ],
+    additional: [
+        'эзотерика', 'мистика', 'оккультизм', 'предсказание', 'гадание',
+        'карты таро', 'древние знания', 'храм исиды', 'духовное развитие',
+        'энергетика', 'медитация', 'астрология', 'нумерология', 'руны',
+        'мантика', 'ясновидение', 'целительство', 'биоэнергетика',
+        'кармическая астрология', 'женская магия', 'богиня исида',
+        'жезлы фараонов', 'место силы', 'древний египет', 'тайны египта'
+    ]
+};
+
+// Функция для анализа текста на наличие ключевых слов
+function analyzeTextForSEO(text) {
+    if (!text || typeof text !== 'string') return { score: 0, keywords: [] };
+
+    const lowerText = text.toLowerCase();
+    const foundKeywords = [];
+    let score = 0;
+
+    // Проверяем основные ключевые слова (вес 3)
+    SEO_KEYWORDS.primary.forEach(keyword => {
+        if (lowerText.includes(keyword.toLowerCase())) {
+            foundKeywords.push({ keyword, weight: 3, category: 'primary' });
+            score += 3;
+        }
+    });
+
+    // Проверяем вторичные ключевые слова (вес 2)
+    SEO_KEYWORDS.secondary.forEach(keyword => {
+        if (lowerText.includes(keyword.toLowerCase())) {
+            foundKeywords.push({ keyword, weight: 2, category: 'secondary' });
+            score += 2;
+        }
+    });
+
+    // Проверяем дополнительные ключевые слова (вес 1)
+    SEO_KEYWORDS.additional.forEach(keyword => {
+        if (lowerText.includes(keyword.toLowerCase())) {
+            foundKeywords.push({ keyword, weight: 1, category: 'additional' });
+            score += 1;
+        }
+    });
+
+    return { score, keywords: foundKeywords, hasKeywords: foundKeywords.length > 0 };
+}
+
+// Функция для добавления SEO-атрибутов к элементу
+function addSEOAttributes(element, blockType) {
+    if (!element) return;
+
+    const textContent = element.textContent || element.innerText || '';
+    const seoAnalysis = analyzeTextForSEO(textContent);
+
+    // Добавляем data-атрибуты для SEO
+    element.dataset.seoOptimized = 'true';
+    element.dataset.seoScore = seoAnalysis.score;
+    element.dataset.seoKeywords = seoAnalysis.keywords.map(k => k.keyword).join(',');
+
+    // Для заголовков добавляем itemprop для микроразметки
+    if (blockType === 'heading-h2' || blockType === 'heading-h3') {
+        element.setAttribute('itemprop', 'headline');
+
+        // Если заголовок содержит ключевые слова, добавляем дополнительные атрибуты
+        if (seoAnalysis.hasKeywords) {
+            element.setAttribute('data-seo-relevant', 'true');
+        }
+    }
+
+    // Для параграфов добавляем itemprop
+    if (blockType === 'paragraph') {
+        element.setAttribute('itemprop', 'text');
+
+        // Если текст содержит много ключевых слов, помечаем как важный
+        if (seoAnalysis.score >= 5) {
+            element.setAttribute('data-seo-important', 'true');
+        }
+    }
+
+    // Для списков добавляем itemprop
+    if (blockType === 'list') {
+        element.setAttribute('itemscope', '');
+        element.setAttribute('itemtype', 'https://schema.org/ItemList');
+
+        // Добавляем itemprop к элементам списка
+        const listItems = element.querySelectorAll('li');
+        listItems.forEach((li, index) => {
+            li.setAttribute('itemprop', 'itemListElement');
+            li.setAttribute('itemscope', '');
+            li.setAttribute('itemtype', 'https://schema.org/ListItem');
+            li.dataset.position = index + 1;
+        });
+    }
+
+    // Для цитат добавляем микроразметку
+    if (blockType === 'quote') {
+        element.setAttribute('itemscope', '');
+        element.setAttribute('itemtype', 'https://schema.org/Quotation');
+
+        const cite = element.querySelector('cite');
+        if (cite) {
+            cite.setAttribute('itemprop', 'author');
+        }
+    }
+
+    return seoAnalysis;
+}
+
+// Функция для генерации SEO-дружественного ID для заголовков
+function generateSEOFriendlyId(text) {
+    if (!text) return '';
+
+    // Транслитерация русских букв
+    const translitMap = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+        'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+        'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+        'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+        'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+    };
+
+    return text
+        .toLowerCase()
+        .split('')
+        .map(char => translitMap[char] || char)
+        .join('')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .substring(0, 50);
+}
+
+// Функция для обновления SEO-атрибутов при редактировании
+function updateSEOOnEdit(element) {
+    if (!element) return;
+
+    const blockType = element.closest('.content-block')?.dataset?.blockType;
+    if (!blockType) return;
+
+    // Обновляем SEO-атрибуты
+    const seoAnalysis = addSEOAttributes(element, blockType);
+
+    // Для заголовков обновляем ID
+    if (element.tagName === 'H2' || element.tagName === 'H3') {
+        const newId = generateSEOFriendlyId(element.textContent);
+        if (newId) {
+            element.id = newId;
+        }
+    }
+
+    // Логируем для отладки
+    if (seoAnalysis && seoAnalysis.hasKeywords) {
+        console.log('🔍 SEO: Найдены ключевые слова:', seoAnalysis.keywords.map(k => k.keyword).join(', '));
+        console.log('📊 SEO Score:', seoAnalysis.score);
+    }
+}
+
 // Библиотека блоков
 const BLOCKS_LIBRARY = {
     text: {
@@ -11,41 +177,46 @@ const BLOCKS_LIBRARY = {
                 id: 'heading-h2',
                 name: 'Заголовок H2',
                 icon: '🏷️',
-                description: 'Крупный заголовок раздела',
-                template: '<h2 class="content-heading">Новый заголовок</h2>',
-                preview: 'Новый заголовок'
+                description: 'Крупный заголовок раздела (SEO-оптимизирован)',
+                template: '<h2 class="content-heading" itemprop="headline" data-seo-optimized="true">Новый заголовок</h2>',
+                preview: 'Новый заголовок',
+                seoWeight: 'high'
             },
             {
                 id: 'heading-h3',
                 name: 'Заголовок H3',
                 icon: '🏷️',
-                description: 'Средний заголовок подраздела',
-                template: '<h3 class="content-subheading">Подзаголовок</h3>',
-                preview: 'Подзаголовок'
+                description: 'Средний заголовок подраздела (SEO-оптимизирован)',
+                template: '<h3 class="content-subheading" itemprop="headline" data-seo-optimized="true">Подзаголовок</h3>',
+                preview: 'Подзаголовок',
+                seoWeight: 'medium'
             },
             {
                 id: 'paragraph',
                 name: 'Параграф',
                 icon: '📄',
-                description: 'Обычный текстовый блок',
-                template: '<p class="content-text">Введите ваш текст здесь. Этот блок подходит для основного содержимого страницы.</p>',
-                preview: 'Введите ваш текст здесь...'
+                description: 'Обычный текстовый блок (SEO-оптимизирован)',
+                template: '<p class="content-text" itemprop="text" data-seo-optimized="true">Введите ваш текст здесь. Этот блок подходит для основного содержимого страницы.</p>',
+                preview: 'Введите ваш текст здесь...',
+                seoWeight: 'medium'
             },
             {
                 id: 'quote',
                 name: 'Цитата',
                 icon: '💬',
-                description: 'Выделенная цитата с рамкой',
-                template: '<blockquote class="content-quote">"Мудрость приходит к тем, кто ищет знания в древних текстах."<cite>— Древняя мудрость</cite></blockquote>',
-                preview: '"Мудрость приходит к тем..."'
+                description: 'Выделенная цитата с рамкой (SEO-оптимизирована)',
+                template: '<blockquote class="content-quote" itemscope itemtype="https://schema.org/Quotation" data-seo-optimized="true">"Мудрость приходит к тем, кто ищет знания в древних текстах."<cite itemprop="author">— Древняя мудрость</cite></blockquote>',
+                preview: '"Мудрость приходит к тем..."',
+                seoWeight: 'low'
             },
             {
                 id: 'list',
                 name: 'Список',
                 icon: '📋',
-                description: 'Маркированный список',
-                template: '<ul class="content-list"><li>Первый пункт</li><li>Второй пункт</li><li>Третий пункт</li></ul>',
-                preview: '• Первый пункт\n• Второй пункт'
+                description: 'Маркированный список (SEO-оптимизирован)',
+                template: '<ul class="content-list" itemscope itemtype="https://schema.org/ItemList" data-seo-optimized="true"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">Первый пункт</li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">Второй пункт</li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">Третий пункт</li></ul>',
+                preview: '• Первый пункт\n• Второй пункт',
+                seoWeight: 'medium'
             }
         ]
     },
@@ -57,7 +228,7 @@ const BLOCKS_LIBRARY = {
                 id: 'image',
                 name: 'Изображение',
                 icon: '🖼️',
-                description: 'Изображение с подписью',
+                description: 'Изображение',
                 template: `<div class="content-image">
                     <div class="image-placeholder">
                         <div class="placeholder-content">
@@ -65,7 +236,6 @@ const BLOCKS_LIBRARY = {
                             <span class="placeholder-text">Кликните для загрузки изображения</span>
                         </div>
                     </div>
-                    <p class="image-caption" contenteditable="true">Подпись к изображению</p>
                 </div>`,
                 preview: '[Изображение - кликните для загрузки]'
             },
@@ -266,32 +436,54 @@ function bindBlocksEvents() {
         });
     }
 
-    // Кнопки добавления блоков
+    // Кнопки добавления блоков — делегируем новой системе
     document.querySelectorAll('.add-block-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
+            e.preventDefault();
             e.stopPropagation();
             const blockItem = this.closest('.block-item');
+            if (!blockItem) return;
             const blockId = blockItem.dataset.blockId;
             const categoryKey = blockItem.dataset.category;
-            addBlockToPage(categoryKey, blockId);
+            if (window.NewBlockSystem && typeof window.NewBlockSystem.addBlock === 'function') {
+                window.NewBlockSystem.addBlock(categoryKey, blockId);
+            } else {
+                addBlockToPage(categoryKey, blockId);
+            }
         });
     });
 
-    // Клик по блоку (альтернативный способ добавления)
+    // Клик по блоку (альтернативный способ добавления) — используем новую систему, если доступна
     document.querySelectorAll('.block-item').forEach(item => {
         item.addEventListener('click', function(e) {
-            // Не добавляем при клике на кнопку или drag handle
             if (e.target.closest('.add-block-btn') || e.target.closest('.drag-handle')) {
                 return;
             }
             const blockId = this.dataset.blockId;
             const categoryKey = this.dataset.category;
-            addBlockToPage(categoryKey, blockId);
+            if (window.NewBlockSystem && typeof window.NewBlockSystem.addBlock === 'function') {
+                e.preventDefault();
+                e.stopPropagation();
+                window.NewBlockSystem.addBlock(categoryKey, blockId);
+            } else {
+                addBlockToPage(categoryKey, blockId);
+            }
         });
     });
 
     // Drag & Drop обработчики для блоков - ОТКЛЮЧЕНО (используется новая система)
     // bindDragDropEvents();
+
+    // ОТКЛЮЧАЕМ КЛИКИ НА БЛОКИ (НО СОХРАНЯЕМ DRAG)
+    disableBlockClicks();
+}
+
+// Функция для отключения кликов на блоки (но сохранения drag)
+function disableBlockClicks() {
+    document.querySelectorAll('.block-item').forEach(item => {
+        item.classList.add('click-disabled');
+    });
+    console.log('🚫 Клики на блоки отключены, drag сохранен');
 }
 
 // Фильтрация блоков по поиску
@@ -1230,6 +1422,17 @@ function handleBlockContextMenu(e) {
     const block = e.currentTarget;
     const blockIndex = parseInt(block.dataset.blockIndex);
 
+    // КРИТИЧЕСКИ ВАЖНО: Проверяем, клик по изображению внутри блока
+    if (e.target.tagName === 'IMG' && !e.target.classList.contains('image-placeholder')) {
+        console.log('🖼️ Правый клик по изображению внутри блока - показываем меню изображения');
+        // Сохраняем ссылку на текущий блок для действий с изображением
+        currentContextBlock = block;
+        // Показываем меню изображения вместо меню блока
+        // КРИТИЧЕСКИ ВАЖНО: Используем clientX/clientY для точного позиционирования
+        showImageContextMenu(e.clientX, e.clientY, e.target);
+        return;
+    }
+
     console.log(`🎯 Контекстное меню для блока #${blockIndex}`);
 
     // Сохраняем ссылку на текущий блок
@@ -1330,12 +1533,14 @@ function updateMenuItemsState(blockIndex) {
 // Привязать обработчики контекстного меню
 function bindContextMenuEvents() {
     // Клики по пунктам меню
-    document.querySelectorAll('.context-menu-item').forEach(item => {
+    document.querySelectorAll('#blockContextMenu .context-menu-item').forEach(item => {
         item.addEventListener('click', handleContextMenuAction);
     });
 
-    // Закрытие меню при клике вне его
-    document.addEventListener('click', handleContextMenuOutsideClick);
+    // КРИТИЧЕСКИ ВАЖНО: Закрытие меню при клике вне его - с задержкой
+    setTimeout(() => {
+        document.addEventListener('click', handleContextMenuOutsideClick);
+    }, 100);
 
     // Закрытие меню по ESC
     document.addEventListener('keydown', handleContextMenuKeydown);
@@ -1343,7 +1548,7 @@ function bindContextMenuEvents() {
 
 // Убрать обработчики контекстного меню
 function unbindContextMenuEvents() {
-    document.querySelectorAll('.context-menu-item').forEach(item => {
+    document.querySelectorAll('#blockContextMenu .context-menu-item').forEach(item => {
         item.removeEventListener('click', handleContextMenuAction);
     });
 
@@ -1390,7 +1595,8 @@ function handleContextMenuAction(e) {
 // Закрытие меню при клике вне его
 function handleContextMenuOutsideClick(e) {
     const menu = document.getElementById('blockContextMenu');
-    if (!menu.contains(e.target)) {
+    // КРИТИЧЕСКИ ВАЖНО: Проверяем существование меню
+    if (menu && !menu.contains(e.target)) {
         hideContextMenu();
     }
 }
@@ -1561,13 +1767,58 @@ function duplicateBlock(block) {
         element.contentEditable = false;
     });
 
+    // Генерируем новый уникальный ID для дублированного блока
+    const originalId = block.dataset.editId || block.dataset.blockId;
+    const newId = `${originalId}_copy_${Date.now()}`;
+    clonedBlock.dataset.editId = newId;
+    clonedBlock.dataset.blockId = newId;
+
+    // Помечаем как новый блок для сохранения
+    clonedBlock.dataset.isNew = 'true';
+    clonedBlock.dataset.saved = 'false';
+
     // Вставляем после оригинального блока
     block.parentNode.insertBefore(clonedBlock, block.nextSibling);
+
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем обработчик контекстного меню к клонированному блоку
+    // addEventListener не клонируется при cloneNode, поэтому добавляем вручную
+    clonedBlock.addEventListener('contextmenu', handleBlockContextMenu);
+    console.log('✅ Обработчик контекстного меню добавлен к дублированному блоку');
+
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Сохраняем дублированный блок в БД
+    if (window.NewBlockSystem && window.NewBlockSystem.saveBlock) {
+        setTimeout(async () => {
+            const blockType = clonedBlock.dataset.blockType || 'text';
+            const blockCategory = clonedBlock.dataset.blockCategory || 'text';
+
+            try {
+                const result = await window.NewBlockSystem.saveBlock(clonedBlock, blockCategory, blockType, {
+                    positionType: 'after',
+                    containerSelector: '.page-content'
+                });
+
+                if (result && result.success) {
+                    console.log('✅ Дублированный блок успешно сохранен в БД');
+                } else {
+                    console.error('❌ Ошибка сохранения дублированного блока:', result?.error);
+                }
+            } catch (error) {
+                console.error('❌ Критическая ошибка сохранения дублированного блока:', error);
+            }
+        }, 100);
+    }
+
+    // Обновляем позиции всех блоков
+    if (window.NewBlockSystem && window.NewBlockSystem.updatePositions) {
+        setTimeout(() => {
+            window.NewBlockSystem.updatePositions();
+        }, 200);
+    }
 
     // Пересоздаем зоны
     setTimeout(() => {
         createDropZones();
-    }, 100);
+    }, 300);
 
     showBlockNotification('Блок дублирован!', 'success');
     console.log('📋 Блок дублирован');
@@ -2093,36 +2344,35 @@ function addBlockToPosition(categoryKey, blockId, dropZone) {
 
 // Добавление блока на страницу (старый метод для клика)
 function addBlockToPage(categoryKey, blockId) {
-    const block = BLOCKS_LIBRARY[categoryKey].blocks.find(b => b.id === blockId);
+    // Если доступна новая система, используем её, чтобы блок сразу сохранялся в БД
+    if (window.NewBlockSystem && typeof window.NewBlockSystem.addBlock === 'function') {
+        return window.NewBlockSystem.addBlock(categoryKey, blockId);
+    }
+
+    const block = BLOCKS_LIBRARY[categoryKey]?.blocks?.find(b => b.id === blockId);
     if (!block) return;
 
-    // Находим контейнер для вставки блоков
     const pageContent = document.querySelector('.page-content');
     if (!pageContent) {
         console.error('Контейнер .page-content не найден');
         return;
     }
 
-    // Создаем новый элемент
     const newElement = document.createElement('div');
     newElement.className = 'content-block';
     newElement.innerHTML = block.template;
 
-    // Добавляем в конец контейнера
     pageContent.appendChild(newElement);
 
-    // Пересоздаем зоны вставки
     setTimeout(() => {
         createDropZones();
     }, 100);
 
-    // Закрываем панель блоков
     closeBlocksPanel();
 
-    // Показываем уведомление
     showBlockNotification(`Блок "${block.name}" добавлен!`, 'success');
 
-    console.log(`✅ Добавлен блок: ${block.name}`);
+    console.log(`✅ Добавлен блок (legacy): ${block.name}`);
 }
 
 // Показ уведомлений
@@ -2242,12 +2492,13 @@ function initializeBlocksSystem() {
 // ===== СИСТЕМА ИЗОБРАЖЕНИЙ =====
 
 function initializeImageSystem() {
-    // Добавляем обработчики для существующих изображений
+    // КРИТИЧЕСКИ ВАЖНО: Добавляем обработчики для placeholder - левая кнопка мыши
     document.addEventListener('click', handleImageClick);
+    // Обработчик контекстного меню для изображений теперь в handleBlockContextMenu
     console.log('🖼️ Система изображений инициализирована');
 }
 
-// Обработчик клика по изображениям
+// Обработчик клика по placeholder изображения (левая кнопка)
 function handleImageClick(e) {
     // Проверяем, клик по placeholder изображения
     if (e.target.classList.contains('image-placeholder') ||
@@ -2262,15 +2513,6 @@ function handleImageClick(e) {
 
         console.log('🖼️ Клик по placeholder изображения');
         openImageUploadDialog(placeholder);
-    }
-
-    // Проверяем, клик по загруженному изображению
-    if (e.target.tagName === 'IMG' && e.target.closest('.content-block')) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        console.log('🖼️ Клик по загруженному изображению');
-        openImageEditDialog(e.target);
     }
 }
 
@@ -2378,74 +2620,208 @@ function replaceImagePlaceholder(placeholder, imageUrl, fileName) {
     console.log('🖼️ Placeholder заменен на изображение');
 }
 
-// Открыть диалог редактирования изображения
-function openImageEditDialog(img) {
-    // Создаем простое меню для изображения
+// ===== КОНТЕКСТНОЕ МЕНЮ ДЛЯ ИЗОБРАЖЕНИЙ =====
+
+let currentImageElement = null;
+
+// Показать контекстное меню для изображения (в стиле меню блока)
+function showImageContextMenu(x, y, img) {
+    // КРИТИЧЕСКИ ВАЖНО: Если меню уже открыто, закрываем его
+    const existingMenu = document.getElementById('imageContextMenu');
+    if (existingMenu) {
+        console.log('📋 Меню уже открыто - закрываем');
+        hideImageContextMenu();
+        return;
+    }
+
+    // Сохраняем ссылку на текущее изображение
+    currentImageElement = img;
+
+    // Создаем контекстное меню в стиле меню блока
     const menu = document.createElement('div');
-    menu.className = 'image-edit-menu';
+    menu.className = 'block-context-menu image-context-menu';
+    menu.id = 'imageContextMenu';
     menu.innerHTML = `
-        <div class="image-menu-header">
-            <span>🖼️ Редактирование изображения</span>
-            <button class="image-menu-close">✕</button>
+        <div class="context-menu-header">
+            <span class="context-menu-title">🖼️ Действия с изображением</span>
         </div>
-        <div class="image-menu-actions">
-            <button class="image-action-btn" data-action="replace">
-                <span>🔄</span> Заменить изображение
-            </button>
-            <button class="image-action-btn" data-action="resize">
-                <span>📐</span> Изменить размер
-            </button>
-            <button class="image-action-btn danger" data-action="remove">
-                <span>🗑️</span> Удалить изображение
-            </button>
+        <div class="context-menu-items">
+            <div class="context-menu-item" data-action="replace">
+                <span class="menu-icon">🔄</span>
+                <span class="menu-text">Заменить изображение</span>
+            </div>
+            <div class="context-menu-item" data-action="resize">
+                <span class="menu-icon">📐</span>
+                <span class="menu-text">Изменить размер</span>
+            </div>
+            <div class="context-menu-item" data-action="style">
+                <span class="menu-icon">🎨</span>
+                <span class="menu-text">Настроить стиль</span>
+            </div>
+            <div class="context-menu-item" data-action="duplicate">
+                <span class="menu-icon">📋</span>
+                <span class="menu-text">Дублировать</span>
+            </div>
+            <div class="context-menu-separator"></div>
+            <div class="context-menu-item danger" data-action="delete">
+                <span class="menu-icon">🗑️</span>
+                <span class="menu-text">Удалить</span>
+            </div>
         </div>
     `;
 
-    // Позиционируем меню рядом с изображением
-    const rect = img.getBoundingClientRect();
-    menu.style.position = 'fixed';
-    menu.style.left = (rect.right + 10) + 'px';
-    menu.style.top = rect.top + 'px';
-    menu.style.zIndex = '2000';
-
     document.body.appendChild(menu);
 
-    // Обработчики для меню
-    menu.addEventListener('click', function(e) {
-        const action = e.target.closest('[data-action]')?.dataset.action;
+    // Показываем меню для получения размеров
+    menu.classList.add('visible');
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
 
-        switch (action) {
-            case 'replace':
-                replaceImage(img);
-                break;
-            case 'resize':
-                resizeImage(img);
-                break;
-            case 'remove':
-                removeImage(img);
-                break;
-        }
+    // Получаем размеры меню и окна
+    const menuRect = menu.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
 
-        // Закрываем меню
-        document.body.removeChild(menu);
-    });
+    // КРИТИЧЕСКИ ВАЖНО: Размещаем меню ТОЧНО в месте клика (как для меню блока)
+    let finalX = x;
+    let finalY = y;
 
-    // Закрытие по клику на крестик или вне меню
-    menu.querySelector('.image-menu-close').addEventListener('click', () => {
-        document.body.removeChild(menu);
-    });
+    // Проверяем правую границу
+    if (finalX + menuRect.width > windowWidth) {
+        finalX = windowWidth - menuRect.width - 10;
+    }
 
-    // Закрытие по клику вне меню
+    // Проверяем нижнюю границу
+    if (finalY + menuRect.height > windowHeight) {
+        finalY = windowHeight - menuRect.height - 10;
+    }
+
+    // Проверяем левую границу
+    if (finalX < 10) {
+        finalX = 10;
+    }
+
+    // Проверяем верхнюю границу
+    if (finalY < 10) {
+        finalY = 10;
+    }
+
+    // Применяем финальную позицию
+    menu.style.left = finalX + 'px';
+    menu.style.top = finalY + 'px';
+
+    // Привязываем обработчики
+    bindImageContextMenuEvents();
+
+    console.log(`📋 Контекстное меню изображения показано в позиции (${finalX}, ${finalY})`);
+}
+
+// Скрыть контекстное меню изображения
+function hideImageContextMenu() {
+    const menu = document.getElementById('imageContextMenu');
+    if (!menu) return;
+
+    menu.classList.remove('visible');
     setTimeout(() => {
-        document.addEventListener('click', function closeMenu(e) {
-            if (!menu.contains(e.target) && e.target !== img) {
-                if (document.body.contains(menu)) {
-                    document.body.removeChild(menu);
-                }
-                document.removeEventListener('click', closeMenu);
-            }
-        });
+        if (menu.parentNode) {
+            menu.parentNode.removeChild(menu);
+        }
+    }, 300);
+
+    currentImageElement = null;
+
+    // Убираем обработчики
+    unbindImageContextMenuEvents();
+
+    console.log('📋 Контекстное меню изображения скрыто');
+}
+
+// Привязать обработчики контекстного меню изображения
+function bindImageContextMenuEvents() {
+    // Клики по пунктам меню
+    document.querySelectorAll('#imageContextMenu .context-menu-item').forEach(item => {
+        item.addEventListener('click', handleImageContextMenuAction);
+    });
+
+    // Закрытие меню при клике вне его
+    setTimeout(() => {
+        document.addEventListener('click', handleImageContextMenuOutsideClick);
     }, 100);
+
+    // Закрытие меню по ESC
+    document.addEventListener('keydown', handleImageContextMenuKeydown);
+}
+
+// Убрать обработчики контекстного меню изображения
+function unbindImageContextMenuEvents() {
+    document.querySelectorAll('#imageContextMenu .context-menu-item').forEach(item => {
+        item.removeEventListener('click', handleImageContextMenuAction);
+    });
+
+    document.removeEventListener('click', handleImageContextMenuOutsideClick);
+    document.removeEventListener('keydown', handleImageContextMenuKeydown);
+}
+
+// Обработчик действий контекстного меню изображения
+function handleImageContextMenuAction(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // КРИТИЧЕСКИ ВАЖНО: Получаем .context-menu-item, даже если клик был по иконке или тексту
+    const menuItem = e.target.closest('.context-menu-item');
+    if (!menuItem) {
+        console.warn('⚠️ Клик не по пункту меню');
+        return;
+    }
+
+    const action = menuItem.dataset.action;
+
+    if (menuItem.classList.contains('disabled')) {
+        console.warn('⚠️ Пункт меню отключен');
+        return;
+    }
+
+    console.log(`🎯 Выполнение действия с изображением: ${action}`);
+
+    switch (action) {
+        case 'replace':
+            replaceImage(currentImageElement);
+            break;
+        case 'resize':
+            resizeImage(currentImageElement);
+            break;
+        case 'style':
+            openStylePanelForImage(currentImageElement);
+            break;
+        case 'duplicate':
+            duplicateImageBlock(currentImageElement);
+            break;
+        case 'delete':
+            deleteImageBlock(currentImageElement);
+            break;
+        default:
+            console.warn(`⚠️ Неизвестное действие: ${action}`);
+            return;
+    }
+
+    hideImageContextMenu();
+}
+
+// Закрытие меню при клике вне его
+function handleImageContextMenuOutsideClick(e) {
+    const menu = document.getElementById('imageContextMenu');
+    // КРИТИЧЕСКИ ВАЖНО: Проверяем существование меню и что клик не по меню
+    if (menu && !menu.contains(e.target)) {
+        console.log('🖱️ Клик вне меню изображения - закрываем');
+        hideImageContextMenu();
+    }
+}
+
+// Закрытие меню по ESC
+function handleImageContextMenuKeydown(e) {
+    if (e.key === 'Escape') {
+        hideImageContextMenu();
+    }
 }
 
 // Заменить изображение
@@ -2478,24 +2854,299 @@ async function replaceImage(img) {
     fileInput.click();
 }
 
-// Изменить размер изображения
+// Изменить размер изображения с помощью resize handles (как в Windows)
 function resizeImage(img) {
-    console.log('📐 Изменение размера изображения');
+    console.log('📐 Активация режима изменения размера изображения');
 
-    const currentWidth = img.style.width || '100%';
-    const newWidth = prompt('Введите ширину изображения (например: 50%, 300px, auto):', currentWidth);
+    // Проверяем, не активен ли уже режим изменения размера
+    if (img.classList.contains('resizing-active')) {
+        console.log('⚠️ Режим изменения размера уже активен');
+        return;
+    }
 
-    if (newWidth !== null && newWidth.trim() !== '') {
-        img.style.width = newWidth.trim();
+    // Добавляем класс для режима изменения размера
+    img.classList.add('resizing-active');
+
+    // Создаем контейнер для resize handles
+    const resizeContainer = document.createElement('div');
+    resizeContainer.className = 'image-resize-container';
+    resizeContainer.style.position = 'absolute';
+    resizeContainer.style.pointerEvents = 'none';
+
+    // Получаем позицию изображения
+    const imgRect = img.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+    resizeContainer.style.left = (imgRect.left + scrollLeft) + 'px';
+    resizeContainer.style.top = (imgRect.top + scrollTop) + 'px';
+    resizeContainer.style.width = imgRect.width + 'px';
+    resizeContainer.style.height = imgRect.height + 'px';
+    resizeContainer.style.zIndex = '1999';
+
+    // Создаем 8 resize handles (как в Windows)
+    const handles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+    handles.forEach(position => {
+        const handle = document.createElement('div');
+        handle.className = `resize-handle resize-handle-${position}`;
+        handle.dataset.position = position;
+        handle.style.pointerEvents = 'auto';
+        resizeContainer.appendChild(handle);
+    });
+
+    document.body.appendChild(resizeContainer);
+
+    // Переменные для отслеживания изменения размера
+    let isResizing = false;
+    let startX, startY, startWidth, startHeight;
+    let currentHandle = null;
+    let startImgMarginLeft = 0;
+    let startImgMarginTop = 0;
+
+    // Обработчик начала изменения размера
+    function handleResizeStart(e) {
+        if (!e.target.classList.contains('resize-handle')) return;
+
+        isResizing = true;
+        currentHandle = e.target.dataset.position;
+        startX = e.clientX;
+        startY = e.clientY;
+        startWidth = img.offsetWidth;
+        startHeight = img.offsetHeight;
+
+        // КРИТИЧЕСКИ ВАЖНО: Сохраняем начальные margin для изменения размера влево/вверх
+        startImgMarginLeft = parseFloat(getComputedStyle(img).marginLeft) || 0;
+        startImgMarginTop = parseFloat(getComputedStyle(img).marginTop) || 0;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        document.addEventListener('mousemove', handleResizeMove);
+        document.addEventListener('mouseup', handleResizeEnd);
+    }
+
+    // Обработчик движения при изменении размера
+    function handleResizeMove(e) {
+        if (!isResizing) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+
+        let newWidth = startWidth;
+        let newHeight = startHeight;
+        let newMarginLeft = startImgMarginLeft;
+        let newMarginTop = startImgMarginTop;
+
+        // КРИТИЧЕСКИ ВАЖНО: Вычисляем новые размеры и margin в зависимости от handle (как в Windows 11)
+        // Используем margin вместо изменения позиции блока
+        switch (currentHandle) {
+            case 'e': // Правая сторона - только ширина увеличивается вправо
+                newWidth = startWidth + deltaX;
+                break;
+            case 'w': // Левая сторона - ширина увеличивается влево, margin меняется
+                newWidth = startWidth - deltaX;
+                newMarginLeft = startImgMarginLeft + deltaX;
+                break;
+            case 'ne': // Правый верхний угол
+                newWidth = startWidth + deltaX;
+                newHeight = startHeight - deltaY;
+                newMarginTop = startImgMarginTop + deltaY;
+                break;
+            case 'nw': // Левый верхний угол
+                newWidth = startWidth - deltaX;
+                newHeight = startHeight - deltaY;
+                newMarginLeft = startImgMarginLeft + deltaX;
+                newMarginTop = startImgMarginTop + deltaY;
+                break;
+            case 'se': // Правый нижний угол
+                newWidth = startWidth + deltaX;
+                newHeight = startHeight + deltaY;
+                break;
+            case 'sw': // Левый нижний угол
+                newWidth = startWidth - deltaX;
+                newHeight = startHeight + deltaY;
+                newMarginLeft = startImgMarginLeft + deltaX;
+                break;
+        }
+
+        switch (currentHandle) {
+            case 's': // Нижняя сторона - только высота увеличивается вниз
+                newHeight = startHeight + deltaY;
+                break;
+            case 'n': // Верхняя сторона - высота увеличивается вверх, margin меняется
+                newHeight = startHeight - deltaY;
+                newMarginTop = startImgMarginTop + deltaY;
+                break;
+        }
+
+        // Ограничиваем минимальные размеры
+        const minSize = 50;
+        if (newWidth < minSize) {
+            newWidth = minSize;
+            newMarginLeft = startImgMarginLeft; // Не меняем margin если достигли минимума
+        }
+        if (newHeight < minSize) {
+            newHeight = minSize;
+            newMarginTop = startImgMarginTop; // Не меняем margin если достигли минимума
+        }
+
+        // КРИТИЧЕСКИ ВАЖНО: Применяем новые размеры и margin (НЕ изменяем позицию блока!)
+        img.style.width = newWidth + 'px';
+        img.style.height = newHeight + 'px';
+        img.style.marginLeft = newMarginLeft + 'px';
+        img.style.marginTop = newMarginTop + 'px';
+
+        // КРИТИЧЕСКИ ВАЖНО: Обновляем размер блока, чтобы он подстраивался под изображение
+        const block = img.closest('.content-block');
+        if (block) {
+            // КРИТИЧЕСКИ ВАЖНО: Вычисляем полный размер изображения с учетом margin
+            // Если margin отрицательный (изображение растянуто влево/вверх),
+            // то блок должен расширяться в эту сторону
+            // Размер блока = размер изображения + абсолютное значение отрицательного margin
+            const totalWidth = newWidth + (newMarginLeft < 0 ? Math.abs(newMarginLeft) : 0);
+            const totalHeight = newHeight + (newMarginTop < 0 ? Math.abs(newMarginTop) : 0);
+
+            // Устанавливаем размеры блока
+            block.style.width = totalWidth + 'px';
+            block.style.height = totalHeight + 'px';
+
+            console.log(`📐 Размер блока обновлен: ${totalWidth}x${totalHeight} (margin: ${newMarginLeft}, ${newMarginTop})`);
+        }
+
+        // Обновляем позицию контейнера resize handles
+        const newRect = img.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        resizeContainer.style.left = (newRect.left + scrollLeft) + 'px';
+        resizeContainer.style.top = (newRect.top + scrollTop) + 'px';
+        resizeContainer.style.width = newRect.width + 'px';
+        resizeContainer.style.height = newRect.height + 'px';
+    }
+
+    // Обработчик окончания изменения размера
+    function handleResizeEnd(e) {
+        if (!isResizing) return;
+
+        isResizing = false;
+        currentHandle = null;
+
+        document.removeEventListener('mousemove', handleResizeMove);
+        document.removeEventListener('mouseup', handleResizeEnd);
+
+        // КРИТИЧЕСКИ ВАЖНО: Нормализуем изображение - убираем отрицательный margin
+        // и сдвигаем блок, чтобы изображение оставалось внутри блока
+        const block = img.closest('.content-block');
+        if (block) {
+            const currentMarginLeft = parseFloat(img.style.marginLeft) || 0;
+            const currentMarginTop = parseFloat(img.style.marginTop) || 0;
+
+            // Если margin отрицательный, сдвигаем блок и сбрасываем margin
+            if (currentMarginLeft < 0 || currentMarginTop < 0) {
+                // Получаем текущую позицию блока
+                const currentLeft = parseFloat(block.dataset.freeLeft) || parseFloat(block.style.left) || 0;
+                const currentTop = parseFloat(block.dataset.freeTop) || parseFloat(block.style.top) || 0;
+
+                // Вычисляем новую позицию блока (сдвигаем на величину отрицательного margin)
+                const newLeft = currentLeft + currentMarginLeft;
+                const newTop = currentTop + currentMarginTop;
+
+                // Получаем размеры изображения
+                const imgWidth = parseFloat(img.style.width) || img.offsetWidth;
+                const imgHeight = parseFloat(img.style.height) || img.offsetHeight;
+
+                // Вычисляем новый размер блока
+                const newBlockWidth = imgWidth + Math.abs(currentMarginLeft);
+                const newBlockHeight = imgHeight + Math.abs(currentMarginTop);
+
+                // Применяем новую позицию блока
+                block.style.setProperty('left', newLeft + 'px', 'important');
+                block.style.setProperty('top', newTop + 'px', 'important');
+                block.dataset.freeLeft = newLeft;
+                block.dataset.freeTop = newTop;
+
+                // Сбрасываем margin изображения
+                img.style.marginLeft = '0px';
+                img.style.marginTop = '0px';
+
+                // Устанавливаем новый размер блока
+                block.style.width = newBlockWidth + 'px';
+                block.style.height = newBlockHeight + 'px';
+
+                console.log(`📐 Блок нормализован: позиция (${newLeft}, ${newTop}), размер ${newBlockWidth}x${newBlockHeight}`);
+            }
+
+            // Сохраняем блок с новыми размерами и позицией
+            if (window.FreePositioning && typeof window.FreePositioning.saveBlockPosition === 'function') {
+                window.FreePositioning.saveBlockPosition(block);
+                console.log('💾 Размеры изображения сохранены в БД');
+            }
+        }
+
         showBlockNotification('Размер изображения изменен!', 'success');
     }
+
+    // Обработчик клика вне изображения для выхода из режима
+    function handleClickOutside(e) {
+        if (!img.contains(e.target) && !resizeContainer.contains(e.target)) {
+            exitResizeMode();
+        }
+    }
+
+    // Выход из режима изменения размера
+    function exitResizeMode() {
+        img.classList.remove('resizing-active');
+        if (document.body.contains(resizeContainer)) {
+            document.body.removeChild(resizeContainer);
+        }
+        document.removeEventListener('click', handleClickOutside);
+        document.removeEventListener('mousedown', handleResizeStart);
+    }
+
+    // Добавляем обработчики
+    resizeContainer.addEventListener('mousedown', handleResizeStart);
+    setTimeout(() => {
+        document.addEventListener('click', handleClickOutside);
+    }, 100);
+
+    showBlockNotification('Режим изменения размера активирован. Потяните за маркеры.', 'info');
 }
 
 // Удалить изображение
 function removeImage(img) {
     console.log('🗑️ Удаление изображения');
 
-    if (confirm('Вы уверены, что хотите удалить это изображение?')) {
+    // Создаем кастомное модальное окно подтверждения в стиле подвала
+    const modal = document.createElement('div');
+    modal.className = 'image-confirm-modal';
+    modal.innerHTML = `
+        <div class="image-confirm-content">
+            <div class="image-confirm-header">
+                <h3>🗑️ Удаление изображения</h3>
+            </div>
+            <div class="image-confirm-body">
+                <p>Вы уверены, что хотите удалить это изображение?</p>
+            </div>
+            <div class="image-confirm-actions">
+                <button class="image-confirm-btn cancel-btn">Отмена</button>
+                <button class="image-confirm-btn delete-btn">Удалить</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Обработчики кнопок
+    const cancelBtn = modal.querySelector('.cancel-btn');
+    const deleteBtn = modal.querySelector('.delete-btn');
+
+    cancelBtn.addEventListener('click', () => {
+        closeConfirmModal(modal);
+    });
+
+    deleteBtn.addEventListener('click', () => {
         // Создаем новый placeholder
         const placeholder = document.createElement('div');
         placeholder.className = 'image-placeholder';
@@ -2510,7 +3161,141 @@ function removeImage(img) {
         img.parentNode.replaceChild(placeholder, img);
 
         showBlockNotification('Изображение удалено!', 'success');
+        closeConfirmModal(modal);
+    });
+
+    // Закрытие по клику на фон
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeConfirmModal(modal);
+        }
+    });
+
+    // Закрытие по Escape
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            closeConfirmModal(modal);
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+
+    // Анимация появления
+    setTimeout(() => {
+        modal.style.opacity = '1';
+    }, 10);
+}
+
+// Закрыть модальное окно подтверждения
+function closeConfirmModal(modal) {
+    modal.style.opacity = '0';
+    setTimeout(() => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    }, 300);
+}
+
+// ===== НОВЫЕ ФУНКЦИИ ДЛЯ РАБОТЫ С ИЗОБРАЖЕНИЯМИ =====
+
+// Открыть панель стилей для изображения
+function openStylePanelForImage(img) {
+    console.log('🎨 Открытие панели стилей для изображения');
+
+    // Получаем блок, содержащий изображение
+    const block = img.closest('.content-block');
+    if (!block) {
+        console.error('❌ Не найден блок для изображения');
+        return;
     }
+
+    // Используем существующую функцию openStylePanel для блока
+    openStylePanel(block);
+    showBlockNotification('Настройте стиль блока с изображением', 'info');
+}
+
+// Дублировать блок с изображением
+function duplicateImageBlock(img) {
+    console.log('📋 Дублирование блока с изображением');
+
+    // Получаем блок, содержащий изображение
+    const block = img.closest('.content-block');
+    if (!block) {
+        console.error('❌ Не найден блок для изображения');
+        return;
+    }
+
+    // Используем существующую функцию duplicateBlock
+    duplicateBlock(block);
+    showBlockNotification('Блок с изображением дублирован!', 'success');
+}
+
+// Удалить блок с изображением
+function deleteImageBlock(img) {
+    console.log('🗑️ Удаление блока с изображением');
+
+    // Получаем блок, содержащий изображение
+    const block = img.closest('.content-block');
+    if (!block) {
+        console.error('❌ Не найден блок для изображения');
+        return;
+    }
+
+    // Создаем кастомное модальное окно подтверждения в стиле подвала
+    const modal = document.createElement('div');
+    modal.className = 'image-confirm-modal';
+    modal.innerHTML = `
+        <div class="image-confirm-content">
+            <div class="image-confirm-header">
+                <h3>🗑️ Удаление блока</h3>
+            </div>
+            <div class="image-confirm-body">
+                <p>Вы уверены, что хотите удалить весь блок с изображением?</p>
+            </div>
+            <div class="image-confirm-actions">
+                <button class="image-confirm-btn cancel-btn">Отмена</button>
+                <button class="image-confirm-btn delete-btn">Удалить</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Обработчики кнопок
+    const cancelBtn = modal.querySelector('.cancel-btn');
+    const deleteBtn = modal.querySelector('.delete-btn');
+
+    cancelBtn.addEventListener('click', () => {
+        closeConfirmModal(modal);
+    });
+
+    deleteBtn.addEventListener('click', () => {
+        // Используем существующую функцию deleteBlock
+        deleteBlock(block);
+        showBlockNotification('Блок с изображением удален!', 'success');
+        closeConfirmModal(modal);
+    });
+
+    // Закрытие по клику на фон
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeConfirmModal(modal);
+        }
+    });
+
+    // Закрытие по Escape
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            closeConfirmModal(modal);
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+
+    // Анимация появления
+    setTimeout(() => {
+        modal.style.opacity = '1';
+    }, 10);
 }
 
 // ===== СИСТЕМА ВИДЕО БЛОКОВ =====
@@ -2858,6 +3643,54 @@ async function uploadVideoToServer(file) {
     }
 }
 
+// ===== СВОБОДНОЕ ПОЗИЦИОНИРОВАНИЕ =====
+
+/**
+ * Инициализация кнопки свободного позиционирования
+ */
+function initializeFreePositioningButton() {
+    const toggleButton = document.getElementById('freePositioningToggle');
+    if (!toggleButton) {
+        console.log('⚠️ Кнопка свободного позиционирования не найдена');
+        return;
+    }
+
+    // Проверяем сохраненное состояние режима и обновляем визуальное состояние кнопки
+    const savedMode = localStorage.getItem('freePositioningMode');
+    if (savedMode === 'true') {
+        toggleButton.classList.add('active');
+        toggleButton.querySelector('.toggle-icon').textContent = '🔒';
+        console.log('🔄 Восстановлено состояние кнопки свободного позиционирования: ВКЛЮЧЕН');
+    }
+
+    toggleButton.addEventListener('click', function() {
+        if (window.FreePositioning && typeof window.FreePositioning.toggleFreePositioning === 'function') {
+            const isEnabled = window.FreePositioning.toggleFreePositioning();
+            console.log(`🎯 Режим свободного позиционирования: ${isEnabled ? 'ВКЛЮЧЕН' : 'ВЫКЛЮЧЕН'}`);
+
+            // Обновляем визуальное состояние кнопки
+            if (isEnabled) {
+                toggleButton.classList.add('active');
+                toggleButton.querySelector('.toggle-icon').textContent = '🔒';
+            } else {
+                toggleButton.classList.remove('active');
+                toggleButton.querySelector('.toggle-icon').textContent = '🎯';
+            }
+        } else {
+            console.error('❌ Модуль свободного позиционирования не загружен');
+            showBlockNotification('Ошибка: модуль свободного позиционирования не загружен', 'error');
+        }
+    });
+
+    console.log('✅ Кнопка свободного позиционирования инициализирована');
+}
+
+// Инициализируем кнопку при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // Небольшая задержка, чтобы убедиться, что все модули загружены
+    setTimeout(initializeFreePositioningButton, 500);
+});
+
 // Экспорт библиотеки блоков для тестирования
 window.blockLibrary = [];
 Object.values(BLOCKS_LIBRARY).forEach(category => {
@@ -2865,3 +3698,8 @@ Object.values(BLOCKS_LIBRARY).forEach(category => {
         window.blockLibrary.push(...category.blocks);
     }
 });
+
+// Экспорт функций для использования в других модулях
+window.BlocksSystem = {
+    showBlockNotification: showBlockNotification
+};
