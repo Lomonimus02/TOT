@@ -67,3 +67,8 @@ tasks.json
 
 # Bat файлы
 *.bat
+
+# База данных
+server/content.db
+server/content.db-shm
+server/content.db-wal

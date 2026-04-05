@@ -1,6 +1,7 @@
 /**
- * Quill Image & Video Resize Module
- * Позволяет изменять размер и позиционировать изображения и видео в Quill редакторе
+ * Quill Image & Video Resize Module — Word-like experience
+ * Изменение размера с сохранением пропорций, тулбар обтекания,
+ * индикатор размера, свойства картинки, удаление, scroll-tracking
  */
 
 class ImageResize {
@@ -9,221 +10,363 @@ class ImageResize {
         this.options = options;
         this.currentElement = null;
         this.resizeContainer = null;
+        this.sizeIndicator = null;
         this.isResizing = false;
-        this.isDragging = false;
-        
-        // Параметры для изменения размера
+
+        // Resize state
         this.startX = 0;
         this.startY = 0;
         this.startWidth = 0;
         this.startHeight = 0;
+        this.aspectRatio = 1;
         this.currentHandle = null;
-        
-        // Параметры для перемещения
-        this.dragStartX = 0;
-        this.dragStartY = 0;
-        this.elementStartX = 0;
-        this.elementStartY = 0;
-        
+
+        // Bound handlers (for proper removal)
+        this._onEditorClick = this._handleEditorClick.bind(this);
+        this._onDocClick = this._handleDocClick.bind(this);
+        this._onScroll = this._updateOverlayPosition.bind(this);
+        this._onKeyDown = this._handleKeyDown.bind(this);
+
         this.init();
     }
-    
+
+    /* ========== INIT ========== */
     init() {
-        console.log('🔧 Инициализация Image Resize модуля...');
+        // Clicks inside editor
+        this.quill.root.addEventListener('click', this._onEditorClick, true);
+        // Clicks outside editor
+        document.addEventListener('click', this._onDocClick);
+        // Scroll tracking
+        window.addEventListener('scroll', this._onScroll, true);
+        // Keyboard: Delete/Backspace удаляют выбранную картинку, Escape снимает выделение
+        document.addEventListener('keydown', this._onKeyDown);
 
-        // Слушаем клики на изображения и видео
-        this.quill.root.addEventListener('click', (e) => {
-            console.log('🖱️ Клик в редакторе:', {
-                tagName: e.target.tagName,
-                className: e.target.className,
-                classList: Array.from(e.target.classList || []),
-                parentTagName: e.target.parentElement?.tagName,
-                parentClassName: e.target.parentElement?.className
-            });
+        // Ensure trailing paragraph after content changes (so user can always type below images)
+        this.quill.on('text-change', () => {
+            this._ensureTrailingParagraph();
+        });
+        // Also check on init (after content is loaded)
+        setTimeout(() => this._ensureTrailingParagraph(), 500);
 
-            // Проверяем клик на медиа элемент
-            let mediaElement = null;
+        // Context menu (right-click)
+        this._initContextMenu();
+        // Hover tooltip showing dimensions
+        this._initHoverTooltip();
 
-            if (e.target.tagName === 'IMG' || e.target.tagName === 'VIDEO') {
-                mediaElement = e.target;
-                console.log('📸 Клик на IMG/VIDEO:', mediaElement.tagName);
-            } else if (e.target.tagName === 'IFRAME' && e.target.classList.contains('ql-video')) {
-                // Клик на iframe.ql-video
-                mediaElement = e.target;
-                console.log('📸 Клик на IFRAME.ql-video');
-            } else {
-                // КРИТИЧЕСКИ ВАЖНО: Клик прошел сквозь iframe (pointer-events: none)
-                // Ищем iframe под курсором
-                const clickX = e.clientX;
-                const clickY = e.clientY;
-
-                console.log('🔍 Клик прошел сквозь элемент, ищем iframe под курсором:', {clickX, clickY});
-
-                // Временно включаем pointer-events для всех iframe
-                const iframes = this.quill.root.querySelectorAll('iframe.ql-video');
-                iframes.forEach(iframe => {
-                    const rect = iframe.getBoundingClientRect();
-                    console.log('  📦 Проверяем iframe:', {
-                        left: rect.left,
-                        top: rect.top,
-                        right: rect.right,
-                        bottom: rect.bottom,
-                        clickX,
-                        clickY,
-                        inside: clickX >= rect.left && clickX <= rect.right && clickY >= rect.top && clickY <= rect.bottom
-                    });
-
-                    if (clickX >= rect.left && clickX <= rect.right &&
-                        clickY >= rect.top && clickY <= rect.bottom) {
-                        mediaElement = iframe;
-                        console.log('✅ Найден iframe под курсором!');
-                    }
-                });
-            }
-
-            if (mediaElement) {
-                console.log('✅ Медиа элемент найден:', mediaElement.tagName, mediaElement);
+        // Double-click opens properties
+        this.quill.root.addEventListener('dblclick', (e) => {
+            const el = this._findMedia(e);
+            if (el && el.tagName === 'IMG' && this.quill.isEnabled()) {
                 e.preventDefault();
                 e.stopPropagation();
-                this.showResizeHandles(mediaElement);
-            } else if (!e.target.closest('.resize-container')) {
-                console.log('❌ Клик вне медиа элемента, скрываем handles');
-                this.hideResizeHandles();
+                this.showResizeHandles(el);
+                this._openProperties();
             }
-        }, true); // Используем capture phase
-
-        // Скрываем handles при клике вне редактора
-        document.addEventListener('click', (e) => {
-            if (!this.quill.root.contains(e.target) && !e.target.closest('.resize-container')) {
-                this.hideResizeHandles();
-            }
-        });
-
-        console.log('✅ Quill Image Resize модуль инициализирован');
+        }, true);
     }
-    
-    showResizeHandles(element) {
-        console.log('📐 Попытка показать resize handles для:', element.tagName);
 
-        // Скрываем предыдущие handles
-        this.hideResizeHandles();
+    /* ========== EVENT HELPERS ========== */
+    _findMedia(e) {
+        if (e.target.tagName === 'IMG' || e.target.tagName === 'VIDEO') return e.target;
+        if (e.target.tagName === 'IFRAME' && e.target.classList.contains('ql-video')) return e.target;
+        // Check iframes under cursor (pointer-events:none in edit mode)
+        const iframes = this.quill.root.querySelectorAll('iframe.ql-video');
+        for (const iframe of iframes) {
+            const r = iframe.getBoundingClientRect();
+            if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) return iframe;
+        }
+        return null;
+    }
 
-        // Проверяем, что редактор в режиме редактирования
-        if (this.quill.isEnabled() === false) {
-            console.log('⚠️ Редактор в режиме readOnly, handles не показываются');
+    _handleEditorClick(e) {
+        const media = this._findMedia(e);
+        if (media && this.quill.isEnabled()) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showResizeHandles(media);
+        } else if (!e.target.closest('.resize-container') && !e.target.closest('.img-props-modal')) {
+            this.hideResizeHandles();
+        }
+    }
+
+    _handleDocClick(e) {
+        if (!this.quill.root.contains(e.target) &&
+            !e.target.closest('.resize-container') &&
+            !e.target.closest('.img-props-modal')) {
+            this.hideResizeHandles();
+        }
+    }
+
+    _handleKeyDown(e) {
+        if (!this.currentElement) return;
+        // Skip if typing in a dialog input
+        if (e.target.closest('input, textarea, [contenteditable="true"]:not(.ql-editor)')) return;
+        if (document.querySelector('.img-props-modal')) return;
+
+        if (e.key === 'Escape') {
+            const el = this.currentElement;
+            this.hideResizeHandles();
+            this._placeCursorNear(el, 'after');
             return;
         }
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this._handleEnterOnImage();
+            return;
+        }
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            e.preventDefault();
+            this._deleteCurrentElement();
+            return;
+        }
+        // Ctrl+C / Ctrl+X / Ctrl+V for images
+        if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+            e.preventDefault();
+            this._copyImage();
+            return;
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'x') {
+            e.preventDefault();
+            this._cutImage();
+            return;
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'v' && ImageResize._clipboard) {
+            e.preventDefault();
+            this._pasteImage();
+            return;
+        }
+        // Arrow keys: deselect image and move cursor
+        if (['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'].includes(e.key)) {
+            const el = this.currentElement;
+            this.hideResizeHandles();
+            const dir = (e.key === 'ArrowLeft' || e.key === 'ArrowUp') ? 'before' : 'after';
+            this._placeCursorNear(el, dir);
+            return;
+        }
+        // Any printable char: deselect image, place cursor after it, let the char be typed
+        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            const el = this.currentElement;
+            this.hideResizeHandles();
+            this._placeCursorNear(el, 'after');
+            // Don't prevent — let the keystroke pass through to Quill
+        }
+    }
 
-        console.log('✅ Редактор в режиме редактирования, показываем handles');
+    /* ========== SHOW / HIDE OVERLAY ========== */
+    showResizeHandles(element) {
+        this.hideResizeHandles();
+        if (!this.quill.isEnabled()) return;
 
         this.currentElement = element;
+        this.aspectRatio = element.naturalWidth
+            ? element.naturalWidth / element.naturalHeight
+            : element.offsetWidth / (element.offsetHeight || 1);
 
-        console.log('✅ Текущий элемент установлен:', element.tagName, element.className);
-        
-        // Создаем контейнер для resize handles
+        const container = this.quill.root.parentElement;
+        if (!container) return;
+
+        // Overlay
         this.resizeContainer = document.createElement('div');
         this.resizeContainer.className = 'resize-container active';
-
-        // Позиционируем контейнер относительно родительского элемента
-        const rect = element.getBoundingClientRect();
-        const containerRect = this.quill.root.parentElement.getBoundingClientRect();
-
         this.resizeContainer.style.position = 'absolute';
-        this.resizeContainer.style.left = (rect.left - containerRect.left) + 'px';
-        this.resizeContainer.style.top = (rect.top - containerRect.top) + 'px';
-        this.resizeContainer.style.width = rect.width + 'px';
-        this.resizeContainer.style.height = rect.height + 'px';
         this.resizeContainer.style.zIndex = '1999';
+        this._positionOverlay();
 
-        console.log('📦 Создан resize container:', {
-            left: this.resizeContainer.style.left,
-            top: this.resizeContainer.style.top,
-            width: this.resizeContainer.style.width,
-            height: this.resizeContainer.style.height
+        // 8 handles
+        ['nw','n','ne','e','se','s','sw','w'].forEach(pos => {
+            const h = document.createElement('div');
+            h.className = `resize-handle resize-handle-${pos}`;
+            h.dataset.position = pos;
+            this.resizeContainer.appendChild(h);
         });
-        
-        // Создаем 8 resize handles
-        const handles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
-        handles.forEach(position => {
-            const handle = document.createElement('div');
-            handle.className = `resize-handle resize-handle-${position}`;
-            handle.dataset.position = position;
-            this.resizeContainer.appendChild(handle);
+
+        // Toolbar
+        this._addToolbar();
+
+        // Size indicator
+        this.sizeIndicator = document.createElement('div');
+        this.sizeIndicator.className = 'resize-size-indicator';
+        this.sizeIndicator.style.display = 'none';
+        this.resizeContainer.appendChild(this.sizeIndicator);
+
+        container.appendChild(this.resizeContainer);
+
+        // Mouse handlers on overlay
+        this.resizeContainer.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('resize-handle')) {
+                this._startResize(e);
+            }
         });
-        
-        // Добавляем кнопки управления
-        this.addControlButtons();
 
-        // КРИТИЧЕСКИ ВАЖНО: Добавляем контейнер НЕ в quill.root, а в родительский контейнер
-        // чтобы избежать конфликта с внутренней структурой Quill
-        const editorContainer = this.quill.root.parentElement;
-        if (editorContainer) {
-            editorContainer.appendChild(this.resizeContainer);
-            console.log('✅ Resize container добавлен в:', editorContainer.className);
-        } else {
-            console.error('❌ Не найден родительский контейнер для resize handles');
-            return;
-        }
-
-        // Добавляем обработчики событий
-        this.resizeContainer.addEventListener('mousedown', this.handleMouseDown.bind(this));
-
-        console.log('📐 Показаны resize handles для', element.tagName);
+        // Mark image visually selected
+        element.classList.add('img-selected');
     }
-    
-    addControlButtons() {
-        const toolbar = document.createElement('div');
-        toolbar.className = 'media-resize-toolbar';
-        
-        // Кнопки выравнивания
-        const alignments = [
-            { name: 'left', icon: '⬅️', title: 'Выровнять влево' },
-            { name: 'center', icon: '↔️', title: 'Выровнять по центру' },
-            { name: 'right', icon: '➡️', title: 'Выровнять вправо' }
+
+    hideResizeHandles() {
+        if (this.currentElement) this.currentElement.classList.remove('img-selected');
+        if (this.resizeContainer) { this.resizeContainer.remove(); this.resizeContainer = null; }
+        this.sizeIndicator = null;
+        this.currentElement = null;
+        // Restore focus to editor without scrolling
+        const scrollY = window.scrollY;
+        this.quill.focus();
+        window.scrollTo(0, scrollY);
+    }
+
+    _positionOverlay() {
+        if (!this.resizeContainer || !this.currentElement) return;
+        const elRect = this.currentElement.getBoundingClientRect();
+        const parentRect = this.quill.root.parentElement.getBoundingClientRect();
+        Object.assign(this.resizeContainer.style, {
+            left: (elRect.left - parentRect.left) + 'px',
+            top: (elRect.top - parentRect.top) + 'px',
+            width: elRect.width + 'px',
+            height: elRect.height + 'px'
+        });
+    }
+
+    _updateOverlayPosition() {
+        if (this.resizeContainer && this.currentElement) this._positionOverlay();
+    }
+
+    /* ========== TOOLBAR ========== */
+    _addToolbar() {
+        const bar = document.createElement('div');
+        bar.className = 'media-resize-toolbar';
+
+        // — Wrap modes (как в Word) —
+        const wrapModes = [
+            { name: 'inline',  icon: '<svg width="18" height="18" viewBox="0 0 18 18"><rect x="1" y="5" width="7" height="8" rx="1" fill="currentColor" opacity=".35"/><line x1="10" y1="8" x2="17" y2="8" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="15" x2="17" y2="15" stroke="currentColor" stroke-width="1.5"/></svg>', title: 'В тексте' },
+            { name: 'left',    icon: '<svg width="18" height="18" viewBox="0 0 18 18"><rect x="1" y="1" width="7" height="7" rx="1" fill="currentColor" opacity=".35"/><line x1="10" y1="2" x2="17" y2="2" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="5" x2="17" y2="5" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="8" x2="17" y2="8" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="14" x2="17" y2="14" stroke="currentColor" stroke-width="1.5"/></svg>', title: 'Обтекание слева' },
+            { name: 'center',  icon: '<svg width="18" height="18" viewBox="0 0 18 18"><rect x="5.5" y="1" width="7" height="7" rx="1" fill="currentColor" opacity=".35"/><line x1="1" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="14" x2="17" y2="14" stroke="currentColor" stroke-width="1.5"/></svg>', title: 'По центру' },
+            { name: 'right',   icon: '<svg width="18" height="18" viewBox="0 0 18 18"><rect x="10" y="1" width="7" height="7" rx="1" fill="currentColor" opacity=".35"/><line x1="1" y1="2" x2="8" y2="2" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="5" x2="8" y2="5" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="8" x2="8" y2="8" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="14" x2="17" y2="14" stroke="currentColor" stroke-width="1.5"/></svg>', title: 'Обтекание справа' }
         ];
-        
-        alignments.forEach(align => {
+
+        wrapModes.forEach(mode => {
             const btn = document.createElement('button');
-            btn.className = 'media-align-btn';
-            btn.innerHTML = align.icon;
-            btn.title = align.title;
-            btn.onclick = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.setAlignment(align.name);
-            };
-            toolbar.appendChild(btn);
+            btn.className = 'media-toolbar-btn';
+            btn.innerHTML = mode.icon;
+            btn.title = mode.title;
+            // Highlight active
+            if (this.currentElement) {
+                const isActive =
+                    (mode.name === 'left' && this.currentElement.classList.contains('align-left')) ||
+                    (mode.name === 'center' && this.currentElement.classList.contains('align-center')) ||
+                    (mode.name === 'right' && this.currentElement.classList.contains('align-right')) ||
+                    (mode.name === 'inline' && !this.currentElement.classList.contains('align-left') && !this.currentElement.classList.contains('align-center') && !this.currentElement.classList.contains('align-right'));
+                if (isActive) btn.classList.add('active');
+            }
+            btn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+            btn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); this._setWrapMode(mode.name); };
+            bar.appendChild(btn);
         });
-        
-        this.resizeContainer.appendChild(toolbar);
-    }
-    
-    setAlignment(alignment) {
-        if (!this.currentElement) return;
 
-        // Удаляем предыдущие классы выравнивания
-        this.currentElement.classList.remove('align-left', 'align-center', 'align-right');
+        // Separator
+        const sep1 = document.createElement('span');
+        sep1.className = 'media-toolbar-sep';
+        bar.appendChild(sep1);
 
-        // Добавляем новый класс
-        this.currentElement.classList.add(`align-${alignment}`);
+        // — Quick size presets —
+        const presets = [
+            { label: '¼', pct: 25, title: '25% ширины' },
+            { label: '½', pct: 50, title: '50% ширины' },
+            { label: '¾', pct: 75, title: '75% ширины' },
+            { label: '⬛', pct: 100, title: '100% ширины' },
+        ];
+        presets.forEach(p => {
+            const btn = document.createElement('button');
+            btn.className = 'media-toolbar-btn media-toolbar-btn-sm';
+            btn.textContent = p.label;
+            btn.title = p.title;
+            btn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+            btn.onclick = (e) => {
+                e.preventDefault(); e.stopPropagation();
+                if (p.pct === 100) this._fitToPageWidth();
+                else this._setSizePercent(p.pct);
+            };
+            bar.appendChild(btn);
+        });
 
-        console.log(`📍 Выравнивание установлено: ${alignment} для`, this.currentElement.tagName);
-
-        // Обновляем позицию контейнера после изменения выравнивания
-        setTimeout(() => {
-            this.updateContainerPosition();
-        }, 50);
-    }
-    
-    handleMouseDown(e) {
-        if (e.target.classList.contains('resize-handle')) {
-            this.startResize(e);
-        } else if (e.target === this.resizeContainer || e.target.closest('.resize-container')) {
-            this.startDrag(e);
+        // — Original size button (for IMG only) —
+        if (this.currentElement && this.currentElement.tagName === 'IMG') {
+            const origBtn = document.createElement('button');
+            origBtn.className = 'media-toolbar-btn media-toolbar-btn-sm';
+            origBtn.textContent = '↺';
+            origBtn.title = 'Оригинальный размер';
+            origBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+            origBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); this._resetToOriginalSize(); };
+            bar.appendChild(origBtn);
         }
+
+        // Separator
+        const sep2 = document.createElement('span');
+        sep2.className = 'media-toolbar-sep';
+        bar.appendChild(sep2);
+
+        // — Properties button —
+        if (this.currentElement && this.currentElement.tagName === 'IMG') {
+            const propsBtn = document.createElement('button');
+            propsBtn.className = 'media-toolbar-btn';
+            propsBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="9" y1="5" x2="9" y2="5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="8" x2="9" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+            propsBtn.title = 'Свойства изображения';
+            propsBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+            propsBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); this._openProperties(); };
+            bar.appendChild(propsBtn);
+        }
+
+        // — Delete button —
+        const delBtn = document.createElement('button');
+        delBtn.className = 'media-toolbar-btn media-toolbar-btn-danger';
+        delBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18"><polyline points="4,5 5,15 13,15 14,5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/><line x1="3" y1="5" x2="15" y2="5" stroke="currentColor" stroke-width="1.5"/><polyline points="7,5 7,3 11,3 11,5" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>';
+        delBtn.title = 'Удалить';
+        delBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+        delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); this._deleteCurrentElement(); };
+        bar.appendChild(delBtn);
+
+        this.resizeContainer.appendChild(bar);
     }
-    
-    startResize(e) {
+
+    /* ========== WRAP / ALIGNMENT ========== */
+    _setWrapMode(mode) {
+        if (!this.currentElement) return;
+        this.currentElement.classList.remove('align-left', 'align-center', 'align-right');
+        if (mode === 'inline') {
+            // Пользователь явно выбрал inline — убираем float и метим
+            this.currentElement.style.float = '';
+            this.currentElement.style.marginRight = '';
+            this.currentElement.style.marginBottom = '';
+            this.currentElement.style.marginLeft = '';
+            this.currentElement.setAttribute('data-wrap', 'inline');
+        } else {
+            this.currentElement.removeAttribute('data-wrap');
+            this.currentElement.classList.add(`align-${mode}`);
+        }
+        // Sync style attr for Quill blot
+        this._syncBlotStyle();
+        // Re-show to update active state in toolbar
+        const el = this.currentElement;
+        setTimeout(() => { this.showResizeHandles(el); }, 60);
+    }
+
+    /* ========== DELETE ========== */
+    _deleteCurrentElement() {
+        if (!this.currentElement) return;
+        const blot = Quill.find(this.currentElement);
+        let cursorIdx = 0;
+        if (blot) {
+            cursorIdx = this.quill.getIndex(blot);
+            this.quill.deleteText(cursorIdx, 1);
+        } else {
+            this.currentElement.remove();
+        }
+        this.hideResizeHandles();
+        // Place cursor where the image was
+        this.quill.setSelection(cursorIdx, 0);
+        this._ensureTrailingParagraph();
+    }
+
+    /* ========== RESIZE ========== */
+    _startResize(e) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -233,155 +376,443 @@ class ImageResize {
         this.startY = e.clientY;
         this.startWidth = this.currentElement.offsetWidth;
         this.startHeight = this.currentElement.offsetHeight;
+        this.aspectRatio = this.startWidth / (this.startHeight || 1);
 
-        // Сохраняем bound функции для правильного удаления слушателей
-        this.boundHandleResize = this.handleResize.bind(this);
-        this.boundStopResize = this.stopResize.bind(this);
+        // Show size indicator
+        if (this.sizeIndicator) {
+            this.sizeIndicator.style.display = 'block';
+            this.sizeIndicator.textContent = `${Math.round(this.startWidth)} × ${Math.round(this.startHeight)}`;
+        }
 
-        document.addEventListener('mousemove', this.boundHandleResize);
-        document.addEventListener('mouseup', this.boundStopResize);
+        this._boundResize = this._handleResize.bind(this);
+        this._boundStopResize = this._stopResize.bind(this);
+        document.addEventListener('mousemove', this._boundResize);
+        document.addEventListener('mouseup', this._boundStopResize);
 
-        console.log('🔧 Начато изменение размера:', {
-            handle: this.currentHandle,
-            startWidth: this.startWidth,
-            startHeight: this.startHeight
-        });
+        // Add body class for cursor override
+        document.body.classList.add('img-resizing');
     }
-    
-    handleResize(e) {
-        if (!this.isResizing) return;
 
+    _handleResize(e) {
+        if (!this.isResizing || !this.currentElement) return;
         e.preventDefault();
 
-        const deltaX = e.clientX - this.startX;
-        const deltaY = e.clientY - this.startY;
+        const dx = e.clientX - this.startX;
+        const dy = e.clientY - this.startY;
+        const isCorner = ['nw','ne','se','sw'].includes(this.currentHandle);
+        const lockAspect = isCorner && !e.shiftKey; // Corners lock ratio; Shift unlocks
+        let newW = this.startWidth;
+        let newH = this.startHeight;
 
-        let newWidth = this.startWidth;
-        let newHeight = this.startHeight;
-
-        // Вычисляем новые размеры в зависимости от handle
         switch (this.currentHandle) {
-            case 'e':
-            case 'w':
-                newWidth = this.currentHandle === 'e' ?
-                    this.startWidth + deltaX :
-                    this.startWidth - deltaX;
-                break;
-            case 'n':
-            case 's':
-                newHeight = this.currentHandle === 's' ?
-                    this.startHeight + deltaY :
-                    this.startHeight - deltaY;
-                break;
-            case 'ne':
-                newWidth = this.startWidth + deltaX;
-                newHeight = this.startHeight - deltaY;
-                break;
-            case 'nw':
-                newWidth = this.startWidth - deltaX;
-                newHeight = this.startHeight - deltaY;
-                break;
-            case 'se':
-                newWidth = this.startWidth + deltaX;
-                newHeight = this.startHeight + deltaY;
-                break;
-            case 'sw':
-                newWidth = this.startWidth - deltaX;
-                newHeight = this.startHeight + deltaY;
-                break;
+            case 'e':  newW = this.startWidth + dx; break;
+            case 'w':  newW = this.startWidth - dx; break;
+            case 's':  newH = this.startHeight + dy; break;
+            case 'n':  newH = this.startHeight - dy; break;
+            case 'se': newW = this.startWidth + dx; newH = this.startHeight + dy; break;
+            case 'sw': newW = this.startWidth - dx; newH = this.startHeight + dy; break;
+            case 'ne': newW = this.startWidth + dx; newH = this.startHeight - dy; break;
+            case 'nw': newW = this.startWidth - dx; newH = this.startHeight - dy; break;
         }
 
-        // Минимальные размеры
-        newWidth = Math.max(50, newWidth);
-        newHeight = Math.max(50, newHeight);
+        newW = Math.max(30, newW);
+        newH = Math.max(30, newH);
 
-        // Применяем новые размеры
-        this.currentElement.style.width = newWidth + 'px';
+        if (lockAspect) {
+            // Use the dimension with the larger delta to drive the other
+            const dxAbs = Math.abs(dx);
+            const dyAbs = Math.abs(dy);
+            if (dxAbs >= dyAbs) {
+                newH = newW / this.aspectRatio;
+            } else {
+                newW = newH * this.aspectRatio;
+            }
+            newW = Math.max(30, newW);
+            newH = Math.max(30, newH);
+        }
 
-        // Для видео и iframe также устанавливаем высоту
-        if (this.currentElement.tagName === 'VIDEO' || this.currentElement.tagName === 'IFRAME') {
-            this.currentElement.style.height = newHeight + 'px';
-            console.log('📏 Установлены размеры для', this.currentElement.tagName, ':', {
-                width: newWidth + 'px',
-                height: newHeight + 'px',
-                actualWidth: this.currentElement.offsetWidth,
-                actualHeight: this.currentElement.offsetHeight
-            });
-        } else {
+        this.currentElement.style.width = Math.round(newW) + 'px';
+        if (this.currentElement.tagName === 'IMG' && lockAspect) {
             this.currentElement.style.height = 'auto';
+        } else {
+            this.currentElement.style.height = Math.round(newH) + 'px';
         }
 
-        // Обновляем позицию контейнера
-        this.updateContainerPosition();
+        // Size indicator
+        const displayW = Math.round(this.currentElement.offsetWidth);
+        const displayH = Math.round(this.currentElement.offsetHeight);
+        if (this.sizeIndicator) {
+            this.sizeIndicator.textContent = `${displayW} × ${displayH}`;
+        }
+
+        this._positionOverlay();
     }
-    
-    stopResize() {
+
+    _stopResize() {
         this.isResizing = false;
+        document.removeEventListener('mousemove', this._boundResize);
+        document.removeEventListener('mouseup', this._boundStopResize);
+        document.body.classList.remove('img-resizing');
 
-        // Удаляем слушатели используя сохраненные bound функции
-        if (this.boundHandleResize) {
-            document.removeEventListener('mousemove', this.boundHandleResize);
-        }
-        if (this.boundStopResize) {
-            document.removeEventListener('mouseup', this.boundStopResize);
-        }
+        if (this.sizeIndicator) this.sizeIndicator.style.display = 'none';
 
-        // Уведомляем Quill об изменении стилей изображения
-        // чтобы Delta обновился и стили сохранились при следующем сохранении
-        if (this.currentElement && this.currentElement.tagName === 'IMG') {
-            const blot = Quill.find(this.currentElement);
-            if (blot) {
-                const styleValue = this.currentElement.getAttribute('style');
-                if (styleValue) {
-                    blot.format('style', styleValue);
+        this._syncBlotStyle();
+        // Refresh overlay after final sizing
+        if (this.currentElement) {
+            setTimeout(() => this._positionOverlay(), 30);
+        }
+    }
+
+    /* ========== SYNC QUILL BLOT ========== */
+    _syncBlotStyle() {
+        if (!this.currentElement) return;
+        const blot = Quill.find(this.currentElement);
+        if (!blot) return;
+        const style = this.currentElement.getAttribute('style');
+        if (style) blot.format('style', style);
+    }
+
+    /* ========== PROPERTIES DIALOG ========== */
+    _openProperties() {
+        if (!this.currentElement || this.currentElement.tagName !== 'IMG') return;
+        // Remove existing dialog
+        document.querySelectorAll('.img-props-modal').forEach(m => m.remove());
+
+        const img = this.currentElement;
+        const modal = document.createElement('div');
+        modal.className = 'img-props-modal';
+        modal.innerHTML = `
+            <div class="img-props-dialog">
+                <h3 class="img-props-title">Свойства изображения</h3>
+                <div class="img-props-preview">
+                    <img src="${img.src}" alt="">
+                </div>
+                <div class="img-props-fields">
+                    <label>Ширина (px)
+                        <input type="number" id="img-prop-w" value="${img.offsetWidth}" min="10" max="4000">
+                    </label>
+                    <label>Высота (px)
+                        <input type="number" id="img-prop-h" value="${img.offsetHeight}" min="10" max="4000">
+                    </label>
+                    <label class="img-props-full">
+                        <input type="checkbox" id="img-prop-lock" checked> Сохранять пропорции
+                    </label>
+                    <label class="img-props-full">Альтернативный текст
+                        <input type="text" id="img-prop-alt" value="${img.alt || ''}" placeholder="Описание изображения">
+                    </label>
+                    <label>Отступ (px)
+                        <input type="number" id="img-prop-margin" value="${parseInt(img.style.margin) || 8}" min="0" max="200">
+                    </label>
+                    <label>Скругление (px)
+                        <input type="number" id="img-prop-radius" value="${parseInt(img.style.borderRadius) || 8}" min="0" max="200">
+                    </label>
+                </div>
+                <div class="img-props-buttons">
+                    <button class="img-props-btn primary" id="img-prop-apply">Применить</button>
+                    <button class="img-props-btn" id="img-prop-cancel">Отмена</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        setTimeout(() => modal.classList.add('show'), 10);
+
+        const wInput = modal.querySelector('#img-prop-w');
+        const hInput = modal.querySelector('#img-prop-h');
+        const lockCb = modal.querySelector('#img-prop-lock');
+        const ratio = img.naturalWidth / (img.naturalHeight || 1);
+
+        // Linked width/height
+        wInput.addEventListener('input', () => {
+            if (lockCb.checked) hInput.value = Math.round(wInput.value / ratio);
+        });
+        hInput.addEventListener('input', () => {
+            if (lockCb.checked) wInput.value = Math.round(hInput.value * ratio);
+        });
+
+        // Apply
+        modal.querySelector('#img-prop-apply').onclick = () => {
+            img.style.width = wInput.value + 'px';
+            img.style.height = lockCb.checked ? 'auto' : hInput.value + 'px';
+            img.alt = modal.querySelector('#img-prop-alt').value;
+            const m = modal.querySelector('#img-prop-margin').value;
+            img.style.margin = m + 'px';
+            const r = modal.querySelector('#img-prop-radius').value;
+            img.style.borderRadius = r + 'px';
+            this._syncBlotStyle();
+            // Update alt in blot
+            const blot = Quill.find(img);
+            if (blot) blot.format('alt', img.alt);
+            modal.classList.remove('show');
+            setTimeout(() => modal.remove(), 200);
+            setTimeout(() => this.showResizeHandles(img), 80);
+        };
+
+        // Cancel / close
+        const close = () => { modal.classList.remove('show'); setTimeout(() => modal.remove(), 200); };
+        modal.querySelector('#img-prop-cancel').onclick = close;
+        modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+    }
+
+    /* ========== CONTEXT MENU (right-click) ========== */
+    _initContextMenu() {
+        this.quill.root.addEventListener('contextmenu', (e) => {
+            const media = this._findMedia(e);
+            if (!media || !this.quill.isEnabled()) return;
+            e.preventDefault();
+            e.stopPropagation();
+            this.showResizeHandles(media);
+            this._showContextMenu(e.clientX, e.clientY);
+        }, true);
+    }
+
+    _showContextMenu(x, y) {
+        this._hideContextMenu();
+        const menu = document.createElement('div');
+        menu.className = 'img-context-menu';
+
+        const isImg = this.currentElement && this.currentElement.tagName === 'IMG';
+        const items = [
+            ...(isImg ? [
+                { label: 'Вырезать', icon: '✂', action: () => this._cutImage() },
+                { label: 'Копировать', icon: '📋', action: () => this._copyImage() },
+            ] : []),
+            { label: '---' },
+            ...(isImg ? [
+                { label: 'Оригинальный размер', icon: '↺', action: () => this._resetToOriginalSize() },
+            ] : []),
+            { label: 'По ширине страницы', icon: '↔', action: () => this._fitToPageWidth() },
+            { label: '50%', icon: '½', action: () => this._setSizePercent(50) },
+            { label: '25%', icon: '¼', action: () => this._setSizePercent(25) },
+            { label: '---' },
+            ...(isImg ? [
+                { label: 'Свойства...', icon: 'ⓘ', action: () => this._openProperties() },
+            ] : []),
+            { label: 'Удалить', icon: '🗑', action: () => this._deleteCurrentElement(), danger: true },
+        ];
+
+        items.forEach(item => {
+            if (item.label === '---') {
+                const sep = document.createElement('div');
+                sep.className = 'img-ctx-sep';
+                menu.appendChild(sep);
+                return;
+            }
+            const row = document.createElement('div');
+            row.className = 'img-ctx-item' + (item.danger ? ' danger' : '');
+            row.innerHTML = `<span class="img-ctx-icon">${item.icon}</span><span>${item.label}</span>`;
+            row.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+            row.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this._hideContextMenu();
+                item.action();
+            };
+            menu.appendChild(row);
+        });
+
+        // Position
+        menu.style.left = x + 'px';
+        menu.style.top = y + 'px';
+        document.body.appendChild(menu);
+
+        // Adjust if off-screen
+        requestAnimationFrame(() => {
+            const rect = menu.getBoundingClientRect();
+            if (rect.right > window.innerWidth) menu.style.left = (x - rect.width) + 'px';
+            if (rect.bottom > window.innerHeight) menu.style.top = (y - rect.height) + 'px';
+        });
+
+        // Close on any click outside
+        this._ctxCloseHandler = (e) => {
+            if (!menu.contains(e.target)) this._hideContextMenu();
+        };
+        setTimeout(() => document.addEventListener('mousedown', this._ctxCloseHandler), 0);
+    }
+
+    _hideContextMenu() {
+        document.querySelectorAll('.img-context-menu').forEach(m => m.remove());
+        if (this._ctxCloseHandler) {
+            document.removeEventListener('mousedown', this._ctxCloseHandler);
+            this._ctxCloseHandler = null;
+        }
+    }
+
+    /* ========== COPY / CUT ========== */
+    _copyImage() {
+        if (!this.currentElement || this.currentElement.tagName !== 'IMG') return;
+        // Store src in a module-level clipboard (browser clipboard API requires user gesture for images)
+        ImageResize._clipboard = {
+            src: this.currentElement.src,
+            style: this.currentElement.getAttribute('style') || '',
+            alt: this.currentElement.alt || ''
+        };
+        this._showToast('Изображение скопировано');
+    }
+
+    _cutImage() {
+        this._copyImage();
+        this._deleteCurrentElement();
+    }
+
+    _pasteImage() {
+        if (!ImageResize._clipboard) return;
+        const clip = ImageResize._clipboard;
+        const scrollY = window.scrollY;
+        const range = this.quill.getSelection() || { index: this.quill.getLength() - 1 };
+        this.quill.insertEmbed(range.index, 'image', clip.src);
+        // Restore style
+        setTimeout(() => {
+            const imgs = this.quill.root.querySelectorAll('img');
+            for (const img of imgs) {
+                if (img.src === clip.src && !img.getAttribute('style')) {
+                    if (clip.style) img.setAttribute('style', clip.style);
+                    if (clip.alt) img.alt = clip.alt;
+                    const blot = Quill.find(img);
+                    if (blot && clip.style) blot.format('style', clip.style);
+                    break;
                 }
             }
-        }
+        }, 50);
+        this.quill.insertText(range.index + 1, '\n');
+        this.quill.setSelection(range.index + 2, 0);
+        window.scrollTo(0, scrollY);
+    }
 
-        console.log('✅ Изменение размера завершено:', {
-            finalWidth: this.currentElement.offsetWidth,
-            finalHeight: this.currentElement.offsetHeight
+    /* ========== SIZE PRESETS ========== */
+    _resetToOriginalSize() {
+        if (!this.currentElement || this.currentElement.tagName !== 'IMG') return;
+        const img = this.currentElement;
+        if (img.naturalWidth) {
+            img.style.width = img.naturalWidth + 'px';
+            img.style.height = 'auto';
+            this._syncBlotStyle();
+            setTimeout(() => this.showResizeHandles(img), 60);
+            this._showToast(`${img.naturalWidth} × ${img.naturalHeight}`);
+        }
+    }
+
+    _fitToPageWidth() {
+        if (!this.currentElement) return;
+        const editorWidth = this.quill.root.clientWidth - 120; // minus padding
+        this.currentElement.style.width = Math.round(editorWidth) + 'px';
+        if (this.currentElement.tagName === 'IMG') {
+            this.currentElement.style.height = 'auto';
+        }
+        this._syncBlotStyle();
+        const el = this.currentElement;
+        setTimeout(() => this.showResizeHandles(el), 60);
+    }
+
+    _setSizePercent(pct) {
+        if (!this.currentElement) return;
+        const editorWidth = this.quill.root.clientWidth - 120;
+        const w = Math.round(editorWidth * pct / 100);
+        this.currentElement.style.width = w + 'px';
+        if (this.currentElement.tagName === 'IMG') {
+            this.currentElement.style.height = 'auto';
+        }
+        this._syncBlotStyle();
+        const el = this.currentElement;
+        setTimeout(() => this.showResizeHandles(el), 60);
+        this._showToast(`${pct}%`);
+    }
+
+    /* ========== ENTER KEY ========== */
+    _handleEnterOnImage() {
+        if (!this.currentElement) return;
+        const el = this.currentElement;
+        this.hideResizeHandles();
+        const blot = Quill.find(el);
+        if (blot) {
+            const idx = this.quill.getIndex(blot) + 1;
+            this.quill.insertText(idx, '\n');
+            this.quill.setSelection(idx + 1, 0);
+        }
+    }
+
+    /* ========== TOAST NOTIFICATION ========== */
+    _showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'img-toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add('show'));
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 200);
+        }, 1200);
+    }
+
+    /* ========== HOVER TOOLTIP (dimensions) ========== */
+    _initHoverTooltip() {
+        let tip = null;
+        this.quill.root.addEventListener('mouseover', (e) => {
+            if (!this.quill.isEnabled()) return;
+            if (this.currentElement) return; // Don't show while selected
+            const el = (e.target.tagName === 'IMG' || e.target.tagName === 'VIDEO') ? e.target : null;
+            if (!el) return;
+            if (tip) tip.remove();
+            const w = el.offsetWidth;
+            const h = el.offsetHeight;
+            tip = document.createElement('div');
+            tip.className = 'img-hover-tip';
+            tip.textContent = `${w} × ${h}`;
+            const rect = el.getBoundingClientRect();
+            tip.style.left = (rect.left + rect.width / 2) + 'px';
+            tip.style.top = (rect.top - 28) + 'px';
+            document.body.appendChild(tip);
+            requestAnimationFrame(() => tip && tip.classList.add('show'));
+        });
+        this.quill.root.addEventListener('mouseout', (e) => {
+            if (e.target.tagName === 'IMG' || e.target.tagName === 'VIDEO') {
+                if (tip) { tip.remove(); tip = null; }
+            }
         });
     }
-    
-    startDrag(e) {
-        // Перемещение пока отключено, так как в Quill это сложнее реализовать
-        // Можно использовать выравнивание вместо свободного позиционирования
+
+    /* ========== CURSOR HELPERS ========== */
+
+    /**
+     * Place Quill cursor before or after a given element
+     */
+    _placeCursorNear(element, direction) {
+        if (!element) return;
+        const blot = Quill.find(element);
+        if (!blot) return;
+        const index = this.quill.getIndex(blot);
+        const pos = direction === 'after' ? index + 1 : index;
+        this._ensureTrailingParagraph();
+        // Clamp to valid range
+        const len = this.quill.getLength();
+        this.quill.setSelection(Math.min(pos, len - 1), 0);
     }
-    
-    updateContainerPosition() {
-        if (!this.resizeContainer || !this.currentElement) return;
 
-        const rect = this.currentElement.getBoundingClientRect();
-        const containerRect = this.quill.root.parentElement.getBoundingClientRect();
-
-        // Вычисляем позицию относительно родительского контейнера
-        this.resizeContainer.style.left = (rect.left - containerRect.left) + 'px';
-        this.resizeContainer.style.top = (rect.top - containerRect.top) + 'px';
-        this.resizeContainer.style.width = rect.width + 'px';
-        this.resizeContainer.style.height = rect.height + 'px';
-
-        console.log('📍 Позиция контейнера обновлена:', {
-            left: this.resizeContainer.style.left,
-            top: this.resizeContainer.style.top,
-            width: this.resizeContainer.style.width,
-            height: this.resizeContainer.style.height
-        });
-    }
-    
-    hideResizeHandles() {
-        if (this.resizeContainer) {
-            this.resizeContainer.remove();
-            this.resizeContainer = null;
+    /**
+     * Ensure the editor ends with an empty paragraph so user can always
+     * click/type below the last image (like Word's trailing ¶)
+     */
+    _ensureTrailingParagraph() {
+        const root = this.quill.root;
+        const last = root.lastElementChild;
+        // If last child is an image, video, iframe, or an element containing only an image
+        const needsParagraph = !last ||
+            last.tagName === 'IMG' ||
+            last.tagName === 'VIDEO' ||
+            last.tagName === 'IFRAME' ||
+            (last.querySelector && last.querySelector('img, video, iframe') && !last.textContent.trim());
+        if (needsParagraph) {
+            const p = document.createElement('p');
+            p.innerHTML = '<br>';
+            root.appendChild(p);
         }
-        this.currentElement = null;
-        console.log('🔒 Resize handles скрыты');
     }
 }
 
-// Регистрируем модуль в Quill
+// Static clipboard
+ImageResize._clipboard = null;
+
+// Register module
 if (window.Quill) {
     window.Quill.register('modules/imageResize', ImageResize);
-    console.log('✅ Quill ImageResize модуль зарегистрирован');
 }
 

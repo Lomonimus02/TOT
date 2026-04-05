@@ -71,10 +71,15 @@ class SearchComponent {
         this.searchBox.appendChild(clearBtn);
         this.searchBox.appendChild(this.resultsDropdown);
 
-        // Добавляем в DOM перед кнопкой входа
-        const loginZone = document.querySelector('.frame-login-zone');
-        if (loginZone) {
-            loginZone.parentNode.insertBefore(this.searchBox, loginZone);
+        // Добавляем в DOM — в обёртку с кнопкой входа
+        const wrapper = document.querySelector('.search-login-wrapper');
+        if (wrapper) {
+            const loginZone = wrapper.querySelector('.frame-login-zone');
+            if (loginZone) {
+                wrapper.insertBefore(this.searchBox, loginZone);
+            } else {
+                wrapper.prepend(this.searchBox);
+            }
         } else {
             // Fallback: добавляем в body
             document.body.appendChild(this.searchBox);
@@ -289,7 +294,15 @@ class SearchComponent {
             url = url;
         }
 
-        // Переходим на страницу
+        // Переходим на страницу (через SPA если доступен)
+        if (window.SPARouter) {
+            const fullUrl = new URL(url, location.href).href;
+            if (window.SPARouter.isInternalPage(fullUrl)) {
+                const cleanUrl = window.SPARouter.normalizePageUrl(fullUrl);
+                window.SPARouter.navigate(cleanUrl);
+                return;
+            }
+        }
         window.location.href = url;
     }
 

@@ -69,6 +69,9 @@ body.edit-mode .ql-toolbar.ql-snow {
 }
 
 /* Отступ сверху для контента, чтобы не скрывался за фиксированной панелью */
+body {
+    transition: padding-top 0.25s ease;
+}
 body.edit-mode {
     padding-top: 50px;
 }
@@ -95,8 +98,10 @@ body.edit-mode {
 }
 
 .ql-toolbar.ql-snow button.ql-active {
-    background: rgba(255, 215, 0, 0.3);
-    border-color: rgba(255, 215, 0, 0.5);
+    background: rgba(75, 46, 20, 0.85) !important;
+    border-color: #FFD700 !important;
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
+    border-radius: 4px;
 }
 
 .ql-toolbar.ql-snow .ql-stroke {
@@ -116,11 +121,11 @@ body.edit-mode {
 }
 
 .ql-toolbar.ql-snow button.ql-active .ql-stroke {
-    stroke: #FFD700;
+    stroke: #FFD700 !important;
 }
 
 .ql-toolbar.ql-snow button.ql-active .ql-fill {
-    fill: #FFD700;
+    fill: #FFD700 !important;
 }
 
 /* Выпадающие списки */
@@ -162,6 +167,110 @@ body.edit-mode {
 .ql-toolbar.ql-snow .ql-picker-item.ql-selected {
     background: rgba(255, 215, 0, 0.3);
     color: #4b2e14;
+}
+
+/* КРИТИЧЕСКИ ВАЖНО: Текст выбранного значения в picker-label должен быть читаем */
+.ql-toolbar.ql-snow .ql-picker-label {
+    color: #3a1f0f !important;
+}
+.ql-toolbar.ql-snow .ql-picker-label .ql-stroke {
+    stroke: #3a1f0f !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-label {
+    border-color: rgba(139, 115, 85, 0.5);
+    background: rgba(255, 255, 255, 0.4);
+}
+.ql-toolbar.ql-snow .ql-picker-label::before {
+    color: #3a1f0f !important;
+}
+
+/* Quill link tooltip — стилизация под сайт */
+.ql-snow .ql-tooltip {
+    background: #f8f4e6 !important;
+    border: 1px solid #d0c4a8 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2) !important;
+    color: #4b2e14 !important;
+    padding: 8px 14px !important;
+    z-index: 10007 !important;
+}
+.ql-snow .ql-tooltip input[type="text"] {
+    border: 1px solid #d0c4a8 !important;
+    border-radius: 4px !important;
+    color: #4b2e14 !important;
+    background: #fff !important;
+    padding: 4px 8px !important;
+}
+.ql-snow .ql-tooltip a {
+    color: #8b7355 !important;
+}
+.ql-snow .ql-tooltip a:hover {
+    color: #4b2e14 !important;
+}
+.ql-snow .ql-tooltip a.ql-action::after {
+    color: #4A90D9 !important;
+    border-right: 1px solid #d0c4a8 !important;
+}
+.ql-snow .ql-tooltip a.ql-remove::before {
+    color: #c0392b !important;
+}
+
+/* Quill color picker dropdown */
+.ql-toolbar.ql-snow .ql-color-picker .ql-picker-options,
+.ql-toolbar.ql-snow .ql-icon-picker .ql-picker-options {
+    background: #f8f4e6 !important;
+    border: 1px solid #d0c4a8 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+    padding: 6px !important;
+}
+
+/* Header picker: показываем понятные названия и текст читаем */
+.ql-snow .ql-picker.ql-header .ql-picker-label::before {
+    color: #3a1f0f !important;
+}
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="1"]::before { content: 'Заголовок 1'; }
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="2"]::before { content: 'Заголовок 2'; }
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="3"]::before { content: 'Заголовок 3'; }
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="4"]::before { content: 'Заголовок 4'; }
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="5"]::before { content: 'Заголовок 5'; }
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="6"]::before { content: 'Заголовок 6'; }
+.ql-snow .ql-picker.ql-header .ql-picker-item::before { content: 'Обычный'; }
+
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="1"]::before { content: 'Заголовок 1'; }
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="2"]::before { content: 'Заголовок 2'; }
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="3"]::before { content: 'Заголовок 3'; }
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="4"]::before { content: 'Заголовок 4'; }
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="5"]::before { content: 'Заголовок 5'; }
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="6"]::before { content: 'Заголовок 6'; }
+.ql-snow .ql-picker.ql-header .ql-picker-label::before { content: 'Обычный'; }
+
+/* Quill color button — показать текущий выбранный цвет */
+.ql-toolbar.ql-snow .ql-color-picker .ql-picker-label svg {
+    width: 18px !important;
+    height: 18px !important;
+}
+.ql-toolbar.ql-snow .ql-color .ql-color-label {
+    opacity: 1 !important;
+}
+.ql-toolbar.ql-snow .ql-background .ql-color-label {
+    opacity: 1 !important;
+}
+
+/* Выпадающие списки — полоса прокрутки */
+.ql-toolbar.ql-snow .ql-picker-options {
+    max-height: 260px;
+    overflow-y: auto;
+}
+.ql-toolbar.ql-snow .ql-picker-options::-webkit-scrollbar {
+    width: 6px;
+}
+.ql-toolbar.ql-snow .ql-picker-options::-webkit-scrollbar-track {
+    background: transparent;
+}
+.ql-toolbar.ql-snow .ql-picker-options::-webkit-scrollbar-thumb {
+    background: #d0c4a8;
+    border-radius: 3px;
 }
 
 /* Размеры шрифтов в выпадающем списке */
@@ -256,6 +365,11 @@ body.edit-mode .ql-container.ql-snow {
     min-height: 600px;
     background: transparent;
     color: #ffffff !important; /* БЕЛЫЙ ЦВЕТ ПО УМОЛЧАНИЮ */
+}
+
+/* Большой нижний отступ только в режиме редактирования */
+body.edit-mode .ql-editor {
+    padding-bottom: 120px;
 }
 
 /* Placeholder - показываем ТОЛЬКО в режиме редактирования */
@@ -375,15 +489,55 @@ body.edit-mode .ql-editor.ql-blank::before {
     border-radius: 0 4px 4px 0;
 }
 
+/* Блоки кода */
+.ql-editor pre.ql-syntax,
+.ql-editor .ql-code-block-container {
+    background: rgba(0, 0, 0, 0.45) !important;
+    color: #e8dcc6 !important;
+    border: 1px solid rgba(255, 215, 0, 0.15);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 1em 0;
+    font-family: 'Consolas', 'Monaco', monospace !important;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-x: auto;
+}
+
+.ql-editor code {
+    background: rgba(0, 0, 0, 0.3);
+    color: #FFD700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9em;
+}
+
 .ql-editor ul,
 .ql-editor ol {
     padding-left: 1.5em;
     margin: 1em 0;
 }
 
+/* Маркеры списков — белые как текст */
+.ql-editor ul > li::before {
+    color: #ffffff !important;
+}
+.ql-editor ol > li::before {
+    color: #ffffff !important;
+}
+
 .ql-editor li {
     margin: 0.5em 0;
     color: #ffffff !important; /* БЕЛЫЙ ЦВЕТ для элементов списка */
+}
+
+/* Горизонтальная линия */
+.ql-editor hr {
+    border: none;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.3);
+    margin: 1.5em 0;
 }
 
 /* Стили для чекбоксов (списки с галочками для планов) */
@@ -434,10 +588,20 @@ body.edit-mode .ql-editor.ql-blank::before {
     border-radius: 8px;
     margin: 0.5em;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    cursor: pointer;
-    transition: all 0.3s ease;
+    cursor: default;
+    transition: box-shadow 0.2s ease;
     display: inline-block;
     vertical-align: top;
+}
+
+/* В режиме просмотра — pointer на картинках */
+body:not(.edit-mode) .ql-editor img {
+    cursor: pointer;
+}
+
+/* В режиме редактирования — move чтобы было понятно что можно кликнуть */
+body.edit-mode .ql-editor img {
+    cursor: pointer;
 }
 
 .ql-editor img:hover {
@@ -548,120 +712,344 @@ body:not(.edit-mode) .ql-editor video,
     margin-right: 0;
 }
 
-/* ===== RESIZE КОНТЕЙНЕР ДЛЯ МЕДИА ===== */
-.ql-editor .resize-container {
+/* ===== RESIZE КОНТЕЙНЕР ДЛЯ МЕДИА (Word-style) ===== */
+
+/* Выделенное изображение */
+.ql-editor img.img-selected {
+    outline: 2px solid #4A90D9;
+    outline-offset: 1px;
+}
+
+/* Курсор при ресайзе */
+body.img-resizing,
+body.img-resizing * {
+    cursor: nwse-resize !important;
+    user-select: none !important;
+}
+
+.resize-container {
     position: absolute;
-    border: 2px dashed #FFD700;
+    border: 1px solid #4A90D9;
     pointer-events: none;
     z-index: 1999;
     box-sizing: border-box;
 }
 
-.ql-editor .resize-container.active {
+.resize-container.active {
     pointer-events: auto;
 }
 
-/* Resize handles */
-.ql-editor .resize-handle {
+/* Resize handles — круглые как в Word */
+.resize-handle {
     position: absolute;
     width: 10px;
     height: 10px;
-    background: #FFD700;
-    border: 2px solid #4A2C17;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    background: #fff;
+    border: 2px solid #4A90D9;
+    border-radius: 50%;
     pointer-events: auto;
     z-index: 2000;
-    border-radius: 2px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transition: background 0.15s;
+}
+.resize-handle:hover { background: #4A90D9; }
+
+/* Corner handles — чуть крупнее */
+.resize-handle-nw, .resize-handle-ne, .resize-handle-se, .resize-handle-sw {
+    width: 12px; height: 12px;
 }
 
-/* Позиционирование handles */
-.ql-editor .resize-handle-nw {
-    top: -5px;
-    left: -5px;
-    cursor: nw-resize;
-}
+.resize-handle-nw  { top: -6px;  left: -6px;  cursor: nw-resize; }
+.resize-handle-n   { top: -5px;  left: 50%;   transform: translateX(-50%); cursor: n-resize; }
+.resize-handle-ne  { top: -6px;  right: -6px; cursor: ne-resize; }
+.resize-handle-e   { top: 50%;   right: -5px; transform: translateY(-50%); cursor: e-resize; }
+.resize-handle-se  { bottom: -6px; right: -6px; cursor: se-resize; }
+.resize-handle-s   { bottom: -5px; left: 50%;  transform: translateX(-50%); cursor: s-resize; }
+.resize-handle-sw  { bottom: -6px; left: -6px;  cursor: sw-resize; }
+.resize-handle-w   { top: 50%;   left: -5px;  transform: translateY(-50%); cursor: w-resize; }
 
-.ql-editor .resize-handle-n {
-    top: -5px;
-    left: 50%;
-    transform: translateX(-50%);
-    cursor: n-resize;
-}
-
-.ql-editor .resize-handle-ne {
-    top: -5px;
-    right: -5px;
-    cursor: ne-resize;
-}
-
-.ql-editor .resize-handle-e {
-    top: 50%;
-    right: -5px;
-    transform: translateY(-50%);
-    cursor: e-resize;
-}
-
-.ql-editor .resize-handle-se {
-    bottom: -5px;
-    right: -5px;
-    cursor: se-resize;
-}
-
-.ql-editor .resize-handle-s {
-    bottom: -5px;
-    left: 50%;
-    transform: translateX(-50%);
-    cursor: s-resize;
-}
-
-.ql-editor .resize-handle-sw {
-    bottom: -5px;
-    left: -5px;
-    cursor: sw-resize;
-}
-
-.ql-editor .resize-handle-w {
-    top: 50%;
-    left: -5px;
-    transform: translateY(-50%);
-    cursor: w-resize;
-}
-
-/* Панель инструментов для медиа */
-.ql-editor .media-resize-toolbar {
+/* Size indicator (показывается при ресайзе) */
+.resize-size-indicator {
     position: absolute;
-    top: -40px;
+    bottom: -28px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(248, 244, 230, 0.95);
-    border: 2px solid #FFD700;
-    border-radius: 8px;
-    padding: 4px 8px;
-    display: flex;
-    gap: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    pointer-events: auto;
-}
-
-.ql-editor .media-align-btn {
-    background: transparent;
-    border: 1px solid rgba(255, 215, 0, 0.3);
+    background: rgba(0,0,0,0.78);
+    color: #fff;
+    font-size: 12px;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    padding: 3px 10px;
     border-radius: 4px;
-    padding: 4px 8px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 2001;
+}
+
+/* Панель инструментов для медиа — Word-style */
+.media-resize-toolbar {
+    position: absolute;
+    top: -44px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #f8f4e6;
+    border: 1px solid #d0c4a8;
+    border-radius: 6px;
+    padding: 3px 6px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.18);
+    pointer-events: auto;
+    z-index: 2001;
+}
+
+.media-toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 28px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
-    transition: all 0.2s ease;
-    color: #4A2C17;
+    color: #4b2e14;
+    transition: all 0.15s;
+    padding: 0;
+}
+.media-toolbar-btn:hover {
+    background: rgba(255, 215, 0, 0.18);
+    border-color: rgba(255, 215, 0, 0.4);
+}
+.media-toolbar-btn.active {
+    background: rgba(74, 144, 217, 0.15);
+    border-color: #4A90D9;
+    color: #4A90D9;
+}
+.media-toolbar-btn-danger:hover {
+    background: rgba(220, 53, 53, 0.12);
+    border-color: rgba(220, 53, 53, 0.4);
+    color: #dc3535;
+}
+.media-toolbar-btn-sm {
+    font-size: 13px;
+    width: 26px;
+    font-weight: 600;
+}
+.media-toolbar-sep {
+    display: inline-block;
+    width: 1px;
+    height: 20px;
+    background: #d0c4a8;
+    margin: 0 4px;
 }
 
-.ql-editor .media-align-btn:hover {
-    background: rgba(255, 215, 0, 0.2);
-    border-color: #FFD700;
-    transform: scale(1.1);
+/* ===== IMAGE PROPERTIES DIALOG ===== */
+.img-props-modal {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10010;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.img-props-modal.show { opacity: 1; }
+
+.img-props-dialog {
+    background: #f8f4e6 !important;
+    opacity: 1 !important;
+    border: 1px solid #d0c4a8;
+    border-radius: 10px;
+    padding: 24px 28px;
+    width: 420px;
+    max-width: 95vw;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    transform: scale(0.92) translateY(-10px);
+    transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+}
+.img-props-modal.show .img-props-dialog {
+    transform: scale(1) translateY(0);
+}
+.img-props-title {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    color: #4b2e14;
+    margin: 0 0 16px;
+    text-align: center;
+}
+.img-props-preview {
+    text-align: center;
+    margin-bottom: 16px;
+}
+.img-props-preview img {
+    max-width: 100%;
+    max-height: 140px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.img-props-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 14px;
+    margin-bottom: 18px;
+}
+.img-props-fields label {
+    font-size: 13px;
+    color: #6b5d4f;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.img-props-fields label.img-props-full {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+.img-props-fields input[type="number"],
+.img-props-fields input[type="text"] {
+    padding: 7px 10px;
+    border: 1px solid #d0c4a8;
+    border-radius: 5px;
+    font-size: 14px;
+    color: #4b2e14;
+    background: #fff;
+    width: 100%;
+    box-sizing: border-box;
+}
+.img-props-fields input[type="number"]:focus,
+.img-props-fields input[type="text"]:focus {
+    outline: none;
+    border-color: #4A90D9;
+    box-shadow: 0 0 0 2px rgba(74,144,217,0.2);
+}
+.img-props-fields input[type="checkbox"] {
+    accent-color: #4A90D9;
+    width: 16px; height: 16px;
+}
+.img-props-buttons {
+    display: flex; gap: 10px; justify-content: flex-end;
+}
+.img-props-btn {
+    padding: 8px 20px;
+    border: 1px solid #d0c4a8;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: 'Open Sans', sans-serif;
+    cursor: pointer;
+    background: #fff;
+    color: #4b2e14;
+    transition: all 0.15s;
+}
+.img-props-btn:hover {
+    background: #f0e8d8;
+}
+.img-props-btn.primary {
+    background: #4A90D9;
+    color: #fff;
+    border-color: #4A90D9;
+}
+.img-props-btn.primary:hover {
+    background: #3a7bc8;
 }
 
-.ql-editor .media-align-btn:active {
-    transform: scale(0.95);
+/* ===== DROP ZONE ===== */
+.ql-editor.img-drop-active {
+    outline: 3px dashed #4A90D9 !important;
+    outline-offset: -6px;
+    background: rgba(74,144,217,0.05) !important;
+}
+
+/* ===== CONTEXT MENU (right-click on image) ===== */
+.img-context-menu {
+    position: fixed;
+    z-index: 10020;
+    background: #f8f4e6;
+    border: 1px solid #d0c4a8;
+    border-radius: 8px;
+    padding: 4px 0;
+    min-width: 200px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.22);
+    font-family: 'Open Sans', sans-serif;
+    font-size: 13.5px;
+    animation: ctxFadeIn 0.12s ease-out;
+}
+@keyframes ctxFadeIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.img-ctx-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 16px;
+    cursor: pointer;
+    color: #4b2e14;
+    transition: background 0.12s;
+    user-select: none;
+}
+.img-ctx-item:hover {
+    background: rgba(255, 215, 0, 0.15);
+}
+.img-ctx-item.danger {
+    color: #c0392b;
+}
+.img-ctx-item.danger:hover {
+    background: rgba(192, 57, 43, 0.08);
+}
+.img-ctx-icon {
+    width: 20px;
+    text-align: center;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+.img-ctx-sep {
+    height: 1px;
+    background: #e0d5c0;
+    margin: 4px 12px;
+}
+
+/* ===== HOVER TOOLTIP (image dimensions) ===== */
+.img-hover-tip {
+    position: fixed;
+    z-index: 10015;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    font-size: 11.5px;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    padding: 3px 9px;
+    border-radius: 4px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+}
+.img-hover-tip.show {
+    opacity: 1;
+}
+
+/* ===== TOAST ===== */
+.img-toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: rgba(0,0,0,0.78);
+    color: #fff;
+    font-size: 13.5px;
+    font-family: 'Open Sans', sans-serif;
+    padding: 8px 20px;
+    border-radius: 6px;
+    z-index: 10020;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+}
+.img-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
 }
 
 /* Выделение текста */

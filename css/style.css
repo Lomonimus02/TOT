@@ -6188,3 +6188,18 @@ body.edit-mode .edit-indicator {
         width: 100%;
     }
 }
+
+/* === SPA Router — плавные переходы между страницами === */
+.main-content {
+    transition: opacity 0.25s ease;
+}
+
+.main-content.spa-fade-out {
+    opacity: 0 !important;
+    transition: opacity 0.25s ease;
+}
+
+.main-content.spa-fade-in {
+    opacity: 1 !important;
+    transition: opacity 0.3s ease;
+}

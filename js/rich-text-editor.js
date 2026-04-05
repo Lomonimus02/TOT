@@ -30,29 +30,10 @@ class RichTextEditor {
         }
 
         // Регистрируем кастомный Image Blot, сохраняющий style/width/height
+        // ВАЖНО: value() должен возвращать строку (src), иначе Delta ломается.
+        // Стили сохраняются через formats()/format() — Quill сам вызывает их при обработке HTML.
         const BaseImage = Quill.import('formats/image');
         class StyledImage extends BaseImage {
-            static create(value) {
-                // Извлекаем src для parent: он ожидает строку
-                const src = typeof value === 'object' ? (value.src || '') : value;
-                const node = super.create(src);
-                if (typeof value === 'object') {
-                    if (value.style) node.setAttribute('style', value.style);
-                    if (value.width) node.setAttribute('width', value.width);
-                    if (value.height) node.setAttribute('height', value.height);
-                    if (value.alt) node.setAttribute('alt', value.alt);
-                }
-                return node;
-            }
-            static value(node) {
-                return {
-                    src: node.getAttribute('src'),
-                    style: node.getAttribute('style'),
-                    width: node.getAttribute('width'),
-                    height: node.getAttribute('height'),
-                    alt: node.getAttribute('alt')
-                };
-            }
             static formats(node) {
                 const formats = {};
                 if (node.hasAttribute('style')) formats.style = node.getAttribute('style');
@@ -166,6 +147,10 @@ class RichTextEditor {
 
         // Настраиваем обработку ссылок
         this.setupLinkHandling();
+
+        // Настраиваем вставку из буфера и drag & drop
+        this.setupClipboardPaste();
+        this.setupDragAndDrop();
 
         this.isInitialized = true;
         console.log('✅ Rich Text Editor инициализирован');
@@ -372,9 +357,14 @@ class RichTextEditor {
                 console.log('✅ Изображение загружено:', imageUrl);
 
                 // Вставляем изображение в редактор
-                const range = this.editor.getSelection(true);
+                const scrollY = window.scrollY;
+                const range = this.editor.getSelection() || { index: this.editor.getLength() - 1 };
                 this.editor.insertEmbed(range.index, 'image', imageUrl);
-                this.editor.setSelection(range.index + 1);
+                // Insert a newline after the image so cursor has somewhere to go
+                this.editor.insertText(range.index + 1, '\n');
+                this.editor.setSelection(range.index + 2, 0);
+                // Restore scroll position
+                window.scrollTo(0, scrollY);
 
             } catch (error) {
                 console.error('❌ Ошибка загрузки изображения:', error);
@@ -501,9 +491,11 @@ class RichTextEditor {
                 console.log('✅ Видео загружено:', videoUrl);
 
                 // Вставляем видео в редактор
-                const range = this.editor.getSelection(true);
+                const scrollY = window.scrollY;
+                const range = this.editor.getSelection() || { index: this.editor.getLength() - 1 };
                 this.editor.insertEmbed(range.index, 'video', videoUrl);
                 this.editor.setSelection(range.index + 1);
+                window.scrollTo(0, scrollY);
 
                 // КРИТИЧЕСКИ ВАЖНО: Устанавливаем начальные размеры для video элемента
                 setTimeout(() => {
@@ -618,9 +610,11 @@ class RichTextEditor {
             const embedUrl = this.convertToEmbedUrl(url.trim());
 
             // Вставляем видео в редактор
-            const range = this.editor.getSelection(true);
+            const scrollY2 = window.scrollY;
+            const range = this.editor.getSelection() || { index: this.editor.getLength() - 1 };
             this.editor.insertEmbed(range.index, 'video', embedUrl);
             this.editor.setSelection(range.index + 1);
+            window.scrollTo(0, scrollY2);
 
             console.log('✅ Видео вставлено по ссылке:', embedUrl);
 
@@ -760,10 +754,45 @@ class RichTextEditor {
                 clearTimeout(this.saveTimeout);
             }
 
+            // Авто-float: когда картинка и текст в одном параграфе — обтекание как в Word
+            this._autoFloatImages();
+
             // Устанавливаем новый таймер
             this.saveTimeout = setTimeout(() => {
                 this.saveContent();
             }, this.autoSaveDelay);
+        });
+    }
+
+    /**
+     * Авто-float: если картинка и текст оказались в одном <p>, применяем float для обтекания
+     */
+    _autoFloatImages() {
+        if (!this.editor || !this.editor.root) return;
+        const blocks = this.editor.root.querySelectorAll('p, h1, h2, h3, h4, h5, h6');
+        blocks.forEach(block => {
+            const imgs = block.querySelectorAll('img');
+            if (imgs.length === 0) return;
+
+            // Есть ли текстовое содержимое (не только картинки)?
+            const hasText = block.textContent.trim().length > 0;
+            if (!hasText) return;
+
+            imgs.forEach(img => {
+                // Не трогаем картинки с явным режимом выравнивания или явным inline
+                if (img.classList.contains('align-center') ||
+                    img.classList.contains('align-left') ||
+                    img.classList.contains('align-right') ||
+                    img.getAttribute('data-wrap') === 'inline') return;
+                const cs = img.style;
+                if (cs.float && cs.float !== 'none') return;
+
+                // Применяем float:left для обтекания текстом
+                cs.float = 'left';
+                cs.marginRight = '1em';
+                cs.marginBottom = '0.5em';
+                cs.marginLeft = '0';
+            });
         });
     }
 
@@ -780,6 +809,100 @@ class RichTextEditor {
                     window.open(e.target.href, '_blank');
                 }
             });
+        }
+    }
+
+    /**
+     * Вставка изображений из буфера обмена (Ctrl+V)
+     */
+    setupClipboardPaste() {
+        this.editor.root.addEventListener('paste', (e) => {
+            if (!this.editor.isEnabled()) return;
+            const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+            if (!items) return;
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const file = item.getAsFile();
+                    if (file) this._uploadAndInsertImage(file);
+                    return;
+                }
+            }
+        });
+    }
+
+    /**
+     * Drag & Drop изображений с рабочего стола
+     */
+    setupDragAndDrop() {
+        const root = this.editor.root;
+        let dragCounter = 0;
+
+        root.addEventListener('dragenter', (e) => {
+            if (!this.editor.isEnabled()) return;
+            e.preventDefault();
+            dragCounter++;
+            if (dragCounter === 1) root.classList.add('img-drop-active');
+        });
+
+        root.addEventListener('dragover', (e) => {
+            if (!this.editor.isEnabled()) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        });
+
+        root.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter <= 0) { dragCounter = 0; root.classList.remove('img-drop-active'); }
+        });
+
+        root.addEventListener('drop', (e) => {
+            dragCounter = 0;
+            root.classList.remove('img-drop-active');
+            if (!this.editor.isEnabled()) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const files = e.dataTransfer?.files;
+            if (!files || files.length === 0) return;
+            for (const file of files) {
+                if (file.type.startsWith('image/')) {
+                    this._uploadAndInsertImage(file);
+                }
+            }
+        });
+    }
+
+    /**
+     * Общий метод загрузки и вставки изображения
+     */
+    async _uploadAndInsertImage(file) {
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Размер изображения не должен превышать 10MB');
+            return;
+        }
+        const formData = new FormData();
+        formData.append('image', file);
+        try {
+            const response = await fetch('/api/upload/image', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                body: formData
+            });
+            if (!response.ok) throw new Error('Ошибка загрузки');
+            const data = await response.json();
+            const scrollY = window.scrollY;
+            const range = this.editor.getSelection() || { index: this.editor.getLength() - 1 };
+            this.editor.insertEmbed(range.index, 'image', data.url);
+            // Insert a newline after the image so cursor has somewhere to go
+            this.editor.insertText(range.index + 1, '\n');
+            this.editor.setSelection(range.index + 2, 0);
+            // Restore scroll position
+            window.scrollTo(0, scrollY);
+        } catch (err) {
+            console.error('❌ Ошибка загрузки изображения:', err);
+            alert('Ошибка загрузки изображения. Попробуйте ещё раз.');
         }
     }
 

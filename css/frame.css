@@ -317,15 +317,27 @@ body {
 }
 
 /* НОВАЯ СИСТЕМА АДАПТИВНОСТИ КНОПКИ ВХОДА */
-/* Базовые стили для интерактивной зоны входа */
-.frame-login-zone {
+
+/* Обёртка для поиска и кнопки входа — всегда рядом, без перекрытия */
+.search-login-wrapper {
     position: absolute !important;
-    /* Позиционирование: центрируем по вертикали относительно поиска (search top:118 + height:47 / 2 = 141.5) */
     top: 118px !important;
     right: 20px !important;
     left: auto !important;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 1001;
+}
+
+/* Базовые стили для интерактивной зоны входа */
+.frame-login-zone {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    left: auto !important;
     transform: none !important;
-    z-index: 1001 !important;
+    z-index: auto !important;
 
     /* Высота как у поиска для идеального центрирования */
     width: auto;
@@ -417,16 +429,23 @@ body {
 
 /* Большие экраны (>768px) - хедер 80px */
 @media (min-width: 769px) {
+    .search-login-wrapper {
+        top: 118px !important;
+        right: 20px !important;
+    }
     .frame-login-zone {
-        top: 118px !important; /* выровнено по вертикали с поиском */
+        /* Позиция управляется обёрткой */
     }
 }
 
 /* Средние экраны (481px-768px) - хедер 70px */
 @media (max-width: 768px) and (min-width: 481px) {
-    .frame-login-zone {
-        top: 100px !important; /* чуть ниже центра логотипа */
+    .search-login-wrapper {
+        top: 95px !important;
         right: 15px !important;
+        gap: 10px;
+    }
+    .frame-login-zone {
         height: auto;
         padding: 0 24px;
         border: none !important;
@@ -441,9 +460,12 @@ body {
 
 /* Маленькие экраны (≤480px) - хедер 60px */
 @media (max-width: 480px) {
-    .frame-login-zone {
-        top: 87px !important; /* чуть ниже центра логотипа */
+    .search-login-wrapper {
+        top: 82px !important;
         right: 10px !important;
+        gap: 8px;
+    }
+    .frame-login-zone {
         height: auto;
         padding: 0 20px;
         border: none !important;
@@ -454,6 +476,15 @@ body {
     .frame-login-text {
         font-size: 18px; /* 12px * 1.5 */
         letter-spacing: 0.75px;
+    }
+}
+
+/* Очень маленькие экраны (≤375px) */
+@media (max-width: 375px) {
+    .search-login-wrapper {
+        top: 70px !important;
+        right: 8px !important;
+        gap: 6px;
     }
 }
 

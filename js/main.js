@@ -2084,10 +2084,15 @@ function initializeButtonClicks() {
                     this.style.transform = '';
                 }, 150);
 
-                // Переход на страницу
+                // Переход на страницу (через SPA если доступен)
                 setTimeout(() => {
                     console.log(`🔄 Переход на: ${targetPage}`);
-                    window.location.href = targetPage;
+                    if (window.SPARouter && window.SPARouter.isInternalPage(new URL(targetPage, location.href).href)) {
+                        const cleanUrl = window.SPARouter.normalizePageUrl(new URL(targetPage, location.href).href);
+                        window.SPARouter.navigate(cleanUrl);
+                    } else {
+                        window.location.href = targetPage;
+                    }
                 }, 200);
             });
 

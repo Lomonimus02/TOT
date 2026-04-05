@@ -1706,6 +1706,59 @@ app.get('/test/forum', async (req, res) => {
 // Применяем middleware для HTML файлов ДО раздачи статических файлов
 app.use(htmlMiddleware);
 
+// === Middleware: автоматическая отдача WebP вместо PNG/JPG (если браузер поддерживает) ===
+app.use('/images', (req, res, next) => {
+    // Только для PNG/JPG запросов
+    if (!/\.(png|jpe?g)$/i.test(req.path)) return next();
+
+    // Проверяем Accept заголовок браузера
+    const acceptsWebP = req.headers.accept && req.headers.accept.includes('image/webp');
+    if (!acceptsWebP) return next();
+
+    // Пытаемся найти оптимизированную WebP версию
+    const webpPath = req.path
+        .replace(/^\//, '/optimized/')
+        .replace(/\.(png|jpe?g)$/i, '.webp');
+    const fullWebpPath = path.join(__dirname, 'images', webpPath);
+
+    // Проверяем существование WebP файла (синхронно для скорости)
+    try {
+        const fsStat = require('fs');
+        if (fsStat.existsSync(fullWebpPath)) {
+            res.setHeader('Content-Type', 'image/webp');
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            res.setHeader('Vary', 'Accept');
+            return res.sendFile(fullWebpPath);
+        }
+    } catch (e) {
+        // WebP версия не найдена — отдаём оригинал
+    }
+
+    next();
+});
+
+// === Кеширование: оптимизированные изображения кешируются на 1 год ===
+app.use('/images/optimized', express.static(path.join(__dirname, 'images', 'optimized'), {
+    maxAge: '365d',
+    immutable: true,
+    etag: true,
+    lastModified: true,
+    setHeaders: (res) => {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+}));
+
+// === Кеширование: обычные изображения — 30 дней ===
+app.use('/images', express.static(path.join(__dirname, 'images'), {
+    maxAge: '30d',
+    etag: true,
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+        res.setHeader('Cache-Control', 'public, max-age=2592000');
+        res.setHeader('Vary', 'Accept');
+    }
+}));
+
 // ВАЖНО: раздачу статических файлов размещаем после htmlMiddleware,
 // чтобы HTML сначала модифицировался контентом из БД и не отдавался как дефолтный
 app.use(express.static('.', {
@@ -1713,6 +1766,10 @@ app.use(express.static('.', {
         // Не кешируем HTML файлы, чтобы изменения применялись сразу
         if (filePath.endsWith('.html')) {
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        }
+        // CSS/JS — кеш на 7 дней
+        if (filePath.endsWith('.css') || filePath.endsWith('.js')) {
+            res.setHeader('Cache-Control', 'public, max-age=604800');
         }
     }
 }));

@@ -91,8 +91,11 @@ class FrameManager {
             this.handleLoginZoneClick(e);
         });
 
-        // Добавляем зону в DOM: теперь напрямую в body для правого верхнего угла
-        document.body.appendChild(loginZone);
+        // Создаём обёртку для поиска и кнопки входа (flexbox, без перекрытия)
+        const wrapper = document.createElement('div');
+        wrapper.className = 'search-login-wrapper';
+        wrapper.appendChild(loginZone);
+        document.body.appendChild(wrapper);
 
         // Сохраняем ссылку на зону для обновления
         this.loginZone = loginZone;
