@@ -1,6 +1,6 @@
-// Серверная часть для сайта "Пирамида ТОТА" с интеграцией Neon PostgreSQL
+// Серверная часть для сайта "Пирамида ТОТА" — локальная SQLite база данных
 const express = require('express');
-const { Pool } = require('pg');
+const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs').promises;
@@ -13,35 +13,49 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Настройка подключения к Neon PostgreSQL
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_mE67QfaoVbGj@ep-rough-term-a92qmgeu-pooler.gwc.azure.neon.tech/neondb?sslmode=require&channel_binding=require',
-    ssl: {
-        rejectUnauthorized: false
-    },
-    // Настройки для стабильной работы с Neon PostgreSQL
-    max: 20, // Максимальное количество соединений в пуле
-    idleTimeoutMillis: 30000, // Закрывать неактивные соединения через 30 секунд
-    connectionTimeoutMillis: 10000, // Таймаут подключения 10 секунд
-    keepAlive: true, // Поддерживать соединение активным
-    keepAliveInitialDelayMillis: 10000 // Начальная задержка для keep-alive
+// Настройка подключения к локальной SQLite базе данных
+const DB_PATH = path.join(__dirname, 'server', 'content.db');
+const db = new sqlite3.Database(DB_PATH, (err) => {
+    if (err) {
+        console.error('❌ Ошибка подключения к SQLite:', err);
+    } else {
+        console.log('✅ Подключение к локальной SQLite базе данных установлено');
+        console.log(`📁 Путь к БД: ${DB_PATH}`);
+        // Включаем WAL режим для лучшей производительности
+        db.run('PRAGMA journal_mode=WAL');
+        db.run('PRAGMA foreign_keys=ON');
+    }
 });
 
-// Обработка ошибок пула соединений
-pool.on('error', (err, client) => {
-    console.error('❌ Неожиданная ошибка в пуле PostgreSQL:', err);
-    // Не выходим из процесса, позволяем пулу переподключиться
-});
+// Обёртка для промисификации db.all
+function dbAll(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+}
 
-// Обработка подключения
-pool.on('connect', (client) => {
-    console.log('✅ Новое соединение с PostgreSQL установлено');
-});
+// Обёртка для промисификации db.get
+function dbGet(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.get(sql, params, (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+        });
+    });
+}
 
-// Обработка удаления соединения
-pool.on('remove', (client) => {
-    console.log('🔌 Соединение с PostgreSQL удалено из пула');
-});
+// Обёртка для промисификации db.run
+function dbRun(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function(err) {
+            if (err) reject(err);
+            else resolve({ lastID: this.lastID, changes: this.changes });
+        });
+    });
+}
 
 // ОТЛАДКА: Простейший тест
 app.get('/debug', (req, res) => {
@@ -167,138 +181,138 @@ const uploadVideo = multer({
 async function initDatabase() {
     try {
         // Создание таблицы пользователей
-        await pool.query(`
+        await dbRun(`
             CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(100) NOT NULL,
-                email VARCHAR(100) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL,
-                role VARCHAR(20) DEFAULT 'user',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT DEFAULT 'user',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
         // Создание таблицы контактных форм
-        await pool.query(`
+        await dbRun(`
             CREATE TABLE IF NOT EXISTS contact_forms (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(100) NOT NULL,
-                email VARCHAR(100) NOT NULL,
-                phone VARCHAR(20),
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT,
                 message TEXT NOT NULL,
-                status VARCHAR(20) DEFAULT 'new',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                status TEXT DEFAULT 'new',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
         // Создание таблицы подписок
-        await pool.query(`
+        await dbRun(`
             CREATE TABLE IF NOT EXISTS newsletter_subscriptions (
-                id SERIAL PRIMARY KEY,
-                email VARCHAR(100) UNIQUE NOT NULL,
-                status VARCHAR(20) DEFAULT 'active',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                status TEXT DEFAULT 'active',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
         // Создание таблицы записей на программы
-        await pool.query(`
+        await dbRun(`
             CREATE TABLE IF NOT EXISTS program_bookings (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(100) NOT NULL,
-                email VARCHAR(100) NOT NULL,
-                phone VARCHAR(20),
-                program VARCHAR(100) NOT NULL,
-                date DATE,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT,
+                program TEXT NOT NULL,
+                date TEXT,
                 message TEXT,
-                status VARCHAR(20) DEFAULT 'pending',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                status TEXT DEFAULT 'pending',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
         // Создание таблицы контента (для админ-панели)
-        await pool.query(`
+        await dbRun(`
             CREATE TABLE IF NOT EXISTS content_pages (
-                id SERIAL PRIMARY KEY,
-                page_name VARCHAR(100) UNIQUE NOT NULL,
-                title VARCHAR(200),
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                page_name TEXT UNIQUE NOT NULL,
+                title TEXT,
                 content TEXT,
                 meta_description TEXT,
                 updated_by INTEGER REFERENCES users(id),
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
         // Создание таблицы для хранения изменений элементов
-        await pool.query(`
+        await dbRun(`
             CREATE TABLE IF NOT EXISTS content_changes (
-                id SERIAL PRIMARY KEY,
-                page_id VARCHAR(100) NOT NULL,
-                element_id VARCHAR(100) NOT NULL,
-                element_type VARCHAR(50),
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                page_id TEXT NOT NULL,
+                element_id TEXT NOT NULL,
+                element_type TEXT,
                 content TEXT,
                 selector TEXT,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(page_id, element_id)
             )
         `);
 
-        // Создание новой таблицы для CSS-классов форматирования (future-proof архитектура)
-        await pool.query(`
+        // Создание таблицы для CSS-классов форматирования
+        await dbRun(`
             CREATE TABLE IF NOT EXISTS element_formatting (
-                id SERIAL PRIMARY KEY,
-                page_id VARCHAR(100) NOT NULL,
-                element_id VARCHAR(100) NOT NULL,
-                css_classes TEXT[] DEFAULT '{}',
-                font_size VARCHAR(20),
-                text_color VARCHAR(50),
-                text_align VARCHAR(20),
-                font_weight VARCHAR(20),
-                font_style VARCHAR(20),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                page_id TEXT NOT NULL,
+                element_id TEXT NOT NULL,
+                css_classes TEXT DEFAULT '[]',
+                font_size TEXT,
+                text_color TEXT,
+                text_align TEXT,
+                font_weight TEXT,
+                font_style TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(page_id, element_id)
             )
         `);
 
         // Создаем таблицу для отслеживания удаленных элементов
-        await pool.query(`
+        await dbRun(`
             CREATE TABLE IF NOT EXISTS deleted_elements (
-                id SERIAL PRIMARY KEY,
-                page_id VARCHAR(100) NOT NULL,
-                element_id VARCHAR(100) NOT NULL,
-                deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                page_id TEXT NOT NULL,
+                element_id TEXT NOT NULL,
+                deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(page_id, element_id)
             )
         `);
 
         // Создаем расширенную таблицу для блоков папируса
-        await pool.query(`
+        await dbRun(`
             CREATE TABLE IF NOT EXISTS page_content (
-                id SERIAL PRIMARY KEY,
-                page_id VARCHAR(100) NOT NULL,
-                element_id VARCHAR(100) NOT NULL,
-                element_type VARCHAR(50),
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                page_id TEXT NOT NULL,
+                element_id TEXT NOT NULL,
+                element_type TEXT,
                 content TEXT,
                 selector TEXT,
-                block_type VARCHAR(50),
-                block_category VARCHAR(50),
-                block_metadata JSONB DEFAULT '{}',
-                parent_block_id VARCHAR(100),
+                block_type TEXT,
+                block_category TEXT,
+                block_metadata TEXT DEFAULT '{}',
+                parent_block_id TEXT,
                 css_styles TEXT,
                 css_classes TEXT,
-                container_selector VARCHAR(200) DEFAULT '.page-content',
-                before_element_id VARCHAR(100),
-                after_element_id VARCHAR(100),
+                container_selector TEXT DEFAULT '.page-content',
+                before_element_id TEXT,
+                after_element_id TEXT,
                 position_index INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(page_id, element_id)
             )
         `);
 
-        console.log('База данных инициализирована успешно');
+        console.log('✅ Локальная SQLite база данных инициализирована успешно');
     } catch (error) {
         console.error('Ошибка инициализации базы данных:', error);
     }
@@ -335,8 +349,8 @@ app.post('/api/register', async (req, res) => {
         const { name, email, password } = req.body;
 
         // Проверка существования пользователя
-        const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-        if (existingUser.rows.length > 0) {
+        const existingUser = await dbGet('SELECT * FROM users WHERE email = ?', [email]);
+        if (existingUser) {
             return res.status(400).json({ error: 'Пользователь с таким email уже существует' });
         }
 
@@ -345,12 +359,12 @@ app.post('/api/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
         // Создание пользователя
-        const result = await pool.query(
-            'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email, role',
+        const result = await dbRun(
+            'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
             [name, email, hashedPassword]
         );
 
-        const user = result.rows[0];
+        const user = { id: result.lastID, name, email, role: 'user' };
         const token = jwt.sign({ userId: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
 
         res.status(201).json({
@@ -371,15 +385,14 @@ app.post('/api/login', async (req, res) => {
         console.log('Попытка авторизации:', { email, password: '***' });
 
         // Поиск пользователя
-        const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-        console.log('Найдено пользователей:', result.rows.length);
+        const user = await dbGet('SELECT * FROM users WHERE email = ?', [email]);
+        console.log('Найдено пользователей:', user ? 1 : 0);
 
-        if (result.rows.length === 0) {
+        if (!user) {
             console.log('Пользователь не найден');
             return res.status(401).json({ error: 'Неверный email или пароль' });
         }
 
-        const user = result.rows[0];
         console.log('Найден пользователь:', { id: user.id, email: user.email, role: user.role });
 
         // Проверка пароля
@@ -421,8 +434,8 @@ app.post('/api/contact', async (req, res) => {
     try {
         const { name, email, phone, message } = req.body;
 
-        const result = await pool.query(
-            'INSERT INTO contact_forms (name, email, phone, message) VALUES ($1, $2, $3, $4) RETURNING *',
+        const result = await dbRun(
+            'INSERT INTO contact_forms (name, email, phone, message) VALUES (?, ?, ?, ?)',
             [name, email, phone, message]
         );
 
@@ -431,7 +444,7 @@ app.post('/api/contact', async (req, res) => {
 
         res.status(201).json({
             message: 'Сообщение успешно отправлено',
-            data: result.rows[0]
+            data: { id: result.lastID, name, email, phone, message, status: 'new' }
         });
     } catch (error) {
         console.error('Ошибка отправки контактной формы:', error);
@@ -444,20 +457,21 @@ app.post('/api/newsletter', async (req, res) => {
     try {
         const { email } = req.body;
 
-        const result = await pool.query(
-            'INSERT INTO newsletter_subscriptions (email) VALUES ($1) ON CONFLICT (email) DO NOTHING RETURNING *',
-            [email]
-        );
-
-        if (result.rows.length === 0) {
+        const existing = await dbGet('SELECT * FROM newsletter_subscriptions WHERE email = ?', [email]);
+        if (existing) {
             return res.status(400).json({ error: 'Email уже подписан на рассылку' });
         }
+
+        const result = await dbRun(
+            'INSERT INTO newsletter_subscriptions (email) VALUES (?)',
+            [email]
+        );
 
         await sendToTelegram('newsletter', { email });
 
         res.status(201).json({
             message: 'Подписка оформлена успешно',
-            data: result.rows[0]
+            data: { id: result.lastID, email, status: 'active' }
         });
     } catch (error) {
         console.error('Ошибка подписки:', error);
@@ -470,8 +484,8 @@ app.post('/api/booking', async (req, res) => {
     try {
         const { name, email, phone, program, date, message } = req.body;
 
-        const result = await pool.query(
-            'INSERT INTO program_bookings (name, email, phone, program, date, message) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        const result = await dbRun(
+            'INSERT INTO program_bookings (name, email, phone, program, date, message) VALUES (?, ?, ?, ?, ?, ?)',
             [name, email, phone, program, date, message]
         );
 
@@ -479,7 +493,7 @@ app.post('/api/booking', async (req, res) => {
 
         res.status(201).json({
             message: 'Запись успешно оформлена',
-            data: result.rows[0]
+            data: { id: result.lastID, name, email, phone, program, date, message, status: 'pending' }
         });
     } catch (error) {
         console.error('Ошибка записи на программу:', error);
@@ -490,16 +504,16 @@ app.post('/api/booking', async (req, res) => {
 // Получение профиля пользователя
 app.get('/api/profile', authenticateToken, async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT id, name, email, role, created_at FROM users WHERE id = $1',
+        const row = await dbGet(
+            'SELECT id, name, email, role, created_at FROM users WHERE id = ?',
             [req.user.userId]
         );
 
-        if (result.rows.length === 0) {
+        if (!row) {
             return res.status(404).json({ error: 'Пользователь не найден' });
         }
 
-        res.json(result.rows[0]);
+        res.json(row);
     } catch (error) {
         console.error('Ошибка получения профиля:', error);
         res.status(500).json({ error: 'Внутренняя ошибка сервера' });
@@ -519,8 +533,8 @@ function requireAdmin(req, res, next) {
 // Статистика
 app.get('/api/admin/contacts/count', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const result = await pool.query('SELECT COUNT(*) as count FROM contact_forms');
-        res.json({ count: parseInt(result.rows[0].count) });
+        const row = await dbGet('SELECT COUNT(*) as count FROM contact_forms');
+        res.json({ count: row.count });
     } catch (error) {
         console.error('Ошибка получения статистики контактов:', error);
         res.status(500).json({ error: 'Внутренняя ошибка сервера' });
@@ -529,8 +543,8 @@ app.get('/api/admin/contacts/count', authenticateToken, requireAdmin, async (req
 
 app.get('/api/admin/bookings/count', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const result = await pool.query('SELECT COUNT(*) as count FROM program_bookings');
-        res.json({ count: parseInt(result.rows[0].count) });
+        const row = await dbGet('SELECT COUNT(*) as count FROM program_bookings');
+        res.json({ count: row.count });
     } catch (error) {
         console.error('Ошибка получения статистики записей:', error);
         res.status(500).json({ error: 'Внутренняя ошибка сервера' });
@@ -539,8 +553,8 @@ app.get('/api/admin/bookings/count', authenticateToken, requireAdmin, async (req
 
 app.get('/api/admin/subscribers/count', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const result = await pool.query('SELECT COUNT(*) as count FROM newsletter_subscriptions');
-        res.json({ count: parseInt(result.rows[0].count) });
+        const row = await dbGet('SELECT COUNT(*) as count FROM newsletter_subscriptions');
+        res.json({ count: row.count });
     } catch (error) {
         console.error('Ошибка получения статистики подписчиков:', error);
         res.status(500).json({ error: 'Внутренняя ошибка сервера' });
@@ -549,8 +563,8 @@ app.get('/api/admin/subscribers/count', authenticateToken, requireAdmin, async (
 
 app.get('/api/admin/users/count', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const result = await pool.query('SELECT COUNT(*) as count FROM users');
-        res.json({ count: parseInt(result.rows[0].count) });
+        const row = await dbGet('SELECT COUNT(*) as count FROM users');
+        res.json({ count: row.count });
     } catch (error) {
         console.error('Ошибка получения статистики пользователей:', error);
         res.status(500).json({ error: 'Внутренняя ошибка сервера' });
@@ -560,10 +574,10 @@ app.get('/api/admin/users/count', authenticateToken, requireAdmin, async (req, r
 // Получение данных для таблиц
 app.get('/api/admin/contacts', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const result = await pool.query(
+        const rows = await dbAll(
             'SELECT * FROM contact_forms ORDER BY created_at DESC LIMIT 100'
         );
-        res.json(result.rows);
+        res.json(rows);
     } catch (error) {
         console.error('Ошибка получения контактов:', error);
         res.status(500).json({ error: 'Внутренняя ошибка сервера' });
@@ -572,10 +586,10 @@ app.get('/api/admin/contacts', authenticateToken, requireAdmin, async (req, res)
 
 app.get('/api/admin/bookings', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const result = await pool.query(
+        const rows = await dbAll(
             'SELECT * FROM program_bookings ORDER BY created_at DESC LIMIT 100'
         );
-        res.json(result.rows);
+        res.json(rows);
     } catch (error) {
         console.error('Ошибка получения записей:', error);
         res.status(500).json({ error: 'Внутренняя ошибка сервера' });
@@ -584,10 +598,10 @@ app.get('/api/admin/bookings', authenticateToken, requireAdmin, async (req, res)
 
 app.get('/api/admin/subscribers', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const result = await pool.query(
+        const rows = await dbAll(
             'SELECT * FROM newsletter_subscriptions ORDER BY created_at DESC LIMIT 100'
         );
-        res.json(result.rows);
+        res.json(rows);
     } catch (error) {
         console.error('Ошибка получения подписчиков:', error);
         res.status(500).json({ error: 'Внутренняя ошибка сервера' });
@@ -596,10 +610,10 @@ app.get('/api/admin/subscribers', authenticateToken, requireAdmin, async (req, r
 
 app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const result = await pool.query(
+        const rows = await dbAll(
             'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 100'
         );
-        res.json(result.rows);
+        res.json(rows);
     } catch (error) {
         console.error('Ошибка получения пользователей:', error);
         res.status(500).json({ error: 'Внутренняя ошибка сервера' });
@@ -612,8 +626,8 @@ app.put('/api/admin/contacts/:id/status', authenticateToken, requireAdmin, async
         const { id } = req.params;
         const { status } = req.body;
 
-        await pool.query(
-            'UPDATE contact_forms SET status = $1 WHERE id = $2',
+        await dbRun(
+            'UPDATE contact_forms SET status = ? WHERE id = ?',
             [status, id]
         );
 
@@ -629,8 +643,8 @@ app.put('/api/admin/bookings/:id/status', authenticateToken, requireAdmin, async
         const { id } = req.params;
         const { status } = req.body;
 
-        await pool.query(
-            'UPDATE program_bookings SET status = $1 WHERE id = $2',
+        await dbRun(
+            'UPDATE program_bookings SET status = ? WHERE id = ?',
             [status, id]
         );
 
@@ -645,7 +659,7 @@ app.put('/api/admin/bookings/:id/status', authenticateToken, requireAdmin, async
 app.delete('/api/admin/contacts/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        await pool.query('DELETE FROM contact_forms WHERE id = $1', [id]);
+        await dbRun('DELETE FROM contact_forms WHERE id = ?', [id]);
         res.json({ message: 'Контакт удален' });
     } catch (error) {
         console.error('Ошибка удаления контакта:', error);
@@ -656,7 +670,7 @@ app.delete('/api/admin/contacts/:id', authenticateToken, requireAdmin, async (re
 app.delete('/api/admin/bookings/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        await pool.query('DELETE FROM program_bookings WHERE id = $1', [id]);
+        await dbRun('DELETE FROM program_bookings WHERE id = ?', [id]);
         res.json({ message: 'Запись удалена' });
     } catch (error) {
         console.error('Ошибка удаления записи:', error);
@@ -667,7 +681,7 @@ app.delete('/api/admin/bookings/:id', authenticateToken, requireAdmin, async (re
 app.delete('/api/admin/subscribers/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        await pool.query('DELETE FROM newsletter_subscriptions WHERE id = $1', [id]);
+        await dbRun('DELETE FROM newsletter_subscriptions WHERE id = ?', [id]);
         res.json({ message: 'Подписчик удален' });
     } catch (error) {
         console.error('Ошибка удаления подписчика:', error);
@@ -684,7 +698,7 @@ app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, 
             return res.status(400).json({ error: 'Нельзя удалить самого себя' });
         }
 
-        await pool.query('DELETE FROM users WHERE id = $1', [id]);
+        await dbRun('DELETE FROM users WHERE id = ?', [id]);
         res.json({ message: 'Пользователь удален' });
     } catch (error) {
         console.error('Ошибка удаления пользователя:', error);
@@ -703,8 +717,8 @@ app.put('/api/admin/users/:id/role', authenticateToken, requireAdmin, async (req
             return res.status(400).json({ error: 'Нельзя изменить роль самому себе' });
         }
 
-        await pool.query(
-            'UPDATE users SET role = $1 WHERE id = $2',
+        await dbRun(
+            'UPDATE users SET role = ? WHERE id = ?',
             [role, id]
         );
 
@@ -770,8 +784,8 @@ async function sendToTelegram(type, data) {
 // Отладочный endpoint для проверки пользователей
 app.get('/api/debug/users', async (req, res) => {
     try {
-        const result = await pool.query('SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC');
-        res.json(result.rows);
+        const rows = await dbAll('SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC');
+        res.json(rows);
     } catch (error) {
         console.error('Ошибка получения пользователей:', error);
         res.status(500).json({ error: 'Ошибка базы данных' });
@@ -888,9 +902,10 @@ async function searchInDatabase(query, limit = 20) {
         ];
 
         const searchPattern = `%${query}%`;
+        const placeholders = allowedPages.map(() => '?').join(',');
 
         // Поиск в content_changes (только в доступных страницах)
-        const result1 = await pool.query(
+        const result1 = await dbAll(
             `SELECT
                 page_id,
                 element_id,
@@ -899,14 +914,14 @@ async function searchInDatabase(query, limit = 20) {
                 selector,
                 updated_at
             FROM content_changes
-            WHERE LOWER(content) LIKE LOWER($1) AND page_id = ANY($2)
+            WHERE content LIKE ? COLLATE NOCASE AND page_id IN (${placeholders})
             ORDER BY updated_at DESC
-            LIMIT $3`,
-            [searchPattern, allowedPages, limit]
+            LIMIT ?`,
+            [searchPattern, ...allowedPages, limit]
         );
 
         // Поиск в page_content (новая таблица для блоков, только в доступных страницах)
-        const result2 = await pool.query(
+        const result2 = await dbAll(
             `SELECT
                 page_id,
                 element_id,
@@ -915,14 +930,14 @@ async function searchInDatabase(query, limit = 20) {
                 selector,
                 updated_at
             FROM page_content
-            WHERE LOWER(content) LIKE LOWER($1) AND page_id = ANY($2)
+            WHERE content LIKE ? COLLATE NOCASE AND page_id IN (${placeholders})
             ORDER BY updated_at DESC
-            LIMIT $3`,
-            [searchPattern, allowedPages, limit]
+            LIMIT ?`,
+            [searchPattern, ...allowedPages, limit]
         );
         
         // Объединяем результаты из обеих таблиц
-        const allRows = [...result1.rows, ...result2.rows];
+        const allRows = [...result1, ...result2];
         
         return allRows.map(row => {
             // Удаляем HTML теги для snippet
@@ -1000,74 +1015,49 @@ app.get('/api/search', async (req, res) => {
 app.get('/api/content/:pageId', async (req, res) => {
     console.log('GET /api/content/' + req.params.pageId + ' - получен запрос');
 
-    const maxRetries = 3;
-    let lastError = null;
+    try {
+        const { pageId } = req.params;
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            const { pageId } = req.params;
+        // Получаем контент
+        const contentRows = await dbAll(
+            'SELECT * FROM content_changes WHERE page_id = ?',
+            [pageId]
+        );
 
-            // Получаем контент
-            const contentResult = await pool.query(
-                'SELECT * FROM content_changes WHERE page_id = $1',
-                [pageId]
-            );
+        // Получаем список удаленных элементов
+        const deletedRows = await dbAll(
+            'SELECT element_id FROM deleted_elements WHERE page_id = ?',
+            [pageId]
+        );
 
-            // Получаем список удаленных элементов
-            const deletedResult = await pool.query(
-                'SELECT element_id FROM deleted_elements WHERE page_id = $1',
-                [pageId]
-            );
+        const deletedElements = deletedRows.map(row => row.element_id);
 
-            const deletedElements = deletedResult.rows.map(row => row.element_id);
+        // Преобразуем в формат, ожидаемый фронтендом
+        const changes = {};
+        contentRows.forEach(row => {
+            changes[row.element_id] = {
+                element_type: row.element_type,
+                content: row.content,
+                selector: row.selector,
+                updated_at: row.updated_at
+            };
+        });
 
-            // Преобразуем в формат, ожидаемый фронтендом
-            const changes = {};
-            contentResult.rows.forEach(row => {
-                changes[row.element_id] = {
-                    element_type: row.element_type,
-                    content: row.content,
-                    selector: row.selector,
-                    updated_at: row.updated_at
-                };
-            });
-
-            res.json({
-                success: true,
-                data: {
-                    changes,
-                    deleted_elements: deletedElements
-                }
-            });
-
-            return; // Успешно выполнено, выходим
-
-        } catch (error) {
-            lastError = error;
-            console.error(`❌ Ошибка чтения контента (попытка ${attempt}/${maxRetries}):`, error.message);
-
-            // Если это ошибка соединения и есть еще попытки, ждем и пробуем снова
-            if (attempt < maxRetries && (
-                error.message.includes('Connection terminated') ||
-                error.message.includes('ECONNRESET') ||
-                error.message.includes('ETIMEDOUT')
-            )) {
-                console.log(`⏳ Ожидание перед повторной попыткой...`);
-                await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Экспоненциальная задержка
-                continue;
+        res.json({
+            success: true,
+            data: {
+                changes,
+                deleted_elements: deletedElements
             }
+        });
 
-            // Если это последняя попытка или другая ошибка, возвращаем ошибку
-            break;
-        }
+    } catch (error) {
+        console.error('❌ Ошибка чтения контента:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
     }
-
-    // Если все попытки исчерпаны
-    console.error('❌ Все попытки чтения контента исчерпаны');
-    res.status(500).json({
-        success: false,
-        error: lastError ? lastError.message : 'Ошибка чтения контента'
-    });
 });
 
 // Получение контента rich text редактора для конкретного элемента
@@ -1079,60 +1069,42 @@ app.get('/api/content/:pageId/:elementId', async (req, res) => {
         elementId
     });
 
-    const maxRetries = 3;
-    let lastError = null;
+    try {
+        // Получаем элемент из базы данных
+        const element = await dbGet(
+            'SELECT * FROM page_content WHERE page_id = ? AND element_id = ? LIMIT 1',
+            [pageId, elementId]
+        );
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            // Получаем элемент из базы данных
-            const result = await pool.query(
-                'SELECT * FROM page_content WHERE page_id = $1 AND element_id = $2 LIMIT 1',
-                [pageId, elementId]
-            );
+        console.log('📦 Результат из БД:', {
+            found: !!element,
+            element_id: element ? element.element_id : null,
+            contentLength: element && element.content ? element.content.length : 0
+        });
 
-            const element = result.rows[0] || null;
-
-            console.log('📦 Результат из БД:', {
-                found: !!element,
-                element_id: element ? element.element_id : null,
-                contentLength: element && element.content ? element.content.length : 0
-            });
-
-            res.json({
-                success: true,
-                data: element,
-                page_id: pageId,
-                element_id: elementId
-            });
-
-            return; // Успешно выполнено, выходим
-
-        } catch (error) {
-            lastError = error;
-            console.error(`❌ Ошибка получения элемента (попытка ${attempt}/${maxRetries}):`, error.message);
-
-            // Если это ошибка соединения и есть еще попытки, ждем и пробуем снова
-            if (attempt < maxRetries && (
-                error.message.includes('Connection terminated') ||
-                error.message.includes('ECONNRESET') ||
-                error.message.includes('ETIMEDOUT')
-            )) {
-                console.log(`⏳ Ожидание перед повторной попыткой...`);
-                await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Экспоненциальная задержка
-                continue;
+        // Парсим block_metadata если есть
+        if (element && element.block_metadata && typeof element.block_metadata === 'string') {
+            try {
+                element.block_metadata = JSON.parse(element.block_metadata);
+            } catch (e) {
+                element.block_metadata = {};
             }
-
-            // Если это последняя попытка или другая ошибка, возвращаем ошибку
-            break;
         }
-    }
 
-    // Если все попытки исчерпаны
-    console.error('❌ Все попытки получения элемента исчерпаны');
-    res.status(500).json({
-        error: 'Ошибка сервера при получении элемента',
-        details: lastError ? lastError.message : 'Неизвестная ошибка'
-    });
+        res.json({
+            success: true,
+            data: element || null,
+            page_id: pageId,
+            element_id: elementId
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения элемента:', error.message);
+        res.status(500).json({
+            error: 'Ошибка сервера при получении элемента',
+            details: error.message
+        });
+    }
 });
 
 // Сохранить изменение
@@ -1155,23 +1127,16 @@ app.post('/api/content/save', async (req, res) => {
             contentLength: content ? content.length : 0
         });
 
-        // Используем UPSERT (INSERT ... ON CONFLICT) для таблицы page_content
-        const result = await pool.query(`
-            INSERT INTO page_content (page_id, element_id, element_type, content, selector, updated_at)
-            VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
-            ON CONFLICT (page_id, element_id)
-            DO UPDATE SET
-                element_type = EXCLUDED.element_type,
-                content = EXCLUDED.content,
-                selector = EXCLUDED.selector,
-                updated_at = CURRENT_TIMESTAMP
-            RETURNING *
+        // Используем INSERT OR REPLACE для таблицы page_content
+        const result = await dbRun(`
+            INSERT OR REPLACE INTO page_content (page_id, element_id, element_type, content, selector, updated_at)
+            VALUES (?, ?, ?, ?, ?, datetime('now'))
         `, [page_id, element_id, element_type || 'rich-text', content, selector]);
 
         console.log('✅ Контент успешно сохранен в page_content:', {
-            id: result.rows[0].id,
-            page_id: result.rows[0].page_id,
-            element_id: result.rows[0].element_id
+            id: result.lastID,
+            page_id,
+            element_id
         });
 
         res.json({
@@ -1180,7 +1145,7 @@ app.post('/api/content/save', async (req, res) => {
             data: {
                 page_id,
                 element_id,
-                saved_at: result.rows[0].updated_at
+                saved_at: new Date().toISOString()
             }
         });
 
@@ -1209,11 +1174,9 @@ app.post('/api/content/batch-save', async (req, res) => {
         const savedChanges = [];
 
         // Используем транзакцию для batch операции
-        const client = await pool.connect();
+        await dbRun('BEGIN TRANSACTION');
 
         try {
-            await client.query('BEGIN');
-
             for (const change of changes) {
                 const { page_id, element_id, element_type, content, selector } = change;
 
@@ -1221,28 +1184,19 @@ app.post('/api/content/batch-save', async (req, res) => {
                     continue; // Пропускаем некорректные записи
                 }
 
-                const result = await client.query(`
-                    INSERT INTO content_changes (page_id, element_id, element_type, content, selector, updated_at)
-                    VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
-                    ON CONFLICT (page_id, element_id)
-                    DO UPDATE SET
-                        element_type = EXCLUDED.element_type,
-                        content = EXCLUDED.content,
-                        selector = EXCLUDED.selector,
-                        updated_at = CURRENT_TIMESTAMP
-                    RETURNING *
+                await dbRun(`
+                    INSERT OR REPLACE INTO content_changes (page_id, element_id, element_type, content, selector, updated_at)
+                    VALUES (?, ?, ?, ?, ?, datetime('now'))
                 `, [page_id, element_id, element_type, content, selector]);
 
                 savedChanges.push({ page_id, element_id });
             }
 
-            await client.query('COMMIT');
+            await dbRun('COMMIT');
 
         } catch (error) {
-            await client.query('ROLLBACK');
+            await dbRun('ROLLBACK');
             throw error;
-        } finally {
-            client.release();
         }
 
         res.json({
@@ -1267,14 +1221,14 @@ app.post('/api/content/batch-save', async (req, res) => {
 async function applyChangesToHTML(htmlContent, pageId) {
     try {
         // Получаем контент, форматирование и удаленные элементы
-        const [contentResult, formattingResult, deletedResult] = await Promise.all([
-            pool.query('SELECT * FROM content_changes WHERE page_id = $1', [pageId]),
-            pool.query('SELECT * FROM element_formatting WHERE page_id = $1', [pageId]),
-            pool.query('SELECT element_id FROM deleted_elements WHERE page_id = $1', [pageId])
+        const [contentRows, formattingRows, deletedRows] = await Promise.all([
+            dbAll('SELECT * FROM content_changes WHERE page_id = ?', [pageId]),
+            dbAll('SELECT * FROM element_formatting WHERE page_id = ?', [pageId]),
+            dbAll('SELECT element_id FROM deleted_elements WHERE page_id = ?', [pageId])
         ]);
 
         // Если нет изменений, возвращаем оригинальный HTML
-        if (contentResult.rows.length === 0 && formattingResult.rows.length === 0 && deletedResult.rows.length === 0) {
+        if (contentRows.length === 0 && formattingRows.length === 0 && deletedRows.length === 0) {
             return htmlContent;
         }
 
@@ -1282,7 +1236,7 @@ async function applyChangesToHTML(htmlContent, pageId) {
         const $ = cheerio.load(htmlContent);
 
         // СНАЧАЛА ПРИМЕНЯЕМ ИЗМЕНЕНИЯ КОНТЕНТА
-        for (const row of contentResult.rows) {
+        for (const row of contentRows) {
             const { element_id, content, selector } = row;
 
             if (selector && content) {
@@ -1307,12 +1261,12 @@ async function applyChangesToHTML(htmlContent, pageId) {
         }
 
         // Получаем список удаленных элементов для исключения из форматирования
-        const deletedElements = deletedResult.rows.map(row => row.element_id);
+        const deletedElements = deletedRows.map(row => row.element_id);
 
         // Применяем форматирование CSS-классами
-        console.log(`🎨 Найдено ${formattingResult.rows.length} записей форматирования для ${pageId}`);
+        console.log(`🎨 Найдено ${formattingRows.length} записей форматирования для ${pageId}`);
 
-        for (const row of formattingResult.rows) {
+        for (const row of formattingRows) {
             const { element_id, css_classes } = row;
 
             // Пропускаем удаленные элементы
@@ -1329,7 +1283,7 @@ async function applyChangesToHTML(htmlContent, pageId) {
             // Если не найден по data-edit-id, ищем в контенте
             if ($element.length === 0) {
                 // Ищем среди элементов, которые были обновлены контентом
-                const contentRow = contentResult.rows.find(r => r.element_id === element_id);
+                const contentRow = contentRows.find(r => r.element_id === element_id);
                 if (contentRow && contentRow.selector) {
                     $element = $(contentRow.selector);
                     console.log(`🔍 Найден элемент по селектору ${contentRow.selector} для ${element_id}`);
@@ -1351,7 +1305,14 @@ async function applyChangesToHTML(htmlContent, pageId) {
                 );
 
                 // Убеждаемся, что css_classes это массив
-                const formattingClasses = Array.isArray(css_classes) ? css_classes : [];
+                let formattingClasses;
+                if (Array.isArray(css_classes)) {
+                    formattingClasses = css_classes;
+                } else if (typeof css_classes === 'string') {
+                    try { formattingClasses = JSON.parse(css_classes); } catch (e) { formattingClasses = []; }
+                } else {
+                    formattingClasses = [];
+                }
 
                 // Добавляем CSS-классы форматирования
                 const allClasses = [...preservedClasses, ...formattingClasses].filter(Boolean);
@@ -1781,7 +1742,7 @@ async function startServer() {
 
     app.listen(PORT, () => {
         console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
-        console.log(`📊 База данных Neon PostgreSQL подключена`);
+        console.log(`📊 Локальная SQLite база данных подключена`);
         console.log(`🌟 Сайт "Пирамида ТОТА" готов к работе!`);
         console.log(`🔐 Страница входа администратора: http://localhost:${PORT}/admin-login`);
     });
@@ -1830,28 +1791,18 @@ app.post('/api/formatting/save', async (req, res) => {
             cssClasses.push(`font-style-${formatting.fontStyle}`);
         }
 
-        // Сохраняем в БД с использованием UPSERT
-        const result = await pool.query(`
-            INSERT INTO element_formatting (page_id, element_id, css_classes, font_size, text_color, text_align, font_weight, font_style, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
-            ON CONFLICT (page_id, element_id)
-            DO UPDATE SET
-                css_classes = $3,
-                font_size = $4,
-                text_color = $5,
-                text_align = $6,
-                font_weight = $7,
-                font_style = $8,
-                updated_at = CURRENT_TIMESTAMP
-            RETURNING *
-        `, [page_id, element_id, cssClasses, fontSize, textColor, textAlign, fontWeight, fontStyle]);
+        // Сохраняем в БД с использованием INSERT OR REPLACE
+        const result = await dbRun(`
+            INSERT OR REPLACE INTO element_formatting (page_id, element_id, css_classes, font_size, text_color, text_align, font_weight, font_style, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `, [page_id, element_id, JSON.stringify(cssClasses), fontSize, textColor, textAlign, fontWeight, fontStyle]);
 
         console.log(`Форматирование сохранено для ${page_id}:${element_id}:`, formatting);
 
         res.json({
             success: true,
             message: 'Форматирование сохранено',
-            data: result.rows[0]
+            data: { id: result.lastID, page_id, element_id, css_classes: cssClasses }
         });
 
     } catch (error) {
@@ -1868,15 +1819,17 @@ app.get('/api/formatting/:pageId', async (req, res) => {
     try {
         const { pageId } = req.params;
 
-        const result = await pool.query(
-            'SELECT * FROM element_formatting WHERE page_id = $1',
+        const rows = await dbAll(
+            'SELECT * FROM element_formatting WHERE page_id = ?',
             [pageId]
         );
 
         const formatting = {};
-        result.rows.forEach(row => {
+        rows.forEach(row => {
+            let parsedClasses;
+            try { parsedClasses = JSON.parse(row.css_classes); } catch (e) { parsedClasses = []; }
             formatting[row.element_id] = {
-                css_classes: row.css_classes,
+                css_classes: parsedClasses,
                 font_size: row.font_size,
                 text_color: row.text_color,
                 text_align: row.text_align,
@@ -1912,12 +1865,12 @@ app.get('/api/formatting/load', async (req, res) => {
             });
         }
 
-        const result = await pool.query(
-            'SELECT element_id, css_classes, font_size, text_color, text_align, font_weight, font_style, updated_at FROM element_formatting WHERE page_id = $1',
+        const rows = await dbAll(
+            'SELECT element_id, css_classes, font_size, text_color, text_align, font_weight, font_style, updated_at FROM element_formatting WHERE page_id = ?',
             [page_id]
         );
 
-        const formattingData = result.rows.map(row => {
+        const formattingData = rows.map(row => {
             const formatting = {};
 
             // Преобразуем данные из БД в формат для CSS классов
@@ -1964,35 +1917,35 @@ app.delete('/api/content/delete', async (req, res) => {
         }
 
         // Удаляем контент
-        const contentResult = await pool.query(
-            'DELETE FROM content_changes WHERE page_id = $1 AND element_id = $2',
+        const contentResult = await dbRun(
+            'DELETE FROM content_changes WHERE page_id = ? AND element_id = ?',
             [page_id, element_id]
         );
 
         // Удаляем форматирование
-        const formattingResult = await pool.query(
-            'DELETE FROM element_formatting WHERE page_id = $1 AND element_id = $2',
+        const formattingResult = await dbRun(
+            'DELETE FROM element_formatting WHERE page_id = ? AND element_id = ?',
             [page_id, element_id]
         );
 
         // Добавляем запись об удалении элемента
-        const deletedResult = await pool.query(
-            'INSERT INTO deleted_elements (page_id, element_id) VALUES ($1, $2) ON CONFLICT (page_id, element_id) DO UPDATE SET deleted_at = CURRENT_TIMESTAMP',
+        const deletedResult = await dbRun(
+            'INSERT OR REPLACE INTO deleted_elements (page_id, element_id, deleted_at) VALUES (?, ?, datetime(\'now\'))',
             [page_id, element_id]
         );
 
         console.log(`Удален элемент ${element_id} со страницы ${page_id}:`);
-        console.log(`- Контент: ${contentResult.rowCount} записей`);
-        console.log(`- Форматирование: ${formattingResult.rowCount} записей`);
-        console.log(`- Отмечен как удаленный: ${deletedResult.rowCount} записей`);
+        console.log(`- Контент: ${contentResult.changes} записей`);
+        console.log(`- Форматирование: ${formattingResult.changes} записей`);
+        console.log(`- Отмечен как удаленный`);
 
         res.json({
             success: true,
             message: 'Элемент успешно удален',
             deleted: {
-                content_records: contentResult.rowCount,
-                formatting_records: formattingResult.rowCount,
-                deleted_records: deletedResult.rowCount
+                content_records: contentResult.changes,
+                formatting_records: formattingResult.changes,
+                deleted_records: 1
             }
         });
 
@@ -2076,14 +2029,14 @@ app.delete('/api/content/:pageId/:elementId', authenticateToken, requireAdmin, a
     try {
         const { pageId, elementId } = req.params;
 
-        await pool.query(
-            'DELETE FROM content_changes WHERE page_id = $1 AND element_id = $2',
+        await dbRun(
+            'DELETE FROM content_changes WHERE page_id = ? AND element_id = ?',
             [pageId, elementId]
         );
 
         // Также удаляем форматирование
-        await pool.query(
-            'DELETE FROM element_formatting WHERE page_id = $1 AND element_id = $2',
+        await dbRun(
+            'DELETE FROM element_formatting WHERE page_id = ? AND element_id = ?',
             [pageId, elementId]
         );
 
@@ -2104,7 +2057,7 @@ app.delete('/api/content/:pageId/:elementId', authenticateToken, requireAdmin, a
 // Получение списка всех страниц для редактирования
 app.get('/api/admin/pages', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const result = await pool.query(`
+        const rows = await dbAll(`
             SELECT DISTINCT page_id, COUNT(*) as elements_count
             FROM content_changes
             GROUP BY page_id
@@ -2113,7 +2066,7 @@ app.get('/api/admin/pages', authenticateToken, requireAdmin, async (req, res) =>
 
         res.json({
             success: true,
-            pages: result.rows
+            pages: rows
         });
 
     } catch (error) {
@@ -2258,33 +2211,16 @@ app.post('/api/blocks/save', async (req, res) => {
         }
 
         console.log('💾 ВЫПОЛНЕНИЕ ЗАПРОСА К БД...');
-        // Используем UPSERT для сохранения блока
-        const result = await pool.query(`
-            INSERT INTO page_content (
+        // Используем INSERT OR REPLACE для сохранения блока
+        const result = await dbRun(`
+            INSERT OR REPLACE INTO page_content (
                 page_id, element_id, element_type, content, selector,
                 block_type, block_category, block_metadata, parent_block_id,
                 css_styles, css_classes, container_selector,
                 before_element_id, after_element_id, position_index,
                 updated_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP)
-            ON CONFLICT (page_id, element_id)
-            DO UPDATE SET
-                element_type = EXCLUDED.element_type,
-                content = EXCLUDED.content,
-                selector = EXCLUDED.selector,
-                block_type = EXCLUDED.block_type,
-                block_category = EXCLUDED.block_category,
-                block_metadata = EXCLUDED.block_metadata,
-                parent_block_id = EXCLUDED.parent_block_id,
-                css_styles = EXCLUDED.css_styles,
-                css_classes = EXCLUDED.css_classes,
-                container_selector = EXCLUDED.container_selector,
-                before_element_id = EXCLUDED.before_element_id,
-                after_element_id = EXCLUDED.after_element_id,
-                position_index = EXCLUDED.position_index,
-                updated_at = CURRENT_TIMESTAMP
-            RETURNING *
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         `, [
             page_id, element_id, element_type, content, selector,
             block_type, block_category, JSON.stringify(block_metadata), parent_block_id,
@@ -2293,12 +2229,12 @@ app.post('/api/blocks/save', async (req, res) => {
         ]);
 
         console.log('✅ БЛОК УСПЕШНО СОХРАНЕН В БД');
-        console.log('📋 Результат:', result.rows[0]);
+        console.log('📋 Результат:', { id: result.lastID });
 
         res.json({
             success: true,
             message: 'Блок сохранен успешно',
-            data: result.rows[0]
+            data: { id: result.lastID, page_id, element_id, block_type }
         });
 
     } catch (error) {
@@ -2317,15 +2253,15 @@ app.get('/api/blocks/:pageId', async (req, res) => {
     try {
         const { pageId } = req.params;
 
-        const result = await pool.query(`
+        const rows = await dbAll(`
             SELECT * FROM page_content
-            WHERE page_id = $1 AND block_type IS NOT NULL
+            WHERE page_id = ? AND block_type IS NOT NULL
             ORDER BY position_index ASC, created_at ASC
         `, [pageId]);
 
         res.json({
             success: true,
-            data: result.rows.map(row => ({
+            data: rows.map(row => ({
                 ...row,
                 block_metadata: typeof row.block_metadata === 'string'
                     ? JSON.parse(row.block_metadata)
@@ -2356,15 +2292,15 @@ app.delete('/api/blocks/delete', async (req, res) => {
 
         const deleteQuery = `
             DELETE FROM page_content
-            WHERE page_id = $1 AND element_id = $2 AND block_type IS NOT NULL
+            WHERE page_id = ? AND element_id = ? AND block_type IS NOT NULL
         `;
 
-        const result = await pool.query(deleteQuery, [page_id, element_id]);
+        const result = await dbRun(deleteQuery, [page_id, element_id]);
 
         res.json({
             success: true,
             message: 'Блок удален',
-            deleted_rows: result.rowCount,
+            deleted_rows: result.changes,
             page_id: page_id,
             element_id: element_id
         });

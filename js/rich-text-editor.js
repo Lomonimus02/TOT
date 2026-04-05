@@ -29,6 +29,54 @@ class RichTextEditor {
             return;
         }
 
+        // Регистрируем кастомный Image Blot, сохраняющий style/width/height
+        const BaseImage = Quill.import('formats/image');
+        class StyledImage extends BaseImage {
+            static create(value) {
+                // Извлекаем src для parent: он ожидает строку
+                const src = typeof value === 'object' ? (value.src || '') : value;
+                const node = super.create(src);
+                if (typeof value === 'object') {
+                    if (value.style) node.setAttribute('style', value.style);
+                    if (value.width) node.setAttribute('width', value.width);
+                    if (value.height) node.setAttribute('height', value.height);
+                    if (value.alt) node.setAttribute('alt', value.alt);
+                }
+                return node;
+            }
+            static value(node) {
+                return {
+                    src: node.getAttribute('src'),
+                    style: node.getAttribute('style'),
+                    width: node.getAttribute('width'),
+                    height: node.getAttribute('height'),
+                    alt: node.getAttribute('alt')
+                };
+            }
+            static formats(node) {
+                const formats = {};
+                if (node.hasAttribute('style')) formats.style = node.getAttribute('style');
+                if (node.hasAttribute('width')) formats.width = node.getAttribute('width');
+                if (node.hasAttribute('height')) formats.height = node.getAttribute('height');
+                if (node.hasAttribute('alt')) formats.alt = node.getAttribute('alt');
+                return formats;
+            }
+            format(name, value) {
+                if (['style', 'width', 'height', 'alt'].includes(name)) {
+                    if (value) {
+                        this.domNode.setAttribute(name, value);
+                    } else {
+                        this.domNode.removeAttribute(name);
+                    }
+                } else {
+                    super.format(name, value);
+                }
+            }
+        }
+        StyledImage.blotName = 'image';
+        StyledImage.tagName = 'IMG';
+        Quill.register(StyledImage, true);
+
         // Регистрируем пользовательские шрифты
         const Font = Quill.import('formats/font');
         Font.whitelist = ['sans-serif', 'serif', 'monospace', 'cinzel', 'open-sans'];
@@ -101,6 +149,14 @@ class RichTextEditor {
             readOnly: this.editor.isEnabled() === false,
             hasToolbar: !!this.editor.getModule('toolbar')
         });
+
+        // КРИТИЧЕСКИ ВАЖНО: Перемещаем тулбар в body, чтобы position:fixed работал
+        // без влияния overflow/transform от родительских элементов
+        const toolbar = document.querySelector('.ql-toolbar.ql-snow');
+        if (toolbar) {
+            document.body.appendChild(toolbar);
+            console.log('📌 Тулбар перемещён в body');
+        }
 
         // Загружаем сохраненный контент
         await this.loadContent();
@@ -808,8 +864,49 @@ class RichTextEditor {
                     });
                 }
 
+                // Сохраняем стили изображений из исходного HTML до вставки
+                const savedImageStyles = [];
+                if (imgMatches) {
+                    imgMatches.forEach(imgTag => {
+                        const srcMatch = imgTag.match(/src="([^"]*)"/);
+                        const styleMatch = imgTag.match(/style="([^"]*)"/);
+                        const widthMatch = imgTag.match(/width="([^"]*)"/);
+                        const heightMatch = imgTag.match(/height="([^"]*)"/);
+                        if (srcMatch && (styleMatch || widthMatch || heightMatch)) {
+                            savedImageStyles.push({
+                                src: srcMatch[1],
+                                style: styleMatch ? styleMatch[1] : null,
+                                width: widthMatch ? widthMatch[1] : null,
+                                height: heightMatch ? heightMatch[1] : null
+                            });
+                        }
+                    });
+                }
+
                 // Устанавливаем контент в редактор
                 this.editor.root.innerHTML = result.data.content;
+
+                // Восстанавливаем стили изображений после обработки Quill
+                if (savedImageStyles.length > 0) {
+                    setTimeout(() => {
+                        const images = this.editor.root.querySelectorAll('img');
+                        images.forEach(img => {
+                            const saved = savedImageStyles.find(s => img.src.includes(s.src) || s.src.includes(img.getAttribute('src')));
+                            if (saved) {
+                                if (saved.style && !img.getAttribute('style')) {
+                                    img.setAttribute('style', saved.style);
+                                }
+                                if (saved.width && !img.getAttribute('width')) {
+                                    img.setAttribute('width', saved.width);
+                                }
+                                if (saved.height && !img.getAttribute('height')) {
+                                    img.setAttribute('height', saved.height);
+                                }
+                                console.log('🔄 Восстановлены стили изображения:', img.src.substring(0, 50));
+                            }
+                        });
+                    }, 50);
+                }
 
                 // КРИТИЧЕСКИ ВАЖНО: Проверяем, сохранились ли inline стили после установки
                 setTimeout(() => {
@@ -826,7 +923,7 @@ class RichTextEditor {
                             });
                         }
                     });
-                }, 100);
+                }, 200);
 
                 console.log('✅ Контент загружен из БД');
             } else {
@@ -927,33 +1024,15 @@ class RichTextEditor {
     updateEditMode() {
         const isEditMode = document.body.classList.contains('edit-mode');
 
-        console.log('🔄 updateEditMode вызван:', {
-            isEditMode,
-            hasEditor: !!this.editor,
-            bodyClasses: document.body.className,
-            editorEnabled: this.editor ? this.editor.isEnabled() : null
-        });
-
         if (this.editor) {
             if (isEditMode) {
                 this.editor.enable();
-                console.log('✅ Редактор ВКЛЮЧЕН - можно редактировать', {
-                    isEnabled: this.editor.isEnabled(),
-                    hasContent: this.editor.getLength() > 1
-                });
-
-                // КРИТИЧЕСКИ ВАЖНО: Оборачиваем все iframe при включении режима редактирования
                 setTimeout(() => {
                     this.wrapVideoIframes();
                 }, 100);
             } else {
                 this.editor.disable();
-                console.log('🔒 Редактор ВЫКЛЮЧЕН - только чтение', {
-                    isEnabled: this.editor.isEnabled()
-                });
             }
-        } else {
-            console.warn('⚠️ Редактор еще не инициализирован');
         }
     }
 

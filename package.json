@@ -1,7 +1,7 @@
 {
   "name": "pyramid-tota-website",
   "version": "1.0.0",
-  "description": "Веб-сайт духовного центра 'Пирамида ТОТА' с интеграцией Neon PostgreSQL",
+  "description": "Веб-сайт духовного центра 'Пирамида ТОТА' с локальной SQLite базой данных",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,8 +14,7 @@
     "tota",
     "spiritual",
     "website",
-    "postgresql",
-    "neon",
+    "sqlite",
     "express"
   ],
   "author": "Pyramid TOTA Team",
@@ -29,7 +28,6 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "node-fetch": "^2.7.0",
-    "pg": "^8.11.3",
     "puppeteer": "^24.16.0",
     "sqlite3": "^5.1.7"
   },

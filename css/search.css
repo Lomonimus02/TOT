@@ -5,7 +5,7 @@
 .search-component {
     position: absolute !important;
     top: 118px !important;
-    right: 150px !important;
+    right: 300px !important;
     left: auto !important;
     display: flex;
     align-items: center;
@@ -194,7 +194,7 @@
 /* Большие экраны (>1024px) */
 @media (min-width: 1025px) {
     .search-component {
-        right: 150px !important;
+        right: 300px !important;
     }
 
     .search-input {
@@ -206,7 +206,7 @@
 /* Средние экраны (769px - 1024px) */
 @media (max-width: 1024px) and (min-width: 769px) {
     .search-component {
-        right: 140px !important;
+        right: 280px !important;
     }
 
     .search-input {

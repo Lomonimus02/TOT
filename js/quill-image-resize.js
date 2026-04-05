@@ -326,6 +326,18 @@ class ImageResize {
             document.removeEventListener('mouseup', this.boundStopResize);
         }
 
+        // Уведомляем Quill об изменении стилей изображения
+        // чтобы Delta обновился и стили сохранились при следующем сохранении
+        if (this.currentElement && this.currentElement.tagName === 'IMG') {
+            const blot = Quill.find(this.currentElement);
+            if (blot) {
+                const styleValue = this.currentElement.getAttribute('style');
+                if (styleValue) {
+                    blot.format('style', styleValue);
+                }
+            }
+        }
+
         console.log('✅ Изменение размера завершено:', {
             finalWidth: this.currentElement.offsetWidth,
             finalHeight: this.currentElement.offsetHeight

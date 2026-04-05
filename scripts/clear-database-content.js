@@ -1,48 +1,62 @@
 /**
- * Скрипт для очистки всего контента из базы данных
+ * Скрипт для очистки всего контента из локальной SQLite базы данных
  * Удаляет все записи из таблиц content_changes, element_formatting и deleted_elements
  */
 
-const { Pool } = require('pg');
-require('dotenv').config();
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_mE67QfaoVbGj@ep-rough-term-a92qmgeu-pooler.gwc.azure.neon.tech/neondb?sslmode=require&channel_binding=require',
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
+const dbPath = path.join(__dirname, '..', 'server', 'content.db');
+const db = new sqlite3.Database(dbPath);
+
+function dbRun(sql) {
+    return new Promise((resolve, reject) => {
+        db.run(sql, function(err) {
+            if (err) reject(err);
+            else resolve({ changes: this.changes });
+        });
+    });
+}
+
+function dbGet(sql) {
+    return new Promise((resolve, reject) => {
+        db.get(sql, (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+        });
+    });
+}
 
 async function clearAllContent() {
     try {
         console.log('🗑️ Начинаем полную очистку базы данных от всего контента...');
 
         // Сначала проверим, что есть в таблицах
-        const contentCheck = await pool.query('SELECT COUNT(*) FROM content_changes');
-        const formattingCheck = await pool.query('SELECT COUNT(*) FROM element_formatting');
-        const deletedCheck = await pool.query('SELECT COUNT(*) FROM deleted_elements');
+        const contentCheck = await dbGet('SELECT COUNT(*) as count FROM content_changes');
+        const formattingCheck = await dbGet('SELECT COUNT(*) as count FROM element_formatting');
+        const deletedCheck = await dbGet('SELECT COUNT(*) as count FROM deleted_elements');
 
         console.log(`📊 Найдено записей:`);
-        console.log(`   - content_changes: ${contentCheck.rows[0].count}`);
-        console.log(`   - element_formatting: ${formattingCheck.rows[0].count}`);
-        console.log(`   - deleted_elements: ${deletedCheck.rows[0].count}`);
+        console.log(`   - content_changes: ${contentCheck.count}`);
+        console.log(`   - element_formatting: ${formattingCheck.count}`);
+        console.log(`   - deleted_elements: ${deletedCheck.count}`);
 
         // Очищаем таблицу content_changes
-        const contentResult = await pool.query('DELETE FROM content_changes');
-        console.log(`✅ Удалено записей из content_changes: ${contentResult.rowCount}`);
+        const contentResult = await dbRun('DELETE FROM content_changes');
+        console.log(`✅ Удалено записей из content_changes: ${contentResult.changes}`);
 
         // Очищаем таблицу element_formatting
-        const formattingResult = await pool.query('DELETE FROM element_formatting');
-        console.log(`✅ Удалено записей из element_formatting: ${formattingResult.rowCount}`);
+        const formattingResult = await dbRun('DELETE FROM element_formatting');
+        console.log(`✅ Удалено записей из element_formatting: ${formattingResult.changes}`);
 
         // Очищаем таблицу deleted_elements
-        const deletedResult = await pool.query('DELETE FROM deleted_elements');
-        console.log(`✅ Удалено записей из deleted_elements: ${deletedResult.rowCount}`);
+        const deletedResult = await dbRun('DELETE FROM deleted_elements');
+        console.log(`✅ Удалено записей из deleted_elements: ${deletedResult.changes}`);
 
         // Также очистим таблицу content_pages если она есть
         try {
-            const pagesResult = await pool.query('DELETE FROM content_pages');
-            console.log(`✅ Удалено записей из content_pages: ${pagesResult.rowCount}`);
+            const pagesResult = await dbRun('DELETE FROM content_pages');
+            console.log(`✅ Удалено записей из content_pages: ${pagesResult.changes}`);
         } catch (err) {
             console.log('ℹ️ Таблица content_pages не найдена или пуста');
         }
@@ -53,7 +67,7 @@ async function clearAllContent() {
     } catch (error) {
         console.error('❌ Ошибка при очистке базы данных:', error);
     } finally {
-        await pool.end();
+        db.close();
     }
 }
 

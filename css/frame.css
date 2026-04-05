@@ -95,7 +95,10 @@
 }
 
 /* Панель редактирования поверх рамки */
-.edit-mode-toggle,
+.edit-mode-toggle {
+    z-index: 10007 !important;
+}
+
 .blocks-panel {
     z-index: 10004 !important;
 }
@@ -316,18 +319,18 @@ body {
 /* НОВАЯ СИСТЕМА АДАПТИВНОСТИ КНОПКИ ВХОДА */
 /* Базовые стили для интерактивной зоны входа */
 .frame-login-zone {
-    position: absolute !important; /* ИЗМЕНЕНО: absolute вместо fixed для прокрутки с контентом */
-    /* НОВОЕ ПОЗИЦИОНИРОВАНИЕ: правый верхний угол, на уровне логотипа */
-    top: 124px !important; /* чуть ниже центра логотипа */
-    right: 20px !important; /* отступ от правого края */
+    position: absolute !important;
+    /* Позиционирование: центрируем по вертикали относительно поиска (search top:118 + height:47 / 2 = 141.5) */
+    top: 118px !important;
+    right: 20px !important;
     left: auto !important;
-    transform: none !important; /* убираем центрирование */
-    z-index: 1001 !important; /* ниже верхней панели, но выше контента */
+    transform: none !important;
+    z-index: 1001 !important;
 
-    /* РАЗМЕРЫ - более вытянутая в длину */
+    /* Высота как у поиска для идеального центрирования */
     width: auto;
-    height: auto !important;
-    padding: 10px 32px; /* увеличенные горизонтальные отступы для вытянутости */
+    height: 47px !important;
+    padding: 0 32px;
 
     /* Стили оформления - БЕЗ обводки и фона */
     background: transparent; /* убран фон */
@@ -415,7 +418,7 @@ body {
 /* Большие экраны (>768px) - хедер 80px */
 @media (min-width: 769px) {
     .frame-login-zone {
-        top: 121px !important; /* выровнено с центром логотипа */
+        top: 118px !important; /* выровнено по вертикали с поиском */
     }
 }
 
