@@ -64,11 +64,6 @@ class AdminLoginManager {
             return;
         }
 
-        if (!this.isValidEmail(email)) {
-            this.showError('Пожалуйста, введите корректный email');
-            return;
-        }
-
         // Показываем индикатор загрузки
         this.setLoading(true);
         this.hideMessages();
