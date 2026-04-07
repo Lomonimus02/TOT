@@ -77,6 +77,7 @@
             color: #fff;
             font-size: 1rem;
             transition: all 0.3s ease;
+            -webkit-text-fill-color: #fff;
         }
 
         .form-group input:focus {
@@ -84,6 +85,18 @@
             border-color: var(--gold-color);
             background: rgba(255, 255, 255, 0.08);
             box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+            color: #fff;
+            -webkit-text-fill-color: #fff;
+        }
+
+        .form-group input:-webkit-autofill,
+        .form-group input:-webkit-autofill:hover,
+        .form-group input:-webkit-autofill:focus {
+            -webkit-text-fill-color: #fff;
+            -webkit-box-shadow: 0 0 0px 1000px rgba(22, 33, 62, 0.95) inset;
+            box-shadow: 0 0 0px 1000px rgba(22, 33, 62, 0.95) inset;
+            border-color: var(--gold-color);
+            caret-color: #fff;
         }
 
         .form-group input::placeholder {
