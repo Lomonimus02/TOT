@@ -1006,8 +1006,34 @@ class RichTextEditor {
                     });
                 }
 
+                // ОПТИМИЗАЦИЯ: Для режима просмотра — откладываем загрузку изображений ниже экрана
+                // Заменяем src на data-src для картинок, кроме первых 2 (видимые на экране)
+                let contentHtml = result.data.content;
+                let imgIndex = 0;
+                contentHtml = contentHtml.replace(/<img\b([^>]*)>/gi, (match, attrs) => {
+                    imgIndex++;
+                    // Первые 2 изображения загружаем сразу
+                    if (imgIndex <= 2) {
+                        return match;
+                    }
+                    // Остальные — lazy через IntersectionObserver
+                    // Добавляем loading="lazy" и decoding="async"
+                    if (!attrs.includes('loading=')) {
+                        attrs += ' loading="lazy"';
+                    }
+                    if (!attrs.includes('decoding=')) {
+                        attrs += ' decoding="async"';
+                    }
+                    return `<img${attrs}>`;
+                });
+
                 // Устанавливаем контент в редактор
-                this.editor.root.innerHTML = result.data.content;
+                this.editor.root.innerHTML = contentHtml;
+
+                // Убираем класс выделения, если он попал в сохранённый HTML
+                this.editor.root.querySelectorAll('img.img-selected').forEach(img => {
+                    img.classList.remove('img-selected');
+                });
 
                 // Восстанавливаем стили изображений после обработки Quill
                 if (savedImageStyles.length > 0) {
@@ -1046,6 +1072,13 @@ class RichTextEditor {
                             });
                         }
                     });
+
+                    // ОПТИМИЗАЦИЯ: Lazy loading для iframe (видео)
+                    this.editor.root.querySelectorAll('iframe').forEach(iframe => {
+                        if (!iframe.hasAttribute('loading')) {
+                            iframe.setAttribute('loading', 'lazy');
+                        }
+                    });
                 }, 200);
 
                 console.log('✅ Контент загружен из БД');
@@ -1069,7 +1102,21 @@ class RichTextEditor {
     async saveContent() {
         try {
             const pageId = this.getCurrentPageId();
-            const content = this.editor.root.innerHTML;
+
+            // ОПТИМИЗАЦИЯ: Убираем служебные атрибуты и классы перед сохранением
+            const clonedRoot = this.editor.root.cloneNode(true);
+            clonedRoot.querySelectorAll('img[loading], img[decoding]').forEach(img => {
+                img.removeAttribute('loading');
+                img.removeAttribute('decoding');
+            });
+            clonedRoot.querySelectorAll('iframe[loading]').forEach(iframe => {
+                iframe.removeAttribute('loading');
+            });
+            // Убираем класс выделения изображений из редактора
+            clonedRoot.querySelectorAll('img.img-selected').forEach(img => {
+                img.classList.remove('img-selected');
+            });
+            const content = clonedRoot.innerHTML;
 
             console.log('💾 Начало сохранения контента:', {
                 pageId,

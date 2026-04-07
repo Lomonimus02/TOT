@@ -1,4 +1,4 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const path = require('path');
 
 // Новый HTML для подвала - минималистичный дизайн
@@ -13,7 +13,7 @@ const newFooterHTML = `    <!-- Подвал сайта -->
                         <a href="https://t.me/V_Isais" target="_blank">Telegram: @V_Isais</a>
                     </div>
                     <div class="footer-contact-item">
-                        <a href="https://maxln.ru/YcxBcz" target="_blank">Max: Пирамида ТОТа</a>
+                        <a href="https://maxln.ru/YcxBcz" target="_blank">Max: Пирамида Тота</a>
                     </div>
                     <div class="footer-contact-item">
                         <a href="mailto:info@piramidaspb.ru">info@piramidaspb.ru</a>

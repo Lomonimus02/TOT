@@ -175,6 +175,16 @@
                 // Замена контента
                 mainEl.innerHTML = newMain.innerHTML;
 
+                // ОПТИМИЗАЦИЯ: Lazy loading для всех изображений
+                mainEl.querySelectorAll('img').forEach(img => {
+                    if (!img.hasAttribute('loading')) {
+                        img.setAttribute('loading', 'lazy');
+                    }
+                    if (!img.hasAttribute('decoding')) {
+                        img.setAttribute('decoding', 'async');
+                    }
+                });
+
                 // Обновление <title>
                 if (doc.title) document.title = doc.title;
 

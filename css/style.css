@@ -1042,7 +1042,8 @@ body { padding-top: 80px; }
         background-size: cover; /* Изображение занимает весь экран */
     }
     .main-content {
-        margin-top: 150px;
+        margin-top: 160px;
+        padding: 1rem 0;
     }
 
     /* Адаптация логотипа для мобильных */
@@ -1069,7 +1070,8 @@ body { padding-top: 80px; }
         background-size: cover; /* Изображение занимает весь экран */
     }
     .main-content {
-        margin-top: 120px;
+        margin-top: 150px;
+        padding: 0.5rem 0;
     }
 
     /* Дополнительная адаптация логотипа для маленьких экранов */
@@ -1129,7 +1131,7 @@ body { padding-top: 80px; }
     max-width: 2040px; /* Увеличено в 1.7 раза (1200px * 1.7 = 2040px) */
     margin: 0 auto;
     /* Полностью адаптивный padding */
-    padding: 0 clamp(0.5rem, 3vw, 2rem);
+    padding: 0 clamp(0.3rem, 2vw, 2rem);
     background: transparent;
     box-sizing: border-box;
 }
@@ -1235,7 +1237,7 @@ html, body {
     max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
-    padding: 0 clamp(1rem, 3vw, 2rem);
+    padding: 0 clamp(0.3rem, 2vw, 2rem);
 }
 
 /* ===== ЧИСТЫЕ СТИЛИ КАРТУШЕЙ ===== */
@@ -2867,6 +2869,9 @@ html, body {
     backdrop-filter: blur(10px);
     opacity: 1;
     transform: none;
+    /* ОПТИМИЗАЦИЯ: Пропускаем рендер секций вне экрана */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 400px;
 }
 
 /* СКРЫВАЕМ ПУСТЫЕ БЛОКИ CONTENT-SECTION */
@@ -3233,11 +3238,11 @@ html, body {
     }
 
     .container {
-        padding: 0 1rem;
+        padding: 0;
     }
 
     .content-section {
-        padding: 1.5rem;
+        padding: 0.5rem;
     }
 
     /* УДАЛЕНО - конфликтующие стили каменных блоков */
@@ -3376,6 +3381,10 @@ html, body {
         font-size: 2rem;
     }
 
+    .container {
+        padding: 0;
+    }
+
     /* Адаптация египетской навигации для очень маленьких экранов */
     .egyptian-navbar {
         height: 100px;
@@ -3413,7 +3422,7 @@ html, body {
     }
 
     .content-section {
-        padding: 1rem;
+        padding: 0.5rem;
     }
 
     /* Дополнительная адаптация иероглифов для маленьких экранов */

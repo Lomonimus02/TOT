@@ -159,6 +159,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Контент уже применен на сервере, клиентская загрузка не нужна
     window.pageEditor = new InlinePageEditor();
 
+    // ОПТИМИЗАЦИЯ: Lazy loading для всех изображений на странице
+    document.querySelectorAll('img:not([loading])').forEach(img => {
+        img.setAttribute('loading', 'lazy');
+        img.setAttribute('decoding', 'async');
+    });
+
     console.log('Пирамида ТОТА - сайт загружен');
 });
 
@@ -1145,6 +1151,16 @@ class InlinePageEditor {
             if (element) {
                 element.innerHTML = item.content;
                 element.dataset.editId = elementId;
+
+                // ОПТИМИЗАЦИЯ: Lazy loading для изображений
+                element.querySelectorAll('img').forEach(img => {
+                    if (!img.hasAttribute('loading')) {
+                        img.setAttribute('loading', 'lazy');
+                    }
+                    if (!img.hasAttribute('decoding')) {
+                        img.setAttribute('decoding', 'async');
+                    }
+                });
 
                 // Восстанавливаем классы форматирования из контента
                 this.restoreFormatClasses(element, item.content);

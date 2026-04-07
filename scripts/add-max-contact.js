@@ -1,10 +1,10 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 
-const maxContact = '                    <div class="footer-contact-item">\r\n                        <a href="https://maxln.ru/YcxBcz" target="_blank">Max: Пирамида ТОТа</a>\r\n                    </div>';
+const maxContact = '                    <div class="footer-contact-item">\r\n                        <a href="https://maxln.ru/YcxBcz" target="_blank">Max: Пирамида Тота</a>\r\n                    </div>';
 
 const target = '                    <div class="footer-contact-item">\r\n                        <a href="mailto:info@piramidaspb.ru">info@piramidaspb.ru</a>\r\n                    </div>';
 const targetLF = '                    <div class="footer-contact-item">\n                        <a href="mailto:info@piramidaspb.ru">info@piramidaspb.ru</a>\n                    </div>';
-const maxContactLF = '                    <div class="footer-contact-item">\n                        <a href="https://maxln.ru/YcxBcz" target="_blank">Max: Пирамида ТОТа</a>\n                    </div>';
+const maxContactLF = '                    <div class="footer-contact-item">\n                        <a href="https://maxln.ru/YcxBcz" target="_blank">Max: Пирамида Тота</a>\n                    </div>';
 const replacement = maxContact + '\n' + target;
 
 const files = [

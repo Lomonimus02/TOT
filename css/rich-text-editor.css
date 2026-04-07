@@ -714,10 +714,29 @@ body:not(.edit-mode) .ql-editor video,
 
 /* ===== RESIZE КОНТЕЙНЕР ДЛЯ МЕДИА (Word-style) ===== */
 
-/* Выделенное изображение */
-.ql-editor img.img-selected {
+/* Выделенное изображение — только в режиме редактирования */
+body.edit-mode .ql-editor img.img-selected {
     outline: 2px solid #4A90D9;
     outline-offset: 1px;
+}
+
+/* Вне режима редактирования обводка скрыта */
+body:not(.edit-mode) .ql-editor img.img-selected {
+    outline: none !important;
+}
+
+/* Вне режима редактирования — никаких рамок на изображениях */
+body:not(.edit-mode) .ql-editor img {
+    outline: none !important;
+    border: none !important;
+}
+
+/* Вне режима редактирования все элементы ресайза скрыты */
+body:not(.edit-mode) .resize-container,
+body:not(.edit-mode) .resize-handle,
+body:not(.edit-mode) .img-toolbar,
+body:not(.edit-mode) .size-indicator {
+    display: none !important;
 }
 
 /* Курсор при ресайзе */
@@ -1070,16 +1089,17 @@ body.img-resizing * {
 /* Адаптивность */
 @media (max-width: 768px) {
     .rich-text-editor-container {
-        padding: 20px 10px;
+        padding: 15px 8px;
     }
     
+    .ql-snow .ql-editor,
     .ql-editor {
-        padding: 20px 30px;
+        padding: 15px 14px;
     }
     
     .ql-editor.ql-blank::before {
-        left: 30px;
-        right: 30px;
+        left: 10px;
+        right: 10px;
     }
     
     .ql-toolbar.ql-snow {
@@ -1090,6 +1110,22 @@ body.img-resizing * {
     .ql-toolbar.ql-snow button {
         width: 28px;
         height: 28px;
+    }
+}
+
+@media (max-width: 480px) {
+    .rich-text-editor-container {
+        padding: 10px 4px;
+    }
+    
+    .ql-snow .ql-editor,
+    .ql-editor {
+        padding: 10px 10px;
+    }
+    
+    .ql-editor.ql-blank::before {
+        left: 10px;
+        right: 10px;
     }
 }
 

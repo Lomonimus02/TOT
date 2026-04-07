@@ -234,6 +234,16 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     will-change: transform, opacity;
+    /* ОПТИМИЗАЦИЯ: Пропускаем рендер блоков вне экрана */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 300px;
+}
+
+/* Свободно позиционированные блоки не используют content-visibility
+   (конфликтует с position: absolute и contain) */
+.content-block.free-positioned {
+    content-visibility: visible;
+    contain-intrinsic-size: auto;
 }
 
 /* Подсветка блока при наведении в режиме редактирования */

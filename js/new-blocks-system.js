@@ -1652,18 +1652,53 @@ async function loadBlocksFromDatabase() {
             // Сортируем блоки по позиции
             const sortedBlocks = result.data.sort((a, b) => a.position_index - b.position_index);
 
-            // Создаем все блоки сначала
-            const createdBlocks = [];
+            // ОПТИМИЗАЦИЯ: Прогрессивная загрузка блоков
+            // Первые блоки (видимые на экране) рендерим сразу,
+            // остальные — порциями через requestAnimationFrame
+            const FIRST_BATCH = 4; // Первая порция — сразу
+            const CHUNK_SIZE = 3;  // Остальные — по 3 за кадр
 
-            for (const blockData of sortedBlocks) {
+            const firstBatch = sortedBlocks.slice(0, FIRST_BATCH);
+            const restBatches = sortedBlocks.slice(FIRST_BATCH);
+
+            // Рендерим первую порцию сразу
+            const createdBlocks = [];
+            for (const blockData of firstBatch) {
                 const blockElement = await createBlockFromData(blockData);
                 if (blockElement) {
                     createdBlocks.push({ element: blockElement, data: blockData });
                 }
             }
 
-            // Восстанавливаем структуру с горизонтальными контейнерами
+            // Размещаем первую порцию немедленно
             await restoreBlockLayout(createdBlocks);
+
+            // Остальные блоки рендерим порциями
+            if (restBatches.length > 0) {
+                const renderChunk = (startIdx) => {
+                    return new Promise(resolve => {
+                        requestAnimationFrame(async () => {
+                            const chunk = restBatches.slice(startIdx, startIdx + CHUNK_SIZE);
+                            const chunkBlocks = [];
+                            for (const blockData of chunk) {
+                                const blockElement = await createBlockFromData(blockData);
+                                if (blockElement) {
+                                    chunkBlocks.push({ element: blockElement, data: blockData });
+                                }
+                            }
+                            if (chunkBlocks.length > 0) {
+                                await restoreBlockLayout(chunkBlocks);
+                            }
+                            resolve();
+                        });
+                    });
+                };
+
+                // Последовательно рендерим порции
+                for (let i = 0; i < restBatches.length; i += CHUNK_SIZE) {
+                    await renderChunk(i);
+                }
+            }
 
             // Активируем редактирование для загруженных блоков
             if (document.body.classList.contains('edit-mode') && typeof window.App !== 'undefined') {
@@ -1988,6 +2023,16 @@ async function createBlockFromData(blockData) {
         // КРИТИЧЕСКИ ВАЖНО: Нормализуем изображения в блоке
         // Убираем отрицательный margin и корректируем позицию блока
         normalizeImagesInBlock(blockElement);
+
+        // ОПТИМИЗАЦИЯ: Lazy loading для всех изображений в блоке
+        blockElement.querySelectorAll('img').forEach(img => {
+            if (!img.hasAttribute('loading')) {
+                img.setAttribute('loading', 'lazy');
+            }
+            if (!img.hasAttribute('decoding')) {
+                img.setAttribute('decoding', 'async');
+            }
+        });
 
         // КРИТИЧЕСКИ ВАЖНО: Добавляем обработчик контекстного меню для администраторов
         if (isUserAdmin()) {
