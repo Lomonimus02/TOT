@@ -2847,14 +2847,14 @@ html, body {
     max-width: 2720px; /* Увеличено в 1.7 раза (1600px * 1.7 = 2720px) */
     margin: 0 auto;
     position: relative;
-    min-height: 100vh;
+    min-height: 0;
 }
 
 /* В режиме свободного позиционирования расширяем область */
 .page-content.free-positioning-active {
     max-width: none;
     width: 100%;
-    min-height: 100vh;
+    min-height: 0;
     margin: 0;
     padding: 0;
     overflow: visible;
@@ -3061,6 +3061,20 @@ html, body {
     justify-content: space-between;
     margin-top: 3rem;
     padding: 2rem 0;
+    position: relative;
+    z-index: 10;
+}
+
+/* Навигация перемещена из main при SPA-навигации */
+body > .page-navigation {
+    flex-shrink: 0;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    padding-left: 15px;
+    padding-right: 15px;
+    box-sizing: border-box;
 }
 
 .nav-btn {

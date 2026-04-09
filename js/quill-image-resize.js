@@ -330,12 +330,14 @@ class ImageResize {
     _setWrapMode(mode) {
         if (!this.currentElement) return;
         this.currentElement.classList.remove('align-left', 'align-center', 'align-right');
+        // Всегда очищаем инлайн-стили позиционирования, чтобы CSS-классы работали корректно
+        this.currentElement.style.float = '';
+        this.currentElement.style.display = '';
+        this.currentElement.style.marginRight = '';
+        this.currentElement.style.marginBottom = '';
+        this.currentElement.style.marginLeft = '';
         if (mode === 'inline') {
-            // Пользователь явно выбрал inline — убираем float и метим
-            this.currentElement.style.float = '';
-            this.currentElement.style.marginRight = '';
-            this.currentElement.style.marginBottom = '';
-            this.currentElement.style.marginLeft = '';
+            // Пользователь явно выбрал inline — метим
             this.currentElement.setAttribute('data-wrap', 'inline');
         } else {
             this.currentElement.removeAttribute('data-wrap');

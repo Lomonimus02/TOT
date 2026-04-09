@@ -175,6 +175,16 @@
                 // Замена контента
                 mainEl.innerHTML = newMain.innerHTML;
 
+                // Перемещаем .page-navigation из main в body (перед footer),
+                // чтобы навигация не зависела от flex-высоты main
+                const oldExternalNav = document.querySelector('body > .page-navigation');
+                if (oldExternalNav) oldExternalNav.remove();
+                const pageNav = mainEl.querySelector('.page-navigation');
+                const siteFooter = document.querySelector('.site-footer');
+                if (pageNav && siteFooter) {
+                    siteFooter.parentNode.insertBefore(pageNav, siteFooter);
+                }
+
                 // ОПТИМИЗАЦИЯ: Lazy loading для всех изображений
                 mainEl.querySelectorAll('img').forEach(img => {
                     if (!img.hasAttribute('loading')) {

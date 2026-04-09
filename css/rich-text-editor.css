@@ -358,6 +358,7 @@ body.edit-mode .ql-container.ql-snow {
     border-top: none; /* Убираем верхнюю границу (т.к. есть панель инструментов) */
     border-radius: 0 0 8px 8px;
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.15); /* Легкое золотое свечение */
+    overflow: visible; /* Не обрезать панель инструментов медиа */
 }
 
 .ql-editor {
@@ -365,6 +366,8 @@ body.edit-mode .ql-container.ql-snow {
     min-height: 600px;
     background: transparent;
     color: #ffffff !important; /* БЕЛЫЙ ЦВЕТ ПО УМОЛЧАНИЮ */
+    overflow-y: visible; /* Контент расширяет страницу, без скроллбара */
+    overflow-x: visible;
 }
 
 /* Большой нижний отступ только в режиме редактирования */
@@ -810,8 +813,8 @@ body.img-resizing * {
     top: -44px;
     left: 50%;
     transform: translateX(-50%);
-    background: #f8f4e6;
-    border: 1px solid #d0c4a8;
+    background: #f8f4e6 !important;
+    border: 1px solid #d0c4a8 !important;
     border-radius: 6px;
     padding: 3px 6px;
     display: flex;
@@ -828,38 +831,53 @@ body.img-resizing * {
     justify-content: center;
     width: 30px;
     height: 28px;
-    background: transparent;
+    background: transparent !important;
     border: 1px solid transparent;
     border-radius: 4px;
     cursor: pointer;
-    color: #4b2e14;
+    color: #4b2e14 !important;
     transition: all 0.15s;
     padding: 0;
 }
+.media-toolbar-btn svg {
+    color: #4b2e14 !important;
+    stroke: #4b2e14;
+    fill: currentColor;
+}
 .media-toolbar-btn:hover {
-    background: rgba(255, 215, 0, 0.18);
-    border-color: rgba(255, 215, 0, 0.4);
+    background: rgba(255, 215, 0, 0.25) !important;
+    border-color: rgba(255, 215, 0, 0.5);
+}
+.media-toolbar-btn:hover svg {
+    color: #3a2010 !important;
 }
 .media-toolbar-btn.active {
-    background: rgba(74, 144, 217, 0.15);
+    background: rgba(74, 144, 217, 0.2) !important;
     border-color: #4A90D9;
-    color: #4A90D9;
+    color: #4A90D9 !important;
+}
+.media-toolbar-btn.active svg {
+    color: #4A90D9 !important;
 }
 .media-toolbar-btn-danger:hover {
-    background: rgba(220, 53, 53, 0.12);
-    border-color: rgba(220, 53, 53, 0.4);
-    color: #dc3535;
+    background: rgba(220, 53, 53, 0.15) !important;
+    border-color: rgba(220, 53, 53, 0.5);
+    color: #dc3535 !important;
+}
+.media-toolbar-btn-danger:hover svg {
+    color: #dc3535 !important;
 }
 .media-toolbar-btn-sm {
     font-size: 13px;
     width: 26px;
     font-weight: 600;
+    color: #4b2e14 !important;
 }
 .media-toolbar-sep {
     display: inline-block;
     width: 1px;
     height: 20px;
-    background: #d0c4a8;
+    background: #d0c4a8 !important;
     margin: 0 4px;
 }
 

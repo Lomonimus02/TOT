@@ -246,6 +246,13 @@
     contain-intrinsic-size: auto;
 }
 
+/* В режиме редактирования отключаем content-visibility,
+   чтобы панель инструментов изображений не обрезалась paint containment */
+body.edit-mode .content-block {
+    content-visibility: visible;
+    contain-intrinsic-size: auto;
+}
+
 /* Подсветка блока при наведении в режиме редактирования */
 .edit-mode .content-block:hover {
     transform: translateY(-2px);

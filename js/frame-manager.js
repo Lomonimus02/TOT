@@ -226,10 +226,10 @@ class FrameManager {
                 <h3>👑 Администратор</h3>
                 <p><strong>Имя:</strong> ${userName}</p>
                 <p><strong>Статус:</strong> Вы вошли как администратор</p>
-                <p style="font-size: 0.9rem; color: rgba(255, 215, 0, 0.8); margin-top: 10px;">
+                <p style="font-size: 0.9rem; color: #a0894d; margin-top: 10px;">
                     У вас есть расширенные возможности на всех страницах сайта
                 </p>
-                <p style="font-size: 1rem; color: rgba(255, 255, 255, 0.9); margin-top: 15px; font-weight: bold;">
+                <p style="font-size: 1rem; color: #5a4a2e; margin-top: 15px; font-weight: bold;">
                     Вы действительно хотите выйти из аккаунта?
                 </p>
                 <div class="user-menu-buttons">

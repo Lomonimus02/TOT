@@ -204,7 +204,7 @@ function showModal(modal) {
         modal.style.display = 'block';
         modal.classList.add('show');
         modal.classList.remove('hide');
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflowY = 'hidden';
 
         // Анимация появления
         setTimeout(() => {
@@ -221,7 +221,7 @@ function hideModal(modal) {
         setTimeout(() => {
             modal.style.display = 'none';
             modal.style.opacity = '0';
-            document.body.style.overflow = 'auto';
+            document.body.style.overflowY = '';
         }, 400);
     }
 }
@@ -2067,7 +2067,7 @@ function initializeButtonClicks() {
         'button_10.png': 'pages/school-isais.html', // Женская школа Isais
         'button_11.png': 'https://forum.piramidaspb.ru/', // Форум (внешняя ссылка)
         'button_12.png': 'pages/consultations.html',// Личные приемы
-        'button_13.png': 'pages/artifacts.html',    // Артефакты из египта
+        'button_13.png': 'https://vk.com/clubisais',    // Артефакты из египта
         'button_14.png': 'pages/projects.html',     // Наши проекты
         'button_15.png': 'pages/seminars.html',     // Выездные семинары
         'button_16.png': 'pages/about-isais.html'   // Об isais
@@ -2103,7 +2103,9 @@ function initializeButtonClicks() {
                 // Переход на страницу (через SPA если доступен)
                 setTimeout(() => {
                     console.log(`🔄 Переход на: ${targetPage}`);
-                    if (window.SPARouter && window.SPARouter.isInternalPage(new URL(targetPage, location.href).href)) {
+                    if (targetPage.startsWith('http://') || targetPage.startsWith('https://')) {
+                        window.open(targetPage, '_blank', 'noopener,noreferrer');
+                    } else if (window.SPARouter && window.SPARouter.isInternalPage(new URL(targetPage, location.href).href)) {
                         const cleanUrl = window.SPARouter.normalizePageUrl(new URL(targetPage, location.href).href);
                         window.SPARouter.navigate(cleanUrl);
                     } else {
