@@ -215,10 +215,16 @@ class ImageResize {
         if (this.resizeContainer) { this.resizeContainer.remove(); this.resizeContainer = null; }
         this.sizeIndicator = null;
         this.currentElement = null;
-        // Restore focus to editor without scrolling — но НЕ если открыт tooltip ссылки
-        // и НЕ если редактор уже отсоединён от документа (SPA-навигация)
+        // Возвращаем фокус редактору ТОЛЬКО если:
+        // — редактор активен (edit-mode, не readOnly)
+        // — не открыт tooltip ссылки
+        // — DOM-элемент редактора ещё в документе (не SPA-навигация)
+        // — фокус сейчас не в другом интерактивном элементе (input/textarea/select)
+        const activeTag = document.activeElement && document.activeElement.tagName;
+        const focusInInput = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT' ||
+            (document.activeElement && document.activeElement.isContentEditable && !document.activeElement.classList.contains('ql-editor'));
         const tooltip = document.querySelector('.ql-tooltip.ql-editing');
-        if (!tooltip && this.quill.root && document.contains(this.quill.root)) {
+        if (!tooltip && !focusInInput && this.quill.isEnabled() && this.quill.root && document.contains(this.quill.root)) {
             const scrollY = window.scrollY;
             this.quill.focus();
             window.scrollTo(0, scrollY);
