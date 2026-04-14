@@ -277,12 +277,23 @@ class SearchComponent {
     navigateToPage(pageId, elementId) {
         // Определяем, находимся ли уже на целевой странице
         const currentPath = window.location.pathname;
+        // Нормализуем: убираем /pages/, .html, ведущий /, хвостовой /
         const currentPageId = currentPath
-            .replace(/^\/pages\//, '')
+            .replace(/\/pages\//, '')
+            .replace(/^\//, '')
             .replace(/\.html$/, '')
             .replace(/\/$/, '') || 'index';
 
-        if (currentPageId === pageId || (pageId === 'index' && (currentPath === '/' || currentPath.endsWith('index.html')))) {
+        // Нормализуем target pageId тем же способом
+        const targetPageId = pageId
+            .replace(/\/pages\//, '')
+            .replace(/^\//, '')
+            .replace(/\.html$/, '')
+            .replace(/\/$/, '') || 'index';
+
+        console.log('[Search] navigate: current=', currentPageId, 'target=', targetPageId);
+
+        if (currentPageId === targetPageId) {
             // Уже на нужной странице — плавно промотаем к элементу
             this._scrollToElement(elementId);
             return;
@@ -298,12 +309,12 @@ class SearchComponent {
             document.addEventListener('spa:navigate', onNavigate);
         }
 
-        let url = pageId;
+        let url = targetPageId;
         if (!url.endsWith('.html')) url += '.html';
-        if (url !== 'index.html' && !url.startsWith('pages/')) url = 'pages/' + url;
+        if (url !== 'index.html') url = 'pages/' + url;
 
         if (window.SPARouter) {
-            const fullUrl = new URL(url, location.href).href;
+            const fullUrl = new URL(url, location.origin + '/').href;
             if (window.SPARouter.isInternalPage(fullUrl)) {
                 const cleanUrl = window.SPARouter.normalizePageUrl(fullUrl);
                 window.SPARouter.navigate(cleanUrl);
