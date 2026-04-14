@@ -1238,26 +1238,6 @@ class RichTextEditor {
         }
     }
 
-                console.log('✅ Контент загружен из БД');
-            } else {
-                console.log('ℹ️ Контент не найден, используется пустой редактор');
-                // Устанавливаем пустой контент
-                this.editor.setText('');
-            }
-        } catch (error) {
-            console.error('❌ Ошибка загрузки контента:', error);
-            // В случае ошибки используем пустой редактор
-            if (this.editor) {
-                this.editor.setText('');
-            }
-        } finally {
-            // Снимаем флаг загрузки после завершения всех setTimeout
-            setTimeout(() => {
-                this._isLoadingContent = false;
-            }, 300);
-        }
-    }
-
     /**
      * Сохранение контента в базу данных
      */
