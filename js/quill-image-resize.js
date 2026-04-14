@@ -216,12 +216,25 @@ class ImageResize {
         this.sizeIndicator = null;
         this.currentElement = null;
         // Restore focus to editor without scrolling — но НЕ если открыт tooltip ссылки
+        // и НЕ если редактор уже отсоединён от документа (SPA-навигация)
         const tooltip = document.querySelector('.ql-tooltip.ql-editing');
-        if (!tooltip) {
+        if (!tooltip && this.quill.root && document.contains(this.quill.root)) {
             const scrollY = window.scrollY;
             this.quill.focus();
             window.scrollTo(0, scrollY);
         }
+    }
+
+    /**
+     * Снять все глобальные обработчики (вызывается при SPA-навигации)
+     */
+    destroy() {
+        this.hideResizeHandles();
+        this.quill.root.removeEventListener('click', this._onEditorClick, true);
+        document.removeEventListener('click', this._onDocClick);
+        window.removeEventListener('scroll', this._onScroll, true);
+        document.removeEventListener('keydown', this._onKeyDown);
+        this.quill.off('text-change');
     }
 
     _positionOverlay() {

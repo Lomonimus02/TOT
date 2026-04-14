@@ -1289,9 +1289,11 @@ class RichTextEditor {
      * Корректное уничтожение редактора (для SPA-навигации)
      */
     destroy() {
+        // Уничтожаем ImageResize модуль (снимает глобальные click/keydown listeners)
         if (this.editor) {
+            const imageResize = this.editor.getModule('imageResize');
+            if (imageResize && imageResize.destroy) imageResize.destroy();
             this.editor.disable();
-            // Убираем все обработчики text-change
             this.editor.off('text-change');
         }
         if (this.saveTimeout) clearTimeout(this.saveTimeout);
