@@ -991,6 +991,7 @@ async function searchInDatabase(query, limit = 20) {
                 updated_at
             FROM content_changes
             WHERE content LIKE ? COLLATE NOCASE AND page_id IN (${placeholders})
+            AND TRIM(REPLACE(content, ' ', '')) != '' AND LENGTH(content) > 10
             ORDER BY updated_at DESC
             LIMIT ?`,
             [searchPattern, ...allowedPages, limit]
@@ -1007,31 +1008,51 @@ async function searchInDatabase(query, limit = 20) {
                 updated_at
             FROM page_content
             WHERE content LIKE ? COLLATE NOCASE AND page_id IN (${placeholders})
+            AND TRIM(REPLACE(content, ' ', '')) != '' AND LENGTH(content) > 10
             ORDER BY updated_at DESC
             LIMIT ?`,
             [searchPattern, ...allowedPages, limit]
         );
         
-        // Объединяем результаты из обеих таблиц
+        // Объединяем результаты из обеих таблиц, убираем дубли (одна страница - одна запись rich-text)
         const allRows = [...result1, ...result2];
-        
-        return allRows.map(row => {
-            // Удаляем HTML теги для snippet
-            const textContent = row.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-            const snippet = textContent.substring(0, 150) + (textContent.length > 150 ? '...' : '');
-            
-            return {
-                page_id: row.page_id,
-                page_name: row.page_id,
-                element_id: row.element_id,
-                element_type: row.element_type,
-                content: textContent,
-                context: snippet,
-                snippet: snippet,
-                source: 'database',
-                updated_at: row.updated_at
-            };
-        });
+        const searchTermLower = query.toLowerCase();
+
+        return allRows
+            .map(row => {
+                // Удаляем HTML теги и лишние пробелы для поиска и snippet
+                const textContent = row.content
+                    .replace(/<[^>]*>/g, ' ')
+                    .replace(/&nbsp;/g, ' ')
+                    .replace(/&[a-z]+;/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+                // Фильтруем: если после снятия тегов текст не содержит запрос — пропускаем
+                // (например запрос "img" матчил <img> тег, но в тексте слова нет)
+                if (!textContent.toLowerCase().includes(searchTermLower)) return null;
+
+                // Находим центр совпадения для лучшего сниппета
+                const idx = textContent.toLowerCase().indexOf(searchTermLower);
+                const start = Math.max(0, idx - 60);
+                const end = Math.min(textContent.length, idx + searchTermLower.length + 90);
+                const snippet = (start > 0 ? '...' : '') +
+                    textContent.substring(start, end) +
+                    (end < textContent.length ? '...' : '');
+
+                return {
+                    page_id: row.page_id,
+                    page_name: row.page_id,
+                    element_id: row.element_id,
+                    element_type: row.element_type,
+                    content: textContent,
+                    context: snippet,
+                    snippet: snippet,
+                    source: 'database',
+                    updated_at: row.updated_at
+                };
+            })
+            .filter(Boolean);
     } catch (error) {
         console.error('Ошибка поиска в базе данных:', error);
         return [];
