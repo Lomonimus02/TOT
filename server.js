@@ -962,14 +962,19 @@ async function searchInDatabase(query, limit = 20) {
             'court',
             'forum',
             'news',
+            'news-pyramid',
             'programs',
             'seminars',
             'school-tota',
             'school-isais',
+            'about-isais',
             'rods',
             'visit',
             'recordings',
-            'consultations'
+            'consultations',
+            'media',
+            'artifacts',
+            'projects'
         ];
 
         const searchPattern = `%${query}%`;

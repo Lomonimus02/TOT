@@ -52,8 +52,8 @@ class ImageResize {
             );
             if (hasMedia) this._ensureTrailingParagraph();
         });
-        // Also check on init (after content is loaded)
-        setTimeout(() => this._ensureTrailingParagraph(), 500);
+        // Also check on init — only when editor is enabled (not readOnly)
+        setTimeout(() => { if (this.quill.isEnabled()) this._ensureTrailingParagraph(); }, 500);
 
         // Context menu (right-click)
         this._initContextMenu();
@@ -818,6 +818,8 @@ class ImageResize {
      * click/type below the last image (like Word's trailing ¶)
      */
     _ensureTrailingParagraph() {
+        // Не трогаем DOM в режиме readOnly — иначе mutation → updateEditMode → setSelection(0,0)
+        if (!this.quill.isEnabled()) return;
         const root = this.quill.root;
         const last = root.lastElementChild;
         // If last child is an image, video, iframe, or an element containing only an image

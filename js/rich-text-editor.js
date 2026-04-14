@@ -1310,7 +1310,13 @@ class RichTextEditor {
         const isEditMode = document.body.classList.contains('edit-mode');
 
         if (isEditMode) {
+            // Запоминаем позицию прокрутки — Quill.enable() вызывает focus() и может проскроллить вверх
+            const savedScrollY = window.scrollY;
             this.editor.enable();
+            // Убираем автоматический фокус/выделение, которое Quill ставит при enable()
+            // (иначе при первом входе в edit-mode курсор прыгает в начало)
+            this.editor.blur();
+            window.scrollTo(0, savedScrollY);
             setTimeout(() => {
                 this.wrapVideoIframes();
             }, 100);
