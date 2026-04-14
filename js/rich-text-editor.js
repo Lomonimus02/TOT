@@ -1066,43 +1066,9 @@ class RichTextEditor {
                     });
                 }
 
-                // ПРОГРЕССИВНАЯ ЗАГРУЗКА: разбиваем HTML на блоки
-                const blocks = this._splitContentIntoBlocks(contentHtml);
-                console.log(`📦 Контент разбит на ${blocks.length} блоков`);
-
-                if (blocks.length > 3) {
-                    // Загружаем первые 3 блока сразу (above the fold)
-                    const firstBatch = blocks.slice(0, 3).join('');
-                    this.editor.root.innerHTML = firstBatch;
-
-                    // Остальные блоки подгружаем порциями через requestAnimationFrame
-                    let currentBatch = 3;
-                    const batchSize = 3;
-
-                    const loadNextBatch = () => {
-                        if (currentBatch >= blocks.length) {
-                            // Всё загружено — завершающие действия
-                            this._afterContentLoaded(savedImageStyles);
-                            return;
-                        }
-
-                        const end = Math.min(currentBatch + batchSize, blocks.length);
-                        const fragment = document.createRange().createContextualFragment(
-                            blocks.slice(currentBatch, end).join('')
-                        );
-                        this.editor.root.appendChild(fragment);
-                        currentBatch = end;
-
-                        // Следующая порция через requestAnimationFrame (не блокирует UI)
-                        requestAnimationFrame(loadNextBatch);
-                    };
-
-                    requestAnimationFrame(loadNextBatch);
-                } else {
-                    // Маленький контент — грузим целиком
-                    this.editor.root.innerHTML = contentHtml;
-                    this._afterContentLoaded(savedImageStyles);
-                }
+                // Загружаем контент целиком (Quill disabled во время загрузки — не вызывает addRange)
+                this.editor.root.innerHTML = contentHtml;
+                this._afterContentLoaded(savedImageStyles);
 
                 console.log('✅ Контент загружен из БД');
             } else {
@@ -1120,20 +1086,6 @@ class RichTextEditor {
                 this._isLoadingContent = false;
             }, 300);
         }
-    }
-
-    /**
-     * Разбивает HTML на массив блоков верхнего уровня для прогрессивной загрузки
-     */
-    _splitContentIntoBlocks(html) {
-        const temp = document.createElement('div');
-        temp.innerHTML = html;
-        const blocks = [];
-        for (const child of temp.children) {
-            blocks.push(child.outerHTML);
-        }
-        // Если парсинг не дал результатов — возвращаем весь HTML как один блок
-        return blocks.length > 0 ? blocks : [html];
     }
 
     /**
@@ -1328,6 +1280,19 @@ class RichTextEditor {
                 stack: error.stack
             });
         }
+    }
+
+    /**
+     * Корректное уничтожение редактора (для SPA-навигации)
+     */
+    destroy() {
+        if (this.editor) {
+            this.editor.disable();
+            // Убираем все обработчики text-change
+            this.editor.off('text-change');
+        }
+        if (this.saveTimeout) clearTimeout(this.saveTimeout);
+        this.isInitialized = false;
     }
 
     /**

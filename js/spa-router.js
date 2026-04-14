@@ -377,7 +377,7 @@
                 try {
                     // Уничтожаем старый экземпляр и тулбар
                     if (window.richTextEditor) {
-                        window.richTextEditor.isInitialized = false;
+                        if (window.richTextEditor.destroy) window.richTextEditor.destroy();
                         window.richTextEditor = null;
                     }
                     const oldToolbar = document.querySelector('body > .ql-toolbar.ql-snow');
