@@ -42,7 +42,9 @@ class ImageResize {
         document.addEventListener('keydown', this._onKeyDown);
 
         // Ensure trailing paragraph after content changes (so user can always type below images)
-        this.quill.on('text-change', () => {
+        this.quill.on('text-change', (delta, oldDelta, source) => {
+            // Не вмешиваемся при программной загрузке контента
+            if (window.richTextEditor && window.richTextEditor._isLoadingContent) return;
             this._ensureTrailingParagraph();
         });
         // Also check on init (after content is loaded)
@@ -92,7 +94,8 @@ class ImageResize {
     _handleDocClick(e) {
         if (!this.quill.root.contains(e.target) &&
             !e.target.closest('.resize-container') &&
-            !e.target.closest('.img-props-modal')) {
+            !e.target.closest('.img-props-modal') &&
+            !e.target.closest('.ql-tooltip')) {
             this.hideResizeHandles();
         }
     }
@@ -207,10 +210,13 @@ class ImageResize {
         if (this.resizeContainer) { this.resizeContainer.remove(); this.resizeContainer = null; }
         this.sizeIndicator = null;
         this.currentElement = null;
-        // Restore focus to editor without scrolling
-        const scrollY = window.scrollY;
-        this.quill.focus();
-        window.scrollTo(0, scrollY);
+        // Restore focus to editor without scrolling — но НЕ если открыт tooltip ссылки
+        const tooltip = document.querySelector('.ql-tooltip.ql-editing');
+        if (!tooltip) {
+            const scrollY = window.scrollY;
+            this.quill.focus();
+            window.scrollTo(0, scrollY);
+        }
     }
 
     _positionOverlay() {

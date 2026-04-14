@@ -10,6 +10,7 @@ class RichTextEditor {
         this.saveTimeout = null;
         this.autoSaveDelay = 2000; // 2 секунды
         this.isInitialized = false;
+        this._isLoadingContent = false;
     }
 
     /**
@@ -748,7 +749,10 @@ class RichTextEditor {
      * Настройка автосохранения
      */
     setupAutoSave() {
-        this.editor.on('text-change', () => {
+        this.editor.on('text-change', (delta, oldDelta, source) => {
+            // Игнорируем программные изменения во время загрузки контента
+            if (this._isLoadingContent) return;
+
             // Очищаем предыдущий таймер
             if (this.saveTimeout) {
                 clearTimeout(this.saveTimeout);
@@ -757,10 +761,12 @@ class RichTextEditor {
             // Авто-float: когда картинка и текст в одном параграфе — обтекание как в Word
             this._autoFloatImages();
 
-            // Устанавливаем новый таймер
-            this.saveTimeout = setTimeout(() => {
-                this.saveContent();
-            }, this.autoSaveDelay);
+            // Устанавливаем новый таймер (только для пользовательских изменений)
+            if (source === 'user') {
+                this.saveTimeout = setTimeout(() => {
+                    this.saveContent();
+                }, this.autoSaveDelay);
+            }
         });
     }
 
@@ -801,12 +807,26 @@ class RichTextEditor {
      */
     setupLinkHandling() {
         // Добавляем обработчик для открытия ссылок в новой вкладке
+        // ТОЛЬКО в режиме просмотра — в режиме редактирования Quill сам управляет ссылками
         const editorElement = document.querySelector(`#${this.containerId} .ql-editor`);
         if (editorElement) {
             editorElement.addEventListener('click', (e) => {
-                if (e.target.tagName === 'A') {
+                const link = e.target.closest('a');
+                if (link && !this.editor.isEnabled()) {
                     e.preventDefault();
-                    window.open(e.target.href, '_blank');
+                    window.open(link.href, '_blank');
+                }
+            });
+        }
+
+        // Предотвращаем потерю фокуса с tooltip input при кликах на тулбар
+        const toolbar = document.querySelector('.ql-toolbar.ql-snow');
+        if (toolbar) {
+            toolbar.addEventListener('mousedown', (e) => {
+                // Если открыт tooltip для ввода ссылки — не дать тулбару забрать фокус
+                const tooltip = document.querySelector('.ql-tooltip.ql-editing');
+                if (tooltip && !e.target.closest('.ql-tooltip')) {
+                    // Разрешаем только клик по кнопкам тулбара
                 }
             });
         }
@@ -959,6 +979,7 @@ class RichTextEditor {
      * Загрузка контента из базы данных
      */
     async loadContent() {
+        this._isLoadingContent = true;
         try {
             const pageId = this.getCurrentPageId();
             const apiUrl = `${this.getApiBaseUrl()}/api/content/${pageId}/rich-text-content`;
@@ -1093,6 +1114,11 @@ class RichTextEditor {
             if (this.editor) {
                 this.editor.setText('');
             }
+        } finally {
+            // Снимаем флаг загрузки после завершения всех setTimeout
+            setTimeout(() => {
+                this._isLoadingContent = false;
+            }, 300);
         }
     }
 
