@@ -195,7 +195,7 @@ class SearchComponent {
             items.forEach(item => {
                 const highlighted = this.highlightQuery(item.context, query);
                 html += `
-                    <div class="search-result-item" data-page-id="${pageId}">
+                    <div class="search-result-item" data-page-id="${pageId}" data-element-id="${item.element_id}">
                         <div class="search-result-context">${highlighted}</div>
                     </div>
                 `;
@@ -214,7 +214,12 @@ class SearchComponent {
         items.forEach(item => {
             item.addEventListener('click', (e) => {
                 const pageId = item.getAttribute('data-page-id');
-                this.navigateToPage(pageId);
+                const elementId = item.getAttribute('data-element-id');
+                this.closeResults();
+                this.searchInput.value = '';
+                const clearBtn = this.searchBox.querySelector('.search-clear-btn');
+                if (clearBtn) clearBtn.style.display = 'none';
+                this.navigateToPage(pageId, elementId);
             });
         });
     }
@@ -269,32 +274,34 @@ class SearchComponent {
         return pageNames[baseName] || baseName.toUpperCase();
     }
 
-    navigateToPage(pageId) {
-        // Преобразуем pageId в правильный URL
-        let url = pageId;
-
-        if (!url.endsWith('.html')) {
-            url += '.html';
-        }
-
-        // Если это не главная страница, добавляем 'pages/'
-        if (url !== 'index.html' && !url.startsWith('pages/')) {
-            url = 'pages/' + url;
-        }
-
-        // Определяем текущее местоположение
+    navigateToPage(pageId, elementId) {
+        // Определяем, находимся ли уже на целевой странице
         const currentPath = window.location.pathname;
-        const isInPagesFolder = currentPath.includes('/pages/');
+        const currentPageId = currentPath
+            .replace(/^\/pages\//, '')
+            .replace(/\.html$/, '')
+            .replace(/\/$/, '') || 'index';
 
-        if (isInPagesFolder && !url.startsWith('pages/')) {
-            // Из папки pages в index
-            url = '../' + url;
-        } else if (!isInPagesFolder && url.startsWith('pages/')) {
-            // Из root в pages
-            url = url;
+        if (currentPageId === pageId || (pageId === 'index' && (currentPath === '/' || currentPath.endsWith('index.html')))) {
+            // Уже на нужной странице — плавно промотаем к элементу
+            this._scrollToElement(elementId);
+            return;
         }
 
-        // Переходим на страницу (через SPA если доступен)
+        // На другой странице — навигируем через SPA, затем промотка
+        if (elementId) {
+            const onNavigate = () => {
+                document.removeEventListener('spa:navigate', onNavigate);
+                // Даём время на загрузку контента из БД (RTE initialize)
+                setTimeout(() => this._scrollToElement(elementId), 600);
+            };
+            document.addEventListener('spa:navigate', onNavigate);
+        }
+
+        let url = pageId;
+        if (!url.endsWith('.html')) url += '.html';
+        if (url !== 'index.html' && !url.startsWith('pages/')) url = 'pages/' + url;
+
         if (window.SPARouter) {
             const fullUrl = new URL(url, location.href).href;
             if (window.SPARouter.isInternalPage(fullUrl)) {
@@ -304,6 +311,31 @@ class SearchComponent {
             }
         }
         window.location.href = url;
+    }
+
+    _scrollToElement(elementId) {
+        if (!elementId) return;
+
+        // Для rich-text-content — скроллим к .page-content (.ql-editor)
+        let el = null;
+        if (elementId === 'rich-text-content') {
+            el = document.querySelector('.ql-editor') ||
+                 document.querySelector('.rich-text-editor-container') ||
+                 document.querySelector('.page-content');
+        } else {
+            // Блоки системы: [data-block-id="..."] или #id
+            el = document.querySelector(`[data-block-id="${elementId}"]`) ||
+                 document.getElementById(elementId);
+        }
+
+        if (!el) return;
+
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Лёгкая подсветка элемента
+        el.style.transition = 'box-shadow 0.4s';
+        el.style.boxShadow = '0 0 0 3px rgba(218,165,32,0.6)';
+        setTimeout(() => { el.style.boxShadow = ''; }, 1800);
     }
 
     clearSearch() {
