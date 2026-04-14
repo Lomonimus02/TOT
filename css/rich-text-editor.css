@@ -368,6 +368,10 @@ body.edit-mode .ql-container.ql-snow {
     color: #ffffff !important; /* БЕЛЫЙ ЦВЕТ ПО УМОЛЧАНИЮ */
     overflow-y: visible; /* Контент расширяет страницу, без скроллбара */
     overflow-x: visible;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
 }
 
 /* Большой нижний отступ только в режиме редактирования */
