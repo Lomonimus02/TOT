@@ -8,6 +8,7 @@ const cheerio = require('cheerio');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const compression = require('compression');
 require('dotenv').config();
 
 const app = express();
@@ -98,6 +99,7 @@ app.get('/pages/news.html', (req, res) => res.redirect(301, '/news'));
 app.get('/pages/forum.html', (req, res) => res.redirect(301, '/forum'));
 
 // Middleware
+app.use(compression()); // Gzip сжатие всех ответов
 app.use(cors());
 // Увеличиваем лимит размера запроса для Rich Text Editor (до 50MB)
 app.use(express.json({ limit: '50mb' }));
@@ -1081,6 +1083,16 @@ app.get('/api/content/:pageId/:elementId', async (req, res) => {
             element_id: element ? element.element_id : null,
             contentLength: element && element.content ? element.content.length : 0
         });
+
+        // ETag кэширование — если контент не изменился, отправляем 304
+        if (element && element.updated_at) {
+            const etag = `"${Buffer.from(element.updated_at + element.content.length).toString('base64')}"`;
+            res.setHeader('ETag', etag);
+            res.setHeader('Cache-Control', 'private, max-age=5, must-revalidate');
+            if (req.headers['if-none-match'] === etag) {
+                return res.status(304).end();
+            }
+        }
 
         // Парсим block_metadata если есть
         if (element && element.block_metadata && typeof element.block_metadata === 'string') {

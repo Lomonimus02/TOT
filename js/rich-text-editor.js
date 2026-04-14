@@ -156,8 +156,25 @@ class RichTextEditor {
         this.isInitialized = true;
         console.log('✅ Rich Text Editor инициализирован');
 
+        // КРИТИЧЕСКИ ВАЖНО: Предотвращаем прокрутку страницы вверх при вызове quill.focus()
+        // Quill Snow theme вызывает focus() при закрытии tooltip ссылки — это скроллит к началу
+        this._patchQuillFocus();
+
         // Активируем редактирование только в режиме редактирования
         this.updateEditMode();
+    }
+
+    /**
+     * Патчим quill.focus() чтобы он не скроллил страницу
+     */
+    _patchQuillFocus() {
+        const originalFocus = this.editor.focus.bind(this.editor);
+        this.editor.focus = (...args) => {
+            const scrollY = window.scrollY;
+            const scrollX = window.scrollX;
+            originalFocus(...args);
+            window.scrollTo(scrollX, scrollY);
+        };
     }
 
     /**
