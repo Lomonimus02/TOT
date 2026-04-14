@@ -165,7 +165,7 @@ class RichTextEditor {
     }
 
     /**
-     * Патчим quill.focus() чтобы он не скроллил страницу
+     * Патчим quill.focus() и ql-editor.focus() чтобы они не скроллили страницу
      */
     _patchQuillFocus() {
         const originalFocus = this.editor.focus.bind(this.editor);
@@ -174,6 +174,17 @@ class RichTextEditor {
             const scrollX = window.scrollX;
             originalFocus(...args);
             window.scrollTo(scrollX, scrollY);
+        };
+
+        // Патчим нативный focus() на DOM-элементе .ql-editor
+        // Quill Snow theme вызывает this.quill.root.focus() напрямую при закрытии tooltip
+        const editorRoot = this.editor.root;
+        const nativeFocus = editorRoot.focus.bind(editorRoot);
+        editorRoot.focus = function(opts) {
+            const sy = window.scrollY;
+            const sx = window.scrollX;
+            nativeFocus(Object.assign({ preventScroll: true }, opts));
+            window.scrollTo(sx, sy);
         };
     }
 
