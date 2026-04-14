@@ -9,6 +9,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const compression = require('compression');
+let sharp;
+try { sharp = require('sharp'); } catch (e) { console.warn('Sharp не установлен — WebP-оптимизация отключена'); }
 require('dotenv').config();
 
 const app = express();
@@ -178,6 +180,73 @@ const uploadVideo = multer({
         }
     }
 });
+
+// === Фоновая генерация WebP после загрузки изображений ===
+const WEBP_CONFIG = {
+    quality: 80,
+    effort: 6,
+    sizes: [400, 800, 1200],
+    lqip: { width: 20, quality: 20, blur: 10 }
+};
+
+async function generateWebPInBackground(filePath, subdir) {
+    if (!sharp) return;
+    try {
+        const optimizedDir = path.join(__dirname, 'images', 'optimized', subdir);
+        await fs.mkdir(optimizedDir, { recursive: true });
+
+        const basename = path.basename(filePath, path.extname(filePath));
+        const metadata = await sharp(filePath).metadata();
+        const originalWidth = metadata.width;
+
+        // 1. WebP полный размер
+        await sharp(filePath)
+            .webp({ quality: WEBP_CONFIG.quality, effort: WEBP_CONFIG.effort })
+            .toFile(path.join(optimizedDir, `${basename}.webp`));
+        console.log(`[WebP] ✓ ${basename}.webp`);
+
+        // 2. Responsive размеры
+        for (const w of WEBP_CONFIG.sizes) {
+            if (originalWidth <= w) continue;
+            await sharp(filePath)
+                .resize(w, null, { fit: 'inside', withoutEnlargement: true })
+                .webp({ quality: WEBP_CONFIG.quality, effort: WEBP_CONFIG.effort })
+                .toFile(path.join(optimizedDir, `${basename}-${w}w.webp`));
+            console.log(`[WebP] ✓ ${basename}-${w}w.webp`);
+        }
+
+        // 3. LQIP
+        const lqipBuffer = await sharp(filePath)
+            .resize(WEBP_CONFIG.lqip.width, null, { fit: 'inside' })
+            .blur(WEBP_CONFIG.lqip.blur)
+            .webp({ quality: WEBP_CONFIG.lqip.quality })
+            .toBuffer();
+        const lqipBase64 = `data:image/webp;base64,${lqipBuffer.toString('base64')}`;
+
+        // 4. Обновляем lqip-data.json
+        const lqipJsonPath = path.join(__dirname, 'images', 'optimized', 'lqip-data.json');
+        let lqipData = {};
+        try {
+            const raw = await fs.readFile(lqipJsonPath, 'utf-8');
+            lqipData = JSON.parse(raw);
+        } catch (e) { /* файла нет — создадим */ }
+
+        const relPath = `images/${subdir}/${path.basename(filePath)}`;
+        lqipData[relPath] = {
+            lqip: lqipBase64,
+            webp: { full: { path: `images/optimized/${subdir}/${basename}.webp` } }
+        };
+        for (const w of WEBP_CONFIG.sizes) {
+            if (originalWidth > w) {
+                lqipData[relPath].webp[`${w}w`] = { path: `images/optimized/${subdir}/${basename}-${w}w.webp` };
+            }
+        }
+        await fs.writeFile(lqipJsonPath, JSON.stringify(lqipData, null, 2));
+        console.log(`[WebP] ✓ lqip-data.json обновлён для ${relPath}`);
+    } catch (err) {
+        console.error(`[WebP] Ошибка генерации для ${filePath}:`, err.message);
+    }
+}
 
 // Инициализация базы данных
 async function initDatabase() {
@@ -2047,6 +2116,11 @@ app.post('/api/upload/image', upload.single('image'), async (req, res) => {
             imageUrl: imageUrl,
             url: imageUrl,
             filename: req.file.filename
+        });
+
+        // Фоновая генерация WebP (не блокирует ответ клиенту)
+        setImmediate(() => {
+            generateWebPInBackground(req.file.path, 'uploads');
         });
 
     } catch (error) {
