@@ -780,11 +780,32 @@ class RichTextEditor {
 
             // Устанавливаем новый таймер (только для пользовательских изменений)
             if (source === 'user') {
+                // Перехватываем base64 изображения при вставке
+                this._interceptBase64OnPaste();
+
                 this.saveTimeout = setTimeout(() => {
                     this.saveContent();
                 }, this.autoSaveDelay);
             }
         });
+    }
+
+    /**
+     * Перехватывает base64 изображения, вставленные через Ctrl+V или drag&drop,
+     * загружает на сервер и заменяет src на URL
+     */
+    _interceptBase64OnPaste() {
+        if (!this.editor || this._uploadingBase64) return;
+        const base64Images = this.editor.root.querySelectorAll('img[src^="data:image"]');
+        if (base64Images.length === 0) return;
+
+        this._uploadingBase64 = true;
+        // Ожидаем чтоб не конфликтовать с текущим редактированием
+        setTimeout(() => {
+            this._uploadBase64Images().finally(() => {
+                this._uploadingBase64 = false;
+            });
+        }, 500);
     }
 
     /**
@@ -1002,7 +1023,6 @@ class RichTextEditor {
             const apiUrl = `${this.getApiBaseUrl()}/api/content/${pageId}/rich-text-content`;
 
             console.log(`📥 Загрузка контента для страницы: ${pageId}`);
-            console.log(`📡 API URL: ${apiUrl}`);
 
             const response = await fetch(apiUrl);
 
@@ -1011,21 +1031,12 @@ class RichTextEditor {
             }
 
             const result = await response.json();
-            console.log('📦 Ответ от API:', result);
 
             if (result.success && result.data && result.data.content) {
-                console.log('📄 Контент из БД (первые 500 символов):', result.data.content.substring(0, 500));
-
-                // КРИТИЧЕСКИ ВАЖНО: Проверяем наличие inline стилей в изображениях
-                const imgMatches = result.data.content.match(/<img[^>]*>/g);
-                if (imgMatches) {
-                    console.log('🖼️ Найдено изображений в контенте:', imgMatches.length);
-                    imgMatches.slice(0, 3).forEach((img, i) => {
-                        console.log(`  Изображение ${i + 1}:`, img);
-                    });
-                }
+                let contentHtml = result.data.content;
 
                 // Сохраняем стили изображений из исходного HTML до вставки
+                const imgMatches = contentHtml.match(/<img[^>]*>/g);
                 const savedImageStyles = [];
                 if (imgMatches) {
                     imgMatches.forEach(imgTag => {
@@ -1044,80 +1055,177 @@ class RichTextEditor {
                     });
                 }
 
-                // ОПТИМИЗАЦИЯ: Для режима просмотра — откладываем загрузку изображений ниже экрана
-                // Заменяем src на data-src для картинок, кроме первых 2 (видимые на экране)
-                let contentHtml = result.data.content;
-                let imgIndex = 0;
-                contentHtml = contentHtml.replace(/<img\b([^>]*)>/gi, (match, attrs) => {
-                    imgIndex++;
-                    // Первые 2 изображения загружаем сразу
-                    if (imgIndex <= 2) {
-                        return match;
-                    }
-                    // Остальные — lazy через IntersectionObserver
-                    // Добавляем loading="lazy" и decoding="async"
-                    if (!attrs.includes('loading=')) {
-                        attrs += ' loading="lazy"';
-                    }
-                    if (!attrs.includes('decoding=')) {
-                        attrs += ' decoding="async"';
-                    }
-                    return `<img${attrs}>`;
-                });
+                // ПРОГРЕССИВНАЯ ЗАГРУЗКА: разбиваем HTML на блоки
+                const blocks = this._splitContentIntoBlocks(contentHtml);
+                console.log(`📦 Контент разбит на ${blocks.length} блоков`);
 
-                // Устанавливаем контент в редактор
-                this.editor.root.innerHTML = contentHtml;
+                if (blocks.length > 3) {
+                    // Загружаем первые 3 блока сразу (above the fold)
+                    const firstBatch = blocks.slice(0, 3).join('');
+                    this.editor.root.innerHTML = firstBatch;
 
-                // Убираем класс выделения, если он попал в сохранённый HTML
-                this.editor.root.querySelectorAll('img.img-selected').forEach(img => {
-                    img.classList.remove('img-selected');
-                });
+                    // Остальные блоки подгружаем порциями через requestAnimationFrame
+                    let currentBatch = 3;
+                    const batchSize = 3;
 
-                // Восстанавливаем стили изображений после обработки Quill
-                if (savedImageStyles.length > 0) {
-                    setTimeout(() => {
-                        const images = this.editor.root.querySelectorAll('img');
-                        images.forEach(img => {
-                            const saved = savedImageStyles.find(s => img.src.includes(s.src) || s.src.includes(img.getAttribute('src')));
-                            if (saved) {
-                                if (saved.style && !img.getAttribute('style')) {
-                                    img.setAttribute('style', saved.style);
-                                }
-                                if (saved.width && !img.getAttribute('width')) {
-                                    img.setAttribute('width', saved.width);
-                                }
-                                if (saved.height && !img.getAttribute('height')) {
-                                    img.setAttribute('height', saved.height);
-                                }
-                                console.log('🔄 Восстановлены стили изображения:', img.src.substring(0, 50));
-                            }
-                        });
-                    }, 50);
+                    const loadNextBatch = () => {
+                        if (currentBatch >= blocks.length) {
+                            // Всё загружено — завершающие действия
+                            this._afterContentLoaded(savedImageStyles);
+                            return;
+                        }
+
+                        const end = Math.min(currentBatch + batchSize, blocks.length);
+                        const fragment = document.createRange().createContextualFragment(
+                            blocks.slice(currentBatch, end).join('')
+                        );
+                        this.editor.root.appendChild(fragment);
+                        currentBatch = end;
+
+                        // Следующая порция через requestAnimationFrame (не блокирует UI)
+                        requestAnimationFrame(loadNextBatch);
+                    };
+
+                    requestAnimationFrame(loadNextBatch);
+                } else {
+                    // Маленький контент — грузим целиком
+                    this.editor.root.innerHTML = contentHtml;
+                    this._afterContentLoaded(savedImageStyles);
                 }
 
-                // КРИТИЧЕСКИ ВАЖНО: Проверяем, сохранились ли inline стили после установки
-                setTimeout(() => {
-                    const images = this.editor.root.querySelectorAll('img');
-                    console.log('🖼️ Изображений после загрузки:', images.length);
-                    images.forEach((img, i) => {
-                        if (i < 3) {
-                            console.log(`  Изображение ${i + 1} после загрузки:`, {
-                                src: img.src.substring(0, 50) + '...',
-                                width: img.style.width || img.width || 'не задано',
-                                height: img.style.height || img.height || 'не задано',
-                                hasStyleAttr: img.hasAttribute('style'),
-                                styleAttr: img.getAttribute('style')
-                            });
-                        }
-                    });
+                console.log('✅ Контент загружен из БД');
+            } else {
+                console.log('ℹ️ Контент не найден, используется пустой редактор');
+                this.editor.setText('');
+            }
+        } catch (error) {
+            console.error('❌ Ошибка загрузки контента:', error);
+            if (this.editor) {
+                this.editor.setText('');
+            }
+        } finally {
+            // Снимаем флаг загрузки после завершения всех setTimeout
+            setTimeout(() => {
+                this._isLoadingContent = false;
+            }, 300);
+        }
+    }
 
-                    // ОПТИМИЗАЦИЯ: Lazy loading для iframe (видео)
-                    this.editor.root.querySelectorAll('iframe').forEach(iframe => {
-                        if (!iframe.hasAttribute('loading')) {
-                            iframe.setAttribute('loading', 'lazy');
-                        }
-                    });
-                }, 200);
+    /**
+     * Разбивает HTML на массив блоков верхнего уровня для прогрессивной загрузки
+     */
+    _splitContentIntoBlocks(html) {
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        const blocks = [];
+        for (const child of temp.children) {
+            blocks.push(child.outerHTML);
+        }
+        // Если парсинг не дал результатов — возвращаем весь HTML как один блок
+        return blocks.length > 0 ? blocks : [html];
+    }
+
+    /**
+     * Завершающие действия после загрузки контента
+     */
+    _afterContentLoaded(savedImageStyles) {
+        // Убираем класс выделения
+        this.editor.root.querySelectorAll('img.img-selected').forEach(img => {
+            img.classList.remove('img-selected');
+        });
+
+        // Lazy loading для изображений (кроме первых 2)
+        const allImages = this.editor.root.querySelectorAll('img');
+        allImages.forEach((img, i) => {
+            if (i >= 2) {
+                if (!img.hasAttribute('loading')) img.setAttribute('loading', 'lazy');
+                if (!img.hasAttribute('decoding')) img.setAttribute('decoding', 'async');
+            }
+        });
+
+        // Восстанавливаем стили изображений
+        if (savedImageStyles.length > 0) {
+            setTimeout(() => {
+                this.editor.root.querySelectorAll('img').forEach(img => {
+                    const saved = savedImageStyles.find(s =>
+                        img.src.includes(s.src) || (s.src && s.src.includes(img.getAttribute('src')))
+                    );
+                    if (saved) {
+                        if (saved.style && !img.getAttribute('style')) img.setAttribute('style', saved.style);
+                        if (saved.width && !img.getAttribute('width')) img.setAttribute('width', saved.width);
+                        if (saved.height && !img.getAttribute('height')) img.setAttribute('height', saved.height);
+                    }
+                });
+            }, 50);
+        }
+
+        // Lazy loading для iframe (видео)
+        setTimeout(() => {
+            this.editor.root.querySelectorAll('iframe').forEach(iframe => {
+                if (!iframe.hasAttribute('loading')) iframe.setAttribute('loading', 'lazy');
+            });
+        }, 200);
+
+        // Автозагрузка base64 на сервер (если ещё остались)
+        this._uploadBase64Images();
+    }
+
+    /**
+     * Автоматически находит base64 изображения в контенте и загружает их на сервер
+     * Заменяет base64 на URL (предотвращает раздувание БД)
+     */
+    async _uploadBase64Images() {
+        if (!this.editor) return;
+        const images = this.editor.root.querySelectorAll('img[src^="data:image"]');
+        if (images.length === 0) return;
+
+        console.log(`🔄 Найдено ${images.length} base64 изображений, загружаем на сервер...`);
+
+        for (const img of images) {
+            try {
+                const dataUrl = img.src;
+                // Конвертируем base64 в Blob
+                const response = await fetch(dataUrl);
+                const blob = await response.blob();
+
+                const formData = new FormData();
+                formData.append('image', blob, 'pasted-image.png');
+
+                const uploadResponse = await fetch('/api/upload/image', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: formData
+                });
+
+                if (uploadResponse.ok) {
+                    const data = await uploadResponse.json();
+                    // Сохраняем стили перед заменой
+                    const style = img.getAttribute('style');
+                    const width = img.getAttribute('width');
+                    const height = img.getAttribute('height');
+
+                    img.src = data.url;
+
+                    // Восстанавливаем стили
+                    if (style) img.setAttribute('style', style);
+                    if (width) img.setAttribute('width', width);
+                    if (height) img.setAttribute('height', height);
+
+                    console.log(`  ✅ base64 → ${data.url}`);
+                }
+            } catch (err) {
+                console.warn('  ⚠️ Не удалось загрузить base64 изображение:', err.message);
+            }
+        }
+
+        // Сохраняем обновлённый контент (без base64)
+        if (images.length > 0) {
+            console.log('💾 Сохраняем контент без base64...');
+            this.saveContent();
+        }
+    }
 
                 console.log('✅ Контент загружен из БД');
             } else {
