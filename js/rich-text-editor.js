@@ -1302,17 +1302,18 @@ class RichTextEditor {
      * Обновление режима редактирования
      */
     updateEditMode() {
+        // Не делаем ничего, если DOM-элемент редактора уже отсоединён от документа
+        if (!this.editor || !this.editor.root || !document.contains(this.editor.root)) return;
+
         const isEditMode = document.body.classList.contains('edit-mode');
 
-        if (this.editor) {
-            if (isEditMode) {
-                this.editor.enable();
-                setTimeout(() => {
-                    this.wrapVideoIframes();
-                }, 100);
-            } else {
-                this.editor.disable();
-            }
+        if (isEditMode) {
+            this.editor.enable();
+            setTimeout(() => {
+                this.wrapVideoIframes();
+            }, 100);
+        } else {
+            this.editor.disable();
         }
     }
 

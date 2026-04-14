@@ -208,6 +208,13 @@
                 const curCanon = document.querySelector('link[rel="canonical"]');
                 if (newCanon && curCanon) curCanon.href = newCanon.href;
 
+                // КРИТИЧЕСКИ ВАЖНО: Уничтожаем старый редактор ДО смены className,
+                // чтобы MutationObserver не вызвал updateEditMode на отсоединённом DOM
+                if (window.richTextEditor) {
+                    if (window.richTextEditor.destroy) window.richTextEditor.destroy();
+                    window.richTextEditor = null;
+                }
+
                 // Обновление class на body
                 document.body.className = doc.body.className;
 
@@ -375,11 +382,7 @@
             // Реинициализация Rich Text Editor
             if (window.__RICH_TEXT_EDITOR_ACTIVE__ && typeof RichTextEditor === 'function') {
                 try {
-                    // Уничтожаем старый экземпляр и тулбар
-                    if (window.richTextEditor) {
-                        if (window.richTextEditor.destroy) window.richTextEditor.destroy();
-                        window.richTextEditor = null;
-                    }
+                    // Старый экземпляр уже уничтожен до смены body.className (см. выше)
                     const oldToolbar = document.querySelector('body > .ql-toolbar.ql-snow');
                     if (oldToolbar) oldToolbar.remove();
 
