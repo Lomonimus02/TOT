@@ -786,8 +786,11 @@ class RichTextEditor {
                 clearTimeout(this.saveTimeout);
             }
 
-            // Авто-float: когда картинка и текст в одном параграфе — обтекание как в Word
-            this._autoFloatImages();
+            // Авто-float: только если в delta есть вставка изображения
+            const hasImageInsert = delta && delta.ops && delta.ops.some(op =>
+                op.insert && typeof op.insert === 'object' && op.insert.image
+            );
+            if (hasImageInsert) this._autoFloatImages();
 
             // Устанавливаем новый таймер (только для пользовательских изменений)
             if (source === 'user') {

@@ -45,7 +45,12 @@ class ImageResize {
         this.quill.on('text-change', (delta, oldDelta, source) => {
             // Не вмешиваемся при программной загрузке контента
             if (window.richTextEditor && window.richTextEditor._isLoadingContent) return;
-            this._ensureTrailingParagraph();
+            // Только если в delta есть вставка/удаление медиа (не на каждое нажатие клавиши)
+            const hasMedia = delta && delta.ops && delta.ops.some(op =>
+                (op.insert && typeof op.insert === 'object' && (op.insert.image || op.insert.video)) ||
+                (op.delete !== undefined)
+            );
+            if (hasMedia) this._ensureTrailingParagraph();
         });
         // Also check on init (after content is loaded)
         setTimeout(() => this._ensureTrailingParagraph(), 500);
