@@ -2050,78 +2050,66 @@ document.addEventListener('DOMContentLoaded', createStars);
 function initializeButtonClicks() {
     console.log('Инициализация кликабельности кнопок...');
 
-    // Маппинг кнопок на страницы
-    const buttonPageMap = {
-        // Левый картуш - основное меню
-        'button_01.png': 'pages/complex.html',      // Комплекс пирамида Тота и Храм Исиды
-        'button_02.png': 'pages/pyramid.html',      // Пирамида Тота
-        'button_03.png': 'pages/temple.html',       // Храм Исиды
-        'button_04.png': 'pages/court.html',        // Храмовый мистериальный двор
-        'button_05.png': 'pages/visit.html',        // Посетить пирамиду
-        'button_06.png': 'pages/programs.html',     // Программы
-        'button_07.png': 'pages/media.html',        // СМИ о Пирамиде Тота
-        'button_08.png': 'pages/news-pyramid.html', // Новости Пирамиды Тота
-
-        // Правый картуш - обучение
-        'button_09.png': 'pages/school-tota.html',  // Школа пирамиды Тота
-        'button_10.png': 'pages/school-isais.html', // Женская школа Isais
-        'button_11.png': 'https://forum.piramidaspb.ru/', // Форум (внешняя ссылка)
-        'button_12.png': 'pages/consultations.html',// Личные приемы
-        'button_13.png': 'https://vk.com/clubisais',    // Артефакты из египта
-        'button_14.png': 'pages/projects.html',     // Наши проекты
-        'button_15.png': 'pages/seminars.html',     // Выездные семинары
-        'button_16.png': 'pages/about-isais.html'   // Об isais
-    };
-
-    // Находим все кнопки overlay-image
+    // Находим все кнопки overlay-image (как обёрнутые в <a>, так и без обёртки)
     const overlayButtons = document.querySelectorAll('.overlay-column .overlay-image');
     console.log(`Найдено кнопок: ${overlayButtons.length}`);
+
+    // Маппинг кнопок на страницы (для img без <a> обёртки — обратная совместимость)
+    const buttonPageMap = {
+        'button_01.png': 'pages/complex.html',
+        'button_02.png': 'pages/pyramid.html',
+        'button_03.png': 'pages/temple.html',
+        'button_04.png': 'pages/court.html',
+        'button_05.png': 'pages/visit.html',
+        'button_06.png': 'pages/programs.html',
+        'button_07.png': 'pages/media.html',
+        'button_08.png': 'pages/news-pyramid.html',
+        'button_09.png': 'pages/school-tota.html',
+        'button_10.png': 'pages/school-isais.html',
+        'button_11.png': 'https://forum.piramidaspb.ru/',
+        'button_12.png': 'pages/consultations.html',
+        'button_13.png': 'https://vk.com/clubisais',
+        'button_14.png': 'pages/projects.html',
+        'button_15.png': 'pages/seminars.html',
+        'button_16.png': 'pages/about-isais.html'
+    };
 
     overlayButtons.forEach((button, index) => {
         const src = button.getAttribute('src');
         const filename = src ? src.split('/').pop() : null;
+        // Убираем возможное расширение .webp (сервер может отдавать WebP)
+        const baseFilename = filename ? filename.replace(/\.webp$/, '.png') : null;
 
         console.log(`Кнопка ${index + 1}: ${filename}`);
 
-        if (filename && buttonPageMap[filename]) {
-            const targetPage = buttonPageMap[filename];
+        // Если кнопка уже внутри <a> — она кликабельна через HTML, дополнительные обработчики не нужны
+        const parentLink = button.closest('a.overlay-link');
+        if (parentLink) {
+            button.style.cursor = 'pointer';
+            console.log(`Кнопка ${filename} уже обёрнута в <a href="${parentLink.getAttribute('href')}">`);
+            return;
+        }
 
-            // Добавляем обработчик клика
+        // Обратная совместимость: img без <a> обёртки
+        if (baseFilename && buttonPageMap[baseFilename]) {
+            const targetPage = buttonPageMap[baseFilename];
+
             button.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 console.log(`🖱️ КЛИК ПО КНОПКЕ: ${filename} -> ${targetPage}`);
 
-                // Добавляем эффект клика
-                this.style.transform = 'scale(0.95)';
-                this.style.transition = 'transform 0.15s ease';
-
-                setTimeout(() => {
-                    this.style.transform = '';
-                }, 150);
-
-                // Переход на страницу (через SPA если доступен)
-                setTimeout(() => {
-                    console.log(`🔄 Переход на: ${targetPage}`);
-                    if (targetPage.startsWith('http://') || targetPage.startsWith('https://')) {
-                        window.open(targetPage, '_blank', 'noopener,noreferrer');
-                    } else if (window.SPARouter && window.SPARouter.isInternalPage(new URL(targetPage, location.href).href)) {
-                        const cleanUrl = window.SPARouter.normalizePageUrl(new URL(targetPage, location.href).href);
-                        window.SPARouter.navigate(cleanUrl);
-                    } else {
-                        window.location.href = targetPage;
-                    }
-                }, 200);
+                if (targetPage.startsWith('http://') || targetPage.startsWith('https://')) {
+                    window.open(targetPage, '_blank', 'noopener,noreferrer');
+                } else if (window.SPARouter && window.SPARouter.isInternalPage(new URL(targetPage, location.href).href)) {
+                    const cleanUrl = window.SPARouter.normalizePageUrl(new URL(targetPage, location.href).href);
+                    window.SPARouter.navigate(cleanUrl);
+                } else {
+                    window.location.href = targetPage;
+                }
             });
 
-            // Добавляем обработчик для отладки hover
-            button.addEventListener('mouseenter', function() {
-                console.log(`🖱️ Hover на кнопке: ${filename}`);
-            });
-
-            // Добавляем стили для hover эффекта
             button.style.cursor = 'pointer';
-
             console.log(`Обработчик добавлен для: ${filename} -> ${targetPage}`);
         } else {
             console.warn(`Не найден маппинг для кнопки: ${filename}`);

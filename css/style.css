@@ -843,12 +843,19 @@ body.edit-mode .site-logo .editable-element {
 
 
 
-/* Убираем синее выделение при клике на все элементы */
+/* Убираем синее выделение при клике */
 * {
     -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
+}
+
+/* Запрет выделения текста только для декоративных элементов */
+.cartouche-title,
+.site-title,
+.site-subtitle-image,
+.overlay-image,
+.fullscreen-frame,
+.cosmic-background {
     -webkit-user-select: none;
-    -khtml-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
@@ -1015,7 +1022,7 @@ body { padding-top: 80px; }
     padding: 2rem 0;
     background: transparent;
     position: relative;
-    z-index: 1;
+    z-index: 100;
 }
 
 /* Адаптация для больших экранов - изображение заполняет блок полностью */
@@ -1804,6 +1811,19 @@ html, body {
     z-index: 2;
 }
 
+/* Ссылки-обёртки для кнопок-изображений */
+.overlay-link {
+    display: block;
+    flex: 1;
+    min-height: 0;
+    text-decoration: none;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    position: relative;
+    z-index: 10;
+    -webkit-tap-highlight-color: rgba(255, 215, 0, 0.2);
+}
+
 /* Стили для будущих наложенных изображений */
 .overlay-image {
     position: absolute;
@@ -1891,8 +1911,7 @@ html, body {
     width: 100% !important;
     min-width: 100%;
     max-width: 100%;
-    /* Каждая кнопка занимает равную долю высоты */
-    flex: 1;
+    height: 100%;
     min-height: 0;
     max-height: none;
     margin: 0;
@@ -1928,7 +1947,8 @@ html, body {
 
 /* УДАЛЕНО - дублирующийся блок */
 
-.overlay-column .overlay-image:hover {
+.overlay-column .overlay-image:hover,
+.overlay-column .overlay-link:hover .overlay-image {
     /* Плавный подъем с легким увеличением */
     transform: translateY(-10px) scale(1.02);
     z-index: 1000;
@@ -1953,23 +1973,37 @@ html, body {
     }
 }
 
-.overlay-column .overlay-image {
+.overlay-column .overlay-link {
     /* Плавная анимация появления */
     animation: buttonFadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Задержка анимации для каждой кнопки */
-.overlay-column .overlay-image:nth-child(1) { animation-delay: 0.1s; }
-.overlay-column .overlay-image:nth-child(2) { animation-delay: 0.2s; }
-.overlay-column .overlay-image:nth-child(3) { animation-delay: 0.3s; }
-.overlay-column .overlay-image:nth-child(4) { animation-delay: 0.4s; }
-.overlay-column .overlay-image:nth-child(5) { animation-delay: 0.5s; }
-.overlay-column .overlay-image:nth-child(6) { animation-delay: 0.6s; }
-.overlay-column .overlay-image:nth-child(7) { animation-delay: 0.7s; }
-.overlay-column .overlay-image:nth-child(8) { animation-delay: 0.8s; }
+/* Задержка анимации для каждой кнопки-ссылки */
+.overlay-column .overlay-link:nth-child(1) { animation-delay: 0.1s; }
+.overlay-column .overlay-link:nth-child(2) { animation-delay: 0.2s; }
+.overlay-column .overlay-link:nth-child(3) { animation-delay: 0.3s; }
+.overlay-column .overlay-link:nth-child(4) { animation-delay: 0.4s; }
+.overlay-column .overlay-link:nth-child(5) { animation-delay: 0.5s; }
+.overlay-column .overlay-link:nth-child(6) { animation-delay: 0.6s; }
+.overlay-column .overlay-link:nth-child(7) { animation-delay: 0.7s; }
+.overlay-column .overlay-link:nth-child(8) { animation-delay: 0.8s; }
+
+/* Обратная совместимость для img без обёртки */
+.overlay-column > .overlay-image {
+    animation: buttonFadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.overlay-column > .overlay-image:nth-child(1) { animation-delay: 0.1s; }
+.overlay-column > .overlay-image:nth-child(2) { animation-delay: 0.2s; }
+.overlay-column > .overlay-image:nth-child(3) { animation-delay: 0.3s; }
+.overlay-column > .overlay-image:nth-child(4) { animation-delay: 0.4s; }
+.overlay-column > .overlay-image:nth-child(5) { animation-delay: 0.5s; }
+.overlay-column > .overlay-image:nth-child(6) { animation-delay: 0.6s; }
+.overlay-column > .overlay-image:nth-child(7) { animation-delay: 0.7s; }
+.overlay-column > .overlay-image:nth-child(8) { animation-delay: 0.8s; }
 
 /* Дополнительный эффект при активном состоянии (клик) */
-.overlay-column .overlay-image:active {
+.overlay-column .overlay-image:active,
+.overlay-column .overlay-link:active .overlay-image {
     /* Легкое нажатие с уменьшением */
     transform: translateY(-6px) scale(0.98);
     /* Быстрый отклик */
