@@ -36,6 +36,10 @@
                 location.href
             );
 
+            // Перемещаем .page-navigation из main в body (перед footer) при первой загрузке,
+            // чтобы навигация не зависела от stacking context main (z-index: 1)
+            this.movePageNavigation();
+
             console.log('🔄 SPA Router инициализирован');
         },
 
@@ -175,15 +179,8 @@
                 // Замена контента
                 mainEl.innerHTML = newMain.innerHTML;
 
-                // Перемещаем .page-navigation из main в body (перед footer),
-                // чтобы навигация не зависела от flex-высоты main
-                const oldExternalNav = document.querySelector('body > .page-navigation');
-                if (oldExternalNav) oldExternalNav.remove();
-                const pageNav = mainEl.querySelector('.page-navigation');
-                const siteFooter = document.querySelector('.site-footer');
-                if (pageNav && siteFooter) {
-                    siteFooter.parentNode.insertBefore(pageNav, siteFooter);
-                }
+                // Перемещаем .page-navigation из main в body (перед footer)
+                this.movePageNavigation();
 
                 // ОПТИМИЗАЦИЯ: Lazy loading для всех изображений
                 mainEl.querySelectorAll('img').forEach(img => {
@@ -418,6 +415,22 @@
         },
 
         // === Утилиты ===
+
+        // Перемещение .page-navigation из main в body (перед footer),
+        // чтобы навигация не зависела от stacking context и flex-высоты main
+        movePageNavigation() {
+            const mainEl = document.querySelector('main.main-content');
+            if (!mainEl) return;
+
+            const oldExternalNav = document.querySelector('body > .page-navigation');
+            if (oldExternalNav) oldExternalNav.remove();
+
+            const pageNav = mainEl.querySelector('.page-navigation');
+            const siteFooter = document.querySelector('.site-footer');
+            if (pageNav && siteFooter) {
+                siteFooter.parentNode.insertBefore(pageNav, siteFooter);
+            }
+        },
 
         wait(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
