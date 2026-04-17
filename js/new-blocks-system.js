@@ -1994,6 +1994,9 @@ async function createBlockFromData(blockData) {
             if (block_metadata.freeTop !== undefined && block_metadata.freeTop !== null) {
                 blockElement.dataset.freeTop = block_metadata.freeTop;
             }
+            if (block_metadata.positionUnit) {
+                blockElement.dataset.positionUnit = block_metadata.positionUnit;
+            }
         }
 
         // Применяем стили ПОСЛЕ восстановления metadata
@@ -2009,7 +2012,8 @@ async function createBlockFromData(blockData) {
 
             // Если позиций нет в css_styles, берем из dataset (из metadata)
             if ((!left || !top) && blockElement.dataset.freeLeft && blockElement.dataset.freeTop) {
-                left = blockElement.dataset.freeLeft + 'px';
+                const isPercent = blockElement.dataset.positionUnit === 'percent';
+                left = blockElement.dataset.freeLeft + (isPercent ? '%' : 'px');
                 top = blockElement.dataset.freeTop + 'px';
             }
 

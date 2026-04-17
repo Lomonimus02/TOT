@@ -14,6 +14,31 @@ let originalPosition = null;
 // Режим свободного позиционирования (включен/выключен)
 let freePositioningMode = false;
 
+// Порог для мобильного fallback
+const MOBILE_BREAKPOINT = 768;
+
+/**
+ * Проверяет, является ли текущий вид мобильным
+ */
+function isMobileView() {
+    return window.innerWidth < MOBILE_BREAKPOINT;
+}
+
+/**
+ * Конвертирует px в % относительно ширины контейнера
+ */
+function pxToPercentX(px, containerWidth) {
+    if (!containerWidth || containerWidth <= 0) return 0;
+    return Math.round((px / containerWidth) * 10000) / 100; // точность до 0.01%
+}
+
+/**
+ * Конвертирует % в px относительно ширины контейнера
+ */
+function percentToPxX(percent, containerWidth) {
+    return (percent / 100) * containerWidth;
+}
+
 /**
  * Включение/выключение режима свободного позиционирования
  */
@@ -93,23 +118,34 @@ function enableFreePositioning(block) {
             const top = parseFloat(block.dataset.freeTop);
 
             if (!isNaN(left) && !isNaN(top)) {
+                const isPercent = block.dataset.positionUnit === 'percent';
                 block.style.setProperty('position', 'absolute', 'important');
-                block.style.setProperty('left', left + 'px', 'important');
+                block.style.setProperty('left', left + (isPercent ? '%' : 'px'), 'important');
                 block.style.setProperty('top', top + 'px', 'important');
-                // Устанавливаем CSS переменную для адаптивности
-                block.style.setProperty('--free-left', left + 'px');
-                block.style.setProperty('--free-top', top + 'px');
                 block.classList.add('free-positioned');
             }
         }
 
         // Если есть inline стили, но нет dataset - сохраняем в dataset
         if (hasInlinePosition && !hasSavedPosition) {
-            const left = parseFloat(block.style.left);
-            const top = parseFloat(block.style.top);
+            const leftStr = block.style.left;
+            const topStr = block.style.top;
+            const left = parseFloat(leftStr);
+            const top = parseFloat(topStr);
 
             if (!isNaN(left) && !isNaN(top)) {
-                block.dataset.freeLeft = left;
+                // Определяем, в каких единицах сохранено
+                if (leftStr.includes('%')) {
+                    block.dataset.freeLeft = left;
+                    block.dataset.positionUnit = 'percent';
+                } else {
+                    // Миграция px → %
+                    const pageContent = document.querySelector('.page-content');
+                    const containerWidth = pageContent ? pageContent.offsetWidth : 1200;
+                    block.dataset.freeLeft = pxToPercentX(left, containerWidth);
+                    block.dataset.positionUnit = 'percent';
+                    block.style.setProperty('left', block.dataset.freeLeft + '%', 'important');
+                }
                 block.dataset.freeTop = top;
                 block.classList.add('free-positioned');
             }
@@ -133,21 +169,23 @@ function enableFreePositioning(block) {
         const top = rect.top + scrollTop - containerRect.top - scrollTop;
         const left = rect.left + scrollLeft - containerRect.left - scrollLeft;
 
-        // Применяем абсолютное позиционирование
+        // Конвертируем left в % относительно контейнера
+        const containerWidth = pageContent.offsetWidth;
+        const leftPercent = pxToPercentX(left, containerWidth);
+
+        // Применяем абсолютное позиционирование с left в %
         block.style.setProperty('position', 'absolute', 'important');
         block.style.setProperty('top', top + 'px', 'important');
-        block.style.setProperty('left', left + 'px', 'important');
-        // Устанавливаем CSS переменные для адаптивности
-        block.style.setProperty('--free-left', left + 'px');
-        block.style.setProperty('--free-top', top + 'px');
+        block.style.setProperty('left', leftPercent + '%', 'important');
         block.style.width = currentWidth + 'px';
         block.classList.add('free-positioned');
 
-        // КРИТИЧЕСКИ ВАЖНО: Сохраняем в dataset И в оригинальные позиции
+        // Сохраняем в dataset: left как %, top как px
         block.dataset.freeTop = top;
-        block.dataset.freeLeft = left;
+        block.dataset.freeLeft = leftPercent;
+        block.dataset.positionUnit = 'percent';
         block.dataset.originalTop = top;
-        block.dataset.originalLeft = left;
+        block.dataset.originalLeft = leftPercent;
     }
 
     // Добавляем визуальный индикатор режима редактирования
@@ -287,16 +325,13 @@ function handleFreePositioningMouseMove(e) {
     newTop = Math.max(topLimit, Math.min(newTop, bottomLimit));
 
     // Применяем новую позицию С !important для переопределения CSS
+    // Во время перетаскивания используем px для плавности
     currentDraggedBlock.style.setProperty('left', newLeft + 'px', 'important');
     currentDraggedBlock.style.setProperty('top', newTop + 'px', 'important');
-    // Устанавливаем CSS переменные для адаптивности
-    currentDraggedBlock.style.setProperty('--free-left', newLeft + 'px');
-    currentDraggedBlock.style.setProperty('--free-top', newTop + 'px');
 
-    // КРИТИЧЕСКИ ВАЖНО: Сохраняем в dataset И в оригинальные позиции
-    currentDraggedBlock.dataset.freeLeft = newLeft;
+    // Сохраняем временные px-позиции (конвертируются в % при отпускании мыши)
+    currentDraggedBlock.dataset.dragLeftPx = newLeft;
     currentDraggedBlock.dataset.freeTop = newTop;
-    currentDraggedBlock.dataset.originalLeft = newLeft;
     currentDraggedBlock.dataset.originalTop = newTop;
 }
 
@@ -313,6 +348,20 @@ function handleFreePositioningMouseUp(e) {
 
     // Возвращаем нормальный z-index
     currentDraggedBlock.style.zIndex = '';
+
+    // Конвертируем финальную px-позицию left в % перед сохранением
+    const pageContent = document.querySelector('.page-content');
+    if (pageContent) {
+        const containerWidth = pageContent.offsetWidth;
+        const leftPx = parseFloat(currentDraggedBlock.dataset.dragLeftPx || currentDraggedBlock.style.left);
+        const leftPercent = pxToPercentX(leftPx, containerWidth);
+        currentDraggedBlock.dataset.freeLeft = leftPercent;
+        currentDraggedBlock.dataset.originalLeft = leftPercent;
+        currentDraggedBlock.dataset.positionUnit = 'percent';
+        // Применяем % для left в CSS
+        currentDraggedBlock.style.setProperty('left', leftPercent + '%', 'important');
+        delete currentDraggedBlock.dataset.dragLeftPx;
+    }
 
     // Сохраняем позицию в БД
     saveBlockPosition(currentDraggedBlock);
@@ -376,8 +425,10 @@ async function saveBlockPosition(block) {
             const top = block.dataset.freeTop;
 
             if (left !== undefined && top !== undefined) {
-                // Формируем cssStyles ЯВНО с позициями
-                cssStyles = `position: absolute; left: ${left}px; top: ${top}px;`;
+                // Формируем cssStyles: left в %, top в px
+                const isPercent = block.dataset.positionUnit === 'percent';
+                const leftUnit = isPercent ? '%' : 'px';
+                cssStyles = `position: absolute; left: ${left}${leftUnit}; top: ${top}px;`;
 
                 // Добавляем другие стили, если они есть
                 const otherStyles = [];
@@ -417,7 +468,8 @@ async function saveBlockPosition(block) {
                 updatedAt: new Date().toISOString(),
                 freePositioned: block.classList.contains('free-positioned'),
                 freeLeft: block.dataset.freeLeft,
-                freeTop: block.dataset.freeTop
+                freeTop: block.dataset.freeTop,
+                positionUnit: block.dataset.positionUnit || 'px'
             }
         };
 
@@ -477,37 +529,45 @@ function calculateBlockPosition(block) {
  * Восстановить сохраненные позиции блоков при загрузке страницы
  */
 function restoreSavedPositions() {
-    // КРИТИЧЕСКИ ВАЖНО: Убеждаемся, что контейнер имеет position: relative
+    // Убеждаемся, что контейнер имеет position: relative
     const pageContent = document.querySelector('.page-content');
     if (pageContent && !pageContent.style.position) {
         pageContent.style.position = 'relative';
         pageContent.style.minHeight = '100vh';
     }
 
+    // На мобильных устройствах не применяем абсолютное позиционирование
+    // CSS media query обработает переключение на поточный лейаут
+    if (isMobileView()) return;
+
     const blocks = document.querySelectorAll('.content-block');
+    const containerWidth = pageContent ? pageContent.offsetWidth : 1200;
 
     blocks.forEach(block => {
-        // Проверяем, есть ли класс free-positioned (восстановленный из БД)
         const hasFreePositionedClass = block.classList.contains('free-positioned');
-
-        // Проверяем, есть ли сохраненные позиции в dataset
         const freeLeft = block.dataset.freeLeft;
         const freeTop = block.dataset.freeTop;
 
         if (hasFreePositionedClass || (freeLeft !== undefined && freeTop !== undefined)) {
-            const left = parseFloat(freeLeft);
+            let left = parseFloat(freeLeft);
             const top = parseFloat(freeTop);
 
             if (!isNaN(left) && !isNaN(top)) {
-                // КРИТИЧЕСКИ ВАЖНО: Применяем позиционирование с !important через setAttribute
-                block.style.setProperty('position', 'absolute', 'important');
-                block.style.setProperty('left', left + 'px', 'important');
-                block.style.setProperty('top', top + 'px', 'important');
-                // Устанавливаем CSS переменные для адаптивности
-                block.style.setProperty('--free-left', left + 'px');
-                block.style.setProperty('--free-top', top + 'px');
+                // Миграция старого формата px → %
+                const isPercent = block.dataset.positionUnit === 'percent';
+                if (!isPercent) {
+                    // Старые px-значения для left → конвертируем в %
+                    left = pxToPercentX(left, containerWidth);
+                    block.dataset.freeLeft = left;
+                    block.dataset.positionUnit = 'percent';
+                }
 
-                // КРИТИЧЕСКИ ВАЖНО: Сохраняем оригинальные позиции при восстановлении из БД
+                // Применяем: left в %, top в px
+                block.style.setProperty('position', 'absolute', 'important');
+                block.style.setProperty('left', left + '%', 'important');
+                block.style.setProperty('top', top + 'px', 'important');
+
+                // Сохраняем оригинальные позиции при восстановлении из БД
                 if (!block.dataset.originalLeft || !block.dataset.originalTop) {
                     block.dataset.originalLeft = left;
                     block.dataset.originalTop = top;
@@ -605,8 +665,10 @@ window.addEventListener('blocksLoaded', (event) => {
 // ===== АДАПТИВНОСТЬ: КОРРЕКТИРОВКА ПОЗИЦИЙ ПРИ ИЗМЕНЕНИИ РАЗМЕРА ОКНА =====
 
 /**
- * Корректирует позиции блоков, чтобы они не выходили за границы контейнера
- * КРИТИЧЕСКИ ВАЖНО: Учитывает изменение высоты блоков при переносе текста
+ * Корректирует позиции блоков при изменении размера экрана.
+ * - На мобильном (<768px): переключает блоки в поточный лейаут (position: static)
+ * - На десктопе/планшете: left в % масштабируется автоматически,
+ *   проверяем только выход за границы и пересечения
  */
 function adjustBlockPositionsForViewport() {
     const blocks = document.querySelectorAll('.content-block.free-positioned');
@@ -616,92 +678,93 @@ function adjustBlockPositionsForViewport() {
         return;
     }
 
-    // КРИТИЧЕСКИ ВАЖНО: Получаем размеры КОНТЕЙНЕРА, а не viewport!
-    const containerWidth = pageContent.offsetWidth;
-    const containerHeight = pageContent.offsetHeight;
+    // === МОБИЛЬНЫЙ FALLBACK: поточный лейаут ===
+    if (isMobileView()) {
+        blocks.forEach(block => {
+            block.style.setProperty('position', 'static', 'important');
+            block.style.setProperty('left', 'auto', 'important');
+            block.style.setProperty('top', 'auto', 'important');
+            block.style.setProperty('width', '100%', 'important');
+            block.style.setProperty('margin-bottom', '15px', 'important');
+        });
+        // Сбрасываем фиксированную высоту контейнера на мобильном
+        pageContent.style.minHeight = 'auto';
+        return;
+    }
 
-    // КРИТИЧЕСКИ ВАЖНО: Сортируем блоки по их Y-позиции (сверху вниз)
-    // Это позволит избежать перекрытия при корректировке
+    // === ДЕСКТОП/ПЛАНШЕТ: абсолютное позиционирование с % для left ===
+    const containerWidth = pageContent.offsetWidth;
+    let containerHeight = pageContent.offsetHeight;
+
+    // Сортируем блоки по Y-позиции (сверху вниз)
     const blocksArray = Array.from(blocks);
     blocksArray.sort((a, b) => {
-        const aTop = parseFloat(a.dataset.originalTop || a.dataset.freeTop || a.style.top || '0');
-        const bTop = parseFloat(b.dataset.originalTop || b.dataset.freeTop || b.style.top || '0');
+        const aTop = parseFloat(a.dataset.originalTop || a.dataset.freeTop || '0');
+        const bTop = parseFloat(b.dataset.originalTop || b.dataset.freeTop || '0');
         return aTop - bTop;
     });
 
-    // Массив для отслеживания занятых областей
     const occupiedAreas = [];
 
     blocksArray.forEach((block) => {
-        // КРИТИЧЕСКИ ВАЖНО: НЕ сбрасываем margin и размеры изображений!
-        // Вместо этого просто получаем текущие размеры блока с учетом изображения
+        // Восстанавливаем absolute на случай перехода с мобильного
+        block.style.setProperty('position', 'absolute', 'important');
+        block.style.removeProperty('margin-bottom');
+        block.style.removeProperty('width');
 
-        // КРИТИЧЕСКИ ВАЖНО: ВСЕГДА используем текущие размеры блока для расчетов
-        // Размеры могут измениться из-за:
-        // 1. Переноса текста при изменении ширины экрана
-        // 2. Изменения размера изображения администратором
         const blockWidth = block.offsetWidth;
         const blockHeight = block.offsetHeight;
 
-        // КРИТИЧЕСКИ ВАЖНО: Используем ОРИГИНАЛЬНЫЕ позиции, а не скорректированные!
         // Сохраняем оригинальные позиции при первом вызове
         if (!block.dataset.originalLeft || !block.dataset.originalTop) {
-            block.dataset.originalLeft = block.dataset.freeLeft || block.style.left || '0';
-            block.dataset.originalTop = block.dataset.freeTop || block.style.top || '0';
+            block.dataset.originalLeft = block.dataset.freeLeft || '0';
+            block.dataset.originalTop = block.dataset.freeTop || '0';
         }
 
-        // Берем ОРИГИНАЛЬНЫЕ позиции для расчета
-        let originalLeft = parseFloat(block.dataset.originalLeft);
-        let originalTop = parseFloat(block.dataset.originalTop);
+        // Миграция старого формата px → %
+        const isPercent = block.dataset.positionUnit === 'percent';
+        let leftPercent = parseFloat(block.dataset.originalLeft);
+        let topPx = parseFloat(block.dataset.originalTop);
 
-        if (isNaN(originalLeft)) originalLeft = 0;
-        if (isNaN(originalTop)) originalTop = 0;
+        if (isNaN(leftPercent)) leftPercent = 0;
+        if (isNaN(topPx)) topPx = 0;
 
-        // КРИТИЧЕСКИ ВАЖНО: Вычисляем максимальные допустимые позиции относительно КОНТЕЙНЕРА
-        // БЕЗ отступов - блоки могут доходить до самых краев экрана
-        const margin = 0; // Отступ от края = 0
-        const maxLeft = Math.max(margin, containerWidth - blockWidth - margin);
-        const maxTop = Math.max(margin, containerHeight - blockHeight - margin);
-
-        // КРИТИЧЕСКИ ВАЖНО: Корректируем ОРИГИНАЛЬНЫЕ позиции
-        let newLeft = originalLeft;
-        let newTop = originalTop;
-
-        // Ограничиваем left между margin и maxLeft
-        if (newLeft + blockWidth > containerWidth - margin) {
-            // Блок выходит за правую границу контейнера - сдвигаем влево
-            newLeft = maxLeft;
-        }
-        if (newLeft < margin) {
-            // Блок выходит за левую границу контейнера - сдвигаем вправо
-            newLeft = margin;
+        if (!isPercent) {
+            // Старый формат: leftPercent на самом деле px — конвертируем
+            leftPercent = pxToPercentX(leftPercent, containerWidth);
+            block.dataset.freeLeft = leftPercent;
+            block.dataset.originalLeft = leftPercent;
+            block.dataset.positionUnit = 'percent';
         }
 
-        // Ограничиваем top между margin и maxTop
-        if (newTop + blockHeight > containerHeight - margin) {
-            // Блок выходит за нижнюю границу контейнера - сдвигаем вверх
-            newTop = maxTop;
+        // Вычисляем реальную left-позицию в px для проверки пересечений
+        let realLeftPx = percentToPxX(leftPercent, containerWidth);
+        let realTopPx = topPx;
+
+        // Ограничиваем: блок не выходит за правую границу
+        const maxLeftPx = Math.max(0, containerWidth - blockWidth);
+        if (realLeftPx > maxLeftPx) {
+            realLeftPx = maxLeftPx;
+            leftPercent = pxToPercentX(realLeftPx, containerWidth);
         }
-        if (newTop < margin) {
-            // Блок выходит за верхнюю границу контейнера - сдвигаем вниз
-            newTop = margin;
+        if (realLeftPx < 0) {
+            realLeftPx = 0;
+            leftPercent = 0;
         }
 
-        // КРИТИЧЕСКИ ВАЖНО: Проверяем пересечение с другими блоками
-        // Если блок пересекается, сдвигаем его вниз
+        // Ограничиваем top
+        if (realTopPx < 0) realTopPx = 0;
+
+        // Проверяем пересечения с другими блоками
         let attempts = 0;
-        const maxAttempts = 50; // Максимум попыток, чтобы избежать бесконечного цикла
-        let maxBottomPosition = containerHeight; // Отслеживаем максимальную нижнюю позицию
-
-        while (attempts < maxAttempts) {
+        while (attempts < 50) {
             const currentArea = {
-                left: newLeft,
-                top: newTop,
-                right: newLeft + blockWidth,
-                bottom: newTop + blockHeight
+                left: realLeftPx,
+                top: realTopPx,
+                right: realLeftPx + blockWidth,
+                bottom: realTopPx + blockHeight
             };
 
-            // Проверяем пересечение с уже размещенными блоками
             const hasOverlap = occupiedAreas.some(area => {
                 return !(currentArea.right < area.left ||
                         currentArea.left > area.right ||
@@ -709,55 +772,31 @@ function adjustBlockPositionsForViewport() {
                         currentArea.top > area.bottom);
             });
 
-            if (!hasOverlap) {
-                // Нет пересечения - позиция найдена
-                break;
-            }
-
-            // Есть пересечение - сдвигаем блок вниз
-            newTop += 20;
-
-            // КРИТИЧЕСКИ ВАЖНО: Отслеживаем максимальную нижнюю позицию
-            // Вместо того чтобы сдвигать блок вправо, растягиваем страницу вниз
-            if (newTop + blockHeight > maxBottomPosition) {
-                maxBottomPosition = newTop + blockHeight;
-            }
-
+            if (!hasOverlap) break;
+            realTopPx += 20;
             attempts++;
         }
 
-        // КРИТИЧЕСКИ ВАЖНО: Если блок вышел за пределы контейнера, растягиваем контейнер
-        if (newTop + blockHeight > containerHeight) {
-            const newContainerHeight = newTop + blockHeight + 200; // Добавляем запас 200px
-            const pageContent = document.querySelector('.page-content');
-            if (pageContent) {
-                pageContent.style.minHeight = newContainerHeight + 'px';
-                saveContainerHeight(newContainerHeight);
-                console.log(`📏 Страница растянута для размещения блока: ${containerHeight}px → ${newContainerHeight}px`);
-            }
+        // Растягиваем контейнер при необходимости
+        if (realTopPx + blockHeight > containerHeight) {
+            const newContainerHeight = realTopPx + blockHeight + 200;
+            pageContent.style.minHeight = newContainerHeight + 'px';
+            containerHeight = newContainerHeight;
+            saveContainerHeight(newContainerHeight);
         }
 
         // Сохраняем занятую область
         occupiedAreas.push({
-            left: newLeft,
-            top: newTop,
-            right: newLeft + blockWidth,
-            bottom: newTop + blockHeight
+            left: realLeftPx,
+            top: realTopPx,
+            right: realLeftPx + blockWidth,
+            bottom: realTopPx + blockHeight
         });
 
-        // КРИТИЧЕСКИ ВАЖНО: НЕ обновляем dataset.freeLeft/freeTop - это оригинальные позиции!
-        // Применяем только визуальные стили
-
-        // Применяем стили с !important
-        block.style.setProperty('left', newLeft + 'px', 'important');
-        block.style.setProperty('top', newTop + 'px', 'important');
+        // Применяем: left в %, top в px
+        block.style.setProperty('left', leftPercent + '%', 'important');
+        block.style.setProperty('top', realTopPx + 'px', 'important');
         block.style.setProperty('position', 'absolute', 'important');
-
-        // Устанавливаем CSS переменные
-        block.style.setProperty('--free-left', newLeft + 'px');
-        block.style.setProperty('--free-top', newTop + 'px');
-
-        // НЕ сохраняем в БД - это временная корректировка для адаптивности!
     });
 }
 

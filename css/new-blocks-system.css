@@ -646,3 +646,25 @@ body.edit-mode .content-block {
         transform: none;
     }
 }
+
+/* ===== МОБИЛЬНЫЙ FALLBACK ДЛЯ СВОБОДНОГО ПОЗИЦИОНИРОВАНИЯ ===== */
+/* На экранах < 768px блоки переключаются в поточный вертикальный лейаут */
+@media (max-width: 768px) {
+    .content-block.free-positioned {
+        position: static !important;
+        left: auto !important;
+        top: auto !important;
+        width: 100% !important;
+        margin-bottom: 15px !important;
+        transform: none !important;
+    }
+
+    .content-block.free-positioned img {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    .page-content.free-positioning-active {
+        min-height: auto !important;
+    }
+}
