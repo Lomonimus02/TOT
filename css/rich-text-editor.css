@@ -616,8 +616,9 @@ body.edit-mode .ql-editor.ql-blank::before {
     vertical-align: top;
 }
 
-/* В режиме просмотра — pointer на картинках */
+/* В режиме просмотра — height: auto гарантирует сохранение пропорций при сужении */
 body:not(.edit-mode) .ql-editor img {
+    height: auto !important;
     cursor: pointer;
 }
 
@@ -1433,5 +1434,35 @@ body.img-resizing * {
     .video-choice-btn {
         width: 100%;
         min-width: auto;
+    }
+}
+
+/* ===== АДАПТИВНОСТЬ МЕДИА ВНУТРИ QUILL ===== */
+/* На мобильных убираем float, делаем картинки и видео на всю ширину */
+@media (max-width: 768px) {
+    .ql-editor img {
+        float: none !important;
+        display: block !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    .ql-editor iframe.ql-video,
+    .ql-editor video {
+        float: none !important;
+        display: block !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    /* Сохраняем пропорции для видео */
+    .ql-editor iframe.ql-video {
+        aspect-ratio: 16 / 9;
     }
 }
