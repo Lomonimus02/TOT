@@ -352,6 +352,21 @@ body.edit-mode {
     box-shadow: none; /* Убираем свечение вне режима редактирования */
 }
 
+/* КРИТИЧЕСКИ ВАЖНО: вне режима редактирования пустой редактор НЕ должен блокировать клики */
+body:not(.edit-mode) .ql-container.ql-snow {
+    pointer-events: none;
+}
+
+/* Разрешаем клики на реальном контенте внутри редактора */
+body:not(.edit-mode) .ql-editor > * {
+    pointer-events: auto;
+}
+
+/* Ссылки внутри редактора должны быть кликабельными */
+body:not(.edit-mode) .ql-editor a {
+    pointer-events: auto;
+}
+
 /* В режиме редактирования показываем рамку (кроме верхней, т.к. есть панель инструментов) */
 body.edit-mode .ql-container.ql-snow {
     border: 2px solid rgba(255, 215, 0, 0.4); /* Золотая граница */

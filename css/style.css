@@ -3109,6 +3109,8 @@ body > .page-navigation {
     padding-left: 15px;
     padding-right: 15px;
     box-sizing: border-box;
+    /* z-index выше main-content (100), чтобы кнопки навигации были кликабельны */
+    z-index: 200;
 }
 
 .nav-btn {
@@ -5311,6 +5313,7 @@ body.edit-mode .edit-indicator {
     min-width: 200px;
     opacity: 0;
     visibility: hidden;
+    pointer-events: none; /* Не перехватывать клики когда скрыто */
     transform: scale(0.8) translateY(-10px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
@@ -5319,6 +5322,7 @@ body.edit-mode .edit-indicator {
 .block-context-menu.visible {
     opacity: 1;
     visibility: visible;
+    pointer-events: auto; /* Восстанавливаем клики когда видимо */
     transform: scale(1) translateY(0);
 }
 
@@ -5721,6 +5725,7 @@ body.edit-mode .edit-indicator {
             rgba(225, 210, 123, 1) 100%);
 
     z-index: 2000;
+    pointer-events: none; /* Не перехватывать клики когда скрыта */
     transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
     overflow-x: hidden;
@@ -5728,6 +5733,7 @@ body.edit-mode .edit-indicator {
 
 .style-panel.open {
     right: 0;
+    pointer-events: auto; /* Восстанавливаем клики когда открыта */
 }
 
 .style-panel-header {
