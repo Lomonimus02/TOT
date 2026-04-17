@@ -531,8 +531,8 @@ class RichTextEditor {
                     const videos = this.editor.root.querySelectorAll('video');
                     videos.forEach(video => {
                         if (!video.style.width) {
-                            video.style.width = '800px';
-                            video.style.height = '450px';
+                            video.style.width = '75%';
+                            video.style.height = 'auto';
                             console.log('✅ Установлены начальные размеры для video:', video);
                         }
                     });
@@ -652,8 +652,8 @@ class RichTextEditor {
                 const iframes = this.editor.root.querySelectorAll('iframe.ql-video');
                 iframes.forEach(iframe => {
                     if (!iframe.style.width) {
-                        iframe.style.width = '800px';
-                        iframe.style.height = '450px';
+                        iframe.style.width = '75%';
+                        iframe.style.height = 'auto';
                         console.log('✅ Установлены начальные размеры для iframe:', iframe);
                     }
                 });

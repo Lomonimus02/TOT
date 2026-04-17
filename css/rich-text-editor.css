@@ -670,8 +670,8 @@ body.edit-mode .ql-editor img {
 
 /* Начальные размеры для iframe без inline стилей */
 .ql-editor iframe.ql-video:not([style*="width"]) {
-    width: 800px;
-    height: 450px;
+    width: 75%;
+    aspect-ratio: 16 / 9;
 }
 
 /* Стили для обычных video элементов (загруженные файлы) */
@@ -689,8 +689,8 @@ body.edit-mode .ql-editor img {
 
 /* Начальные размеры для video без inline стилей */
 .ql-editor video:not([style*="width"]) {
-    width: 800px;
-    height: 450px;
+    width: 75%;
+    aspect-ratio: 16 / 9;
 }
 
 .ql-editor iframe.ql-video:hover,

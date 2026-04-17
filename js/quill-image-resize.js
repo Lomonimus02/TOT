@@ -470,11 +470,13 @@ class ImageResize {
             this.currentElement.style.height = Math.round(newH) + 'px';
         }
 
-        // Size indicator
+        // Size indicator — показываем px и %
         const displayW = Math.round(this.currentElement.offsetWidth);
         const displayH = Math.round(this.currentElement.offsetHeight);
+        const editorW = this.quill.root.clientWidth;
+        const displayPct = editorW > 0 ? Math.round((displayW / editorW) * 100) : 0;
         if (this.sizeIndicator) {
-            this.sizeIndicator.textContent = `${displayW} × ${displayH}`;
+            this.sizeIndicator.textContent = `${displayW} × ${displayH} (${displayPct}%)`;
         }
 
         this._positionOverlay();
@@ -487,6 +489,17 @@ class ImageResize {
         document.body.classList.remove('img-resizing');
 
         if (this.sizeIndicator) this.sizeIndicator.style.display = 'none';
+
+        // Конвертируем финальную ширину в % относительно редактора
+        if (this.currentElement) {
+            const editorWidth = this.quill.root.clientWidth;
+            const elWidth = this.currentElement.offsetWidth;
+            if (editorWidth > 0) {
+                const pct = Math.round((elWidth / editorWidth) * 1000) / 10; // до 0.1%
+                this.currentElement.style.width = pct + '%';
+                this.currentElement.style.height = 'auto';
+            }
+        }
 
         this._syncBlotStyle();
         // Refresh overlay after final sizing
@@ -511,6 +524,8 @@ class ImageResize {
         document.querySelectorAll('.img-props-modal').forEach(m => m.remove());
 
         const img = this.currentElement;
+        const editorWidth = this.quill.root.clientWidth;
+        const currentPct = editorWidth > 0 ? Math.round((img.offsetWidth / editorWidth) * 10) / 10 : 100;
         const modal = document.createElement('div');
         modal.className = 'img-props-modal';
         modal.innerHTML = `
@@ -520,14 +535,11 @@ class ImageResize {
                     <img src="${img.src}" alt="">
                 </div>
                 <div class="img-props-fields">
-                    <label>Ширина (px)
-                        <input type="number" id="img-prop-w" value="${img.offsetWidth}" min="10" max="4000">
+                    <label>Ширина (% от страницы)
+                        <input type="number" id="img-prop-w" value="${currentPct}" min="1" max="100" step="0.5">
                     </label>
-                    <label>Высота (px)
-                        <input type="number" id="img-prop-h" value="${img.offsetHeight}" min="10" max="4000">
-                    </label>
-                    <label class="img-props-full">
-                        <input type="checkbox" id="img-prop-lock" checked> Сохранять пропорции
+                    <label>Высота
+                        <input type="text" id="img-prop-h" value="авто" disabled>
                     </label>
                     <label class="img-props-full">Альтернативный текст
                         <input type="text" id="img-prop-alt" value="${img.alt || ''}" placeholder="Описание изображения">
@@ -549,22 +561,11 @@ class ImageResize {
         setTimeout(() => modal.classList.add('show'), 10);
 
         const wInput = modal.querySelector('#img-prop-w');
-        const hInput = modal.querySelector('#img-prop-h');
-        const lockCb = modal.querySelector('#img-prop-lock');
-        const ratio = img.naturalWidth / (img.naturalHeight || 1);
-
-        // Linked width/height
-        wInput.addEventListener('input', () => {
-            if (lockCb.checked) hInput.value = Math.round(wInput.value / ratio);
-        });
-        hInput.addEventListener('input', () => {
-            if (lockCb.checked) wInput.value = Math.round(hInput.value * ratio);
-        });
 
         // Apply
         modal.querySelector('#img-prop-apply').onclick = () => {
-            img.style.width = wInput.value + 'px';
-            img.style.height = lockCb.checked ? 'auto' : hInput.value + 'px';
+            img.style.width = wInput.value + '%';
+            img.style.height = 'auto';
             img.alt = modal.querySelector('#img-prop-alt').value;
             const m = modal.querySelector('#img-prop-margin').value;
             img.style.margin = m + 'px';
@@ -715,7 +716,10 @@ class ImageResize {
         if (!this.currentElement || this.currentElement.tagName !== 'IMG') return;
         const img = this.currentElement;
         if (img.naturalWidth) {
-            img.style.width = img.naturalWidth + 'px';
+            // Сохраняем оригинальный размер как % от ширины редактора
+            const editorWidth = this.quill.root.clientWidth;
+            const pct = editorWidth > 0 ? Math.round((img.naturalWidth / editorWidth) * 1000) / 10 : 100;
+            img.style.width = Math.min(pct, 100) + '%';
             img.style.height = 'auto';
             this._syncBlotStyle();
             setTimeout(() => this.showResizeHandles(img), 60);
@@ -725,8 +729,7 @@ class ImageResize {
 
     _fitToPageWidth() {
         if (!this.currentElement) return;
-        const editorWidth = this.quill.root.clientWidth - 120; // minus padding
-        this.currentElement.style.width = Math.round(editorWidth) + 'px';
+        this.currentElement.style.width = '100%';
         if (this.currentElement.tagName === 'IMG') {
             this.currentElement.style.height = 'auto';
         }
@@ -737,9 +740,7 @@ class ImageResize {
 
     _setSizePercent(pct) {
         if (!this.currentElement) return;
-        const editorWidth = this.quill.root.clientWidth - 120;
-        const w = Math.round(editorWidth * pct / 100);
-        this.currentElement.style.width = w + 'px';
+        this.currentElement.style.width = pct + '%';
         if (this.currentElement.tagName === 'IMG') {
             this.currentElement.style.height = 'auto';
         }
