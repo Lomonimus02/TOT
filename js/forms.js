@@ -857,9 +857,11 @@ const validationStyles = `
 `;
 
 // Добавление стилей в документ
-const styleSheet = document.createElement('style');
-styleSheet.textContent = validationStyles;
-document.head.appendChild(styleSheet);
+{
+    const s = document.createElement('style');
+    s.textContent = validationStyles;
+    document.head.appendChild(s);
+}
 
 // Глобальная переменная для доступа к FormHandler
 let formHandler;

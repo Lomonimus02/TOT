@@ -362,9 +362,11 @@ const animationStyles = `
 `;
 
 // Добавление стилей в документ
-const styleSheet = document.createElement('style');
-styleSheet.textContent = animationStyles;
-document.head.appendChild(styleSheet);
+{
+    const s = document.createElement('style');
+    s.textContent = animationStyles;
+    document.head.appendChild(s);
+}
 
 // Инициализация контроллера анимаций
 let animationController;
