@@ -1132,8 +1132,48 @@ class RichTextEditor {
             });
         }, 200);
 
+        // Миграция: конвертируем px-ширины картинок и видео в % от ширины редактора
+        setTimeout(() => {
+            this._migrateMediaToPercent();
+        }, 250);
+
         // Автозагрузка base64 на сервер (если ещё остались)
         this._uploadBase64Images();
+    }
+
+    /**
+     * Миграция: конвертирует px-ширины медиа в % от ширины редактора.
+     * Старый контент хранит width:800px — на узких экранах это ломает раскладку.
+     * Конвертируем один раз при загрузке; автосохранение запишет новые стили в БД.
+     */
+    _migrateMediaToPercent() {
+        if (!this.editor) return;
+        const editorWidth = this.editor.root.clientWidth;
+        if (editorWidth <= 0) return;
+
+        let migrated = 0;
+        const media = this.editor.root.querySelectorAll('img, iframe.ql-video, video');
+        media.forEach(el => {
+            const styleW = el.style.width;
+            // Только px-значения нуждаются в миграции
+            if (styleW && styleW.includes('px') && !styleW.includes('%')) {
+                const pxVal = parseFloat(styleW);
+                if (!isNaN(pxVal) && pxVal > 0) {
+                    const pct = Math.round((pxVal / editorWidth) * 1000) / 10;
+                    el.style.width = Math.min(pct, 100) + '%';
+                    el.style.height = 'auto';
+                    // Синхронизируем с Quill blot
+                    const blot = Quill.find(el);
+                    if (blot && blot.format) {
+                        blot.format('style', el.getAttribute('style'));
+                    }
+                    migrated++;
+                }
+            }
+        });
+        if (migrated > 0) {
+            console.log(`📐 Мигрировано ${migrated} медиа-элементов из px в %`);
+        }
     }
 
     /**
