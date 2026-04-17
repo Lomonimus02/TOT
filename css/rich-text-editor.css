@@ -1438,8 +1438,37 @@ body.img-resizing * {
 }
 
 /* ===== АДАПТИВНОСТЬ МЕДИА ВНУТРИ QUILL ===== */
-/* На мобильных убираем float, делаем картинки и видео на всю ширину */
+
+/* Галерейные ряды: параграфы с несколькими картинками → flex  
+   Картинки пропорционально сжимаются вместо хаотичного переноса */
+.ql-editor p:has(img ~ img) {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.ql-editor p:has(img ~ img) img {
+    flex: 0 1 auto;   /* не растут, но сжимаются пропорционально */
+    min-width: 0;      /* разрешаем сжатие ниже content-size */
+    height: auto !important;
+    margin: 4px 0;     /* gap между, только вертикальный margin */
+}
+
+/* На мобильных — все картинки штабелируются вертикально */
 @media (max-width: 768px) {
+    /* Галерейные ряды → вертикальная колонка */
+    .ql-editor p:has(img ~ img) {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .ql-editor p:has(img ~ img) img {
+        width: 100% !important;
+        max-width: 100%;
+    }
+
+    /* Одиночные картинки и видео — тоже на полную ширину */
     .ql-editor img {
         float: none !important;
         display: block !important;
