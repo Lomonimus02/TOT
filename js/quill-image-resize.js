@@ -490,12 +490,21 @@ class ImageResize {
 
         if (this.sizeIndicator) this.sizeIndicator.style.display = 'none';
 
-        // Конвертируем финальную ширину в % относительно редактора
+        // Конвертируем финальную ширину в % относительно редактора.
+        // ВАЖНО: берём значение из style.width (то, что задал пользователь),
+        // а не из offsetWidth — иначе при max-width: 100% размер "схлопывается" до 100%.
         if (this.currentElement) {
             const editorWidth = this.quill.root.clientWidth;
-            const elWidth = this.currentElement.offsetWidth;
-            if (editorWidth > 0) {
-                const pct = Math.round((elWidth / editorWidth) * 1000) / 10; // до 0.1%
+            const styleW = this.currentElement.style.width;
+            let pxWidth = null;
+            if (styleW && styleW.endsWith('px')) {
+                pxWidth = parseFloat(styleW);
+            }
+            if (pxWidth === null || isNaN(pxWidth)) {
+                pxWidth = this.currentElement.offsetWidth;
+            }
+            if (editorWidth > 0 && pxWidth > 0) {
+                const pct = Math.round((pxWidth / editorWidth) * 1000) / 10; // до 0.1%
                 this.currentElement.style.width = pct + '%';
                 this.currentElement.style.height = 'auto';
             }
