@@ -1877,9 +1877,9 @@ app.use(express.static('.', {
         if (filePath.endsWith('.html')) {
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         }
-        // CSS/JS — кеш на 7 дней
+        // CSS/JS всегда должны перевалидироваться, чтобы браузер не держал старые версии после деплоя
         if (filePath.endsWith('.css') || filePath.endsWith('.js')) {
-            res.setHeader('Cache-Control', 'public, max-age=604800');
+            res.setHeader('Cache-Control', 'no-cache, must-revalidate');
         }
     }
 }));
