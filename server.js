@@ -100,6 +100,9 @@ app.get('/raw-forum', async (req, res) => {
 app.get('/pages/news.html', (req, res) => res.redirect(301, '/news'));
 app.get('/pages/forum.html', (req, res) => res.redirect(301, '/forum'));
 
+// Favicon — отдаём 204, чтобы браузер не получал 404
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Middleware
 app.use(compression()); // Gzip сжатие всех ответов
 app.use(cors());
