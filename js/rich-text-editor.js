@@ -1138,8 +1138,90 @@ class RichTextEditor {
         //     this._migrateMediaToPercent();
         // }, 250);
 
+        // Превью видео под ссылками на YouTube/Rutube/Vimeo
+        setTimeout(() => this._renderVideoLinkPreviews(), 100);
+
         // Автозагрузка base64 на сервер (если ещё остались)
         this._uploadBase64Images();
+    }
+
+    /**
+     * Сканирует ссылки в редакторе и для каждой видео-ссылки добавляет
+     * под ней превью с возможностью воспроизведения.
+     * Превью рендерится только в режиме просмотра и НЕ сохраняется в БД.
+     */
+    _renderVideoLinkPreviews() {
+        if (!this.editor) return;
+        const root = this.editor.root;
+        const links = root.querySelectorAll('a[href]');
+
+        links.forEach(link => {
+            // Пропускаем, если уже добавили превью для этой ссылки
+            if (link.dataset.videoPreviewAdded === '1') return;
+            // Пропускаем, если следующий элемент — уже наше превью
+            if (link.nextElementSibling && link.nextElementSibling.classList?.contains('video-link-preview')) {
+                link.dataset.videoPreviewAdded = '1';
+                return;
+            }
+
+            const href = link.getAttribute('href');
+            if (!href) return;
+
+            const embedUrl = this._getVideoEmbedUrl(href);
+            if (!embedUrl) return;
+
+            // Создаём контейнер превью
+            const preview = document.createElement('span');
+            preview.className = 'video-link-preview';
+            preview.setAttribute('contenteditable', 'false');
+            preview.dataset.embedUrl = embedUrl;
+            preview.dataset.originalUrl = href;
+            preview.innerHTML = `
+                <span class="video-link-preview-frame">
+                    <button type="button" class="video-link-preview-play" aria-label="Воспроизвести видео">
+                        <svg viewBox="0 0 68 48" width="68" height="48" aria-hidden="true">
+                            <path d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#000" opacity="0.7"/>
+                            <path d="M 45,24 27,14 27,34" fill="#fff"/>
+                        </svg>
+                    </button>
+                </span>
+            `;
+
+            // Вставляем после ссылки
+            link.insertAdjacentElement('afterend', preview);
+            link.dataset.videoPreviewAdded = '1';
+
+            // Клик по кнопке play — заменяем превью на iframe
+            const playBtn = preview.querySelector('.video-link-preview-play');
+            playBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const iframe = document.createElement('iframe');
+                iframe.src = embedUrl + (embedUrl.includes('?') ? '&' : '?') + 'autoplay=1';
+                iframe.setAttribute('frameborder', '0');
+                iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                iframe.setAttribute('allowfullscreen', '');
+                iframe.className = 'video-link-preview-iframe';
+                preview.querySelector('.video-link-preview-frame').replaceWith(iframe);
+            });
+        });
+    }
+
+    /**
+     * Возвращает embed URL для видео-ссылки или null, если это не видео.
+     * Использует существующий convertToEmbedUrl, но возвращает null для не-видео ссылок.
+     */
+    _getVideoEmbedUrl(url) {
+        if (this.extractYouTubeId(url)) {
+            return `https://www.youtube.com/embed/${this.extractYouTubeId(url)}`;
+        }
+        if (this.extractRutubeId(url)) {
+            return `https://rutube.ru/play/embed/${this.extractRutubeId(url)}`;
+        }
+        if (this.extractVimeoId(url)) {
+            return `https://player.vimeo.com/video/${this.extractVimeoId(url)}`;
+        }
+        return null;
     }
 
     /**
@@ -1254,6 +1336,12 @@ class RichTextEditor {
             clonedRoot.querySelectorAll('img.img-selected').forEach(img => {
                 img.classList.remove('img-selected');
             });
+            // Удаляем превью видео-ссылок (они генерируются динамически при загрузке)
+            clonedRoot.querySelectorAll('.video-link-preview').forEach(el => el.remove());
+            // Чистим маркер на ссылках
+            clonedRoot.querySelectorAll('a[data-video-preview-added]').forEach(a => {
+                a.removeAttribute('data-video-preview-added');
+            });
             const content = clonedRoot.innerHTML;
 
             console.log('💾 Начало сохранения контента:', {
@@ -1353,6 +1441,11 @@ class RichTextEditor {
         if (isEditMode) {
             // Запоминаем позицию прокрутки — Quill.enable() вызывает focus() и может проскроллить вверх
             const savedScrollY = window.scrollY;
+            // Удаляем превью видео-ссылок, чтобы не мешали редактированию
+            this.editor.root.querySelectorAll('.video-link-preview').forEach(el => el.remove());
+            this.editor.root.querySelectorAll('a[data-video-preview-added]').forEach(a => {
+                a.removeAttribute('data-video-preview-added');
+            });
             this.editor.enable();
             // Убираем автоматический фокус/выделение, которое Quill ставит при enable()
             // (иначе при первом входе в edit-mode курсор прыгает в начало)
@@ -1363,6 +1456,8 @@ class RichTextEditor {
             }, 100);
         } else {
             this.editor.disable();
+            // Пересоздаём превью видео-ссылок в режиме просмотра
+            setTimeout(() => this._renderVideoLinkPreviews(), 50);
         }
     }
 
