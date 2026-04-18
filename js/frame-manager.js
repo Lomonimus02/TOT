@@ -19,7 +19,6 @@ class FrameManager {
         this.frame = document.querySelector('.fullscreen-frame');
         
         if (!this.frame) {
-            console.warn('Полноэкранная рамка не найдена');
             return;
         }
 
@@ -40,14 +39,12 @@ class FrameManager {
             this.updateLoginZoneStatus();
         }, 100);
 
-        console.log('✅ Полноэкранная египетская рамка инициализирована');
     }
 
     checkFrameImage() {
         // Создаем временное изображение для проверки загрузки
         const testImg = new Image();
         testImg.onload = () => {
-            console.log('✅ Изображение рамки успешно загружено');
             this.frame.classList.add('loaded');
         };
         testImg.onerror = () => {
@@ -107,7 +104,6 @@ class FrameManager {
         // Обновляем статус при создании
         this.updateLoginZoneStatus();
 
-        console.log('✅ Зона входа в рамке создана');
     }
 
     ensureTopPhotoMenu() {
@@ -335,7 +331,6 @@ class FrameManager {
 
     openLoginModal() {
         // Открываем модальное окно входа
-        console.log('🔐 Открытие модального окна входа через рамку');
         
         // Ищем существующее модальное окно
         const loginModal = document.getElementById('loginModal');
@@ -343,16 +338,13 @@ class FrameManager {
         if (loginModal && window.PyramidTOTA && window.PyramidTOTA.showModal) {
             // Используем существующую функцию
             window.PyramidTOTA.showModal(loginModal);
-            console.log('✅ Модальное окно входа открыто через PyramidTOTA.showModal');
         } else if (loginModal) {
             // Простое открытие модального окна
             loginModal.style.display = 'block';
             loginModal.classList.add('show');
             document.body.style.overflow = 'hidden';
-            console.log('✅ Модальное окно входа открыто простым способом');
         } else {
             // Если модального окна нет, создаем простое
-            console.warn('⚠️ Модальное окно входа не найдено, создаем простое');
             this.createSimpleLoginModal();
         }
     }
@@ -498,7 +490,6 @@ class FrameManager {
         // Переключает видимость рамки
         this.isVisible = !this.isVisible;
         this.updateFrameVisibility();
-        console.log(`Рамка ${this.isVisible ? 'показана' : 'скрыта'}`);
     }
 
     showFrame() {

@@ -40,7 +40,6 @@
             // чтобы навигация не зависела от stacking context main (z-index: 1)
             this.movePageNavigation();
 
-            console.log('🔄 SPA Router инициализирован');
         },
 
         // === URL утилиты ===
@@ -293,9 +292,7 @@
                 try {
                     await this.loadScript(fullSrc);
                     this.loadedScripts.add(normalizedSrc);
-                    console.log('📜 SPA: Загружен скрипт', fullSrc);
                 } catch (err) {
-                    console.warn('📜 SPA: Не удалось загрузить скрипт', fullSrc, err);
                 }
             }
         },
@@ -338,7 +335,6 @@
                 link.rel = 'stylesheet';
                 link.href = fullHref;
                 document.head.appendChild(link);
-                console.log('🎨 SPA: Загружен стиль', fullHref);
             });
         },
 
@@ -372,7 +368,6 @@
                 try {
                     window.pageEditor = new InlinePageEditor();
                 } catch (err) {
-                    console.warn('SPA: Ошибка инициализации InlinePageEditor:', err);
                 }
             }
 
@@ -385,10 +380,8 @@
 
                     window.richTextEditor = new RichTextEditor();
                     window.richTextEditor.initialize().then(() => {
-                        console.log('✅ SPA: Rich Text Editor реинициализирован');
                     });
                 } catch (err) {
-                    console.warn('SPA: Ошибка инициализации RichTextEditor:', err);
                 }
             }
 
@@ -401,7 +394,6 @@
                 detail: { url: location.href }
             }));
 
-            console.log('🔄 SPA: Страница реинициализирована —', location.pathname);
         },
 
         // === Кнопка «Назад/Вперёд» ===
@@ -439,7 +431,6 @@
         // Очистка кеша (можно вызвать при сохранении контента из админки)
         clearCache() {
             this.cache.clear();
-            console.log('🔄 SPA: Кеш очищен');
         }
     };
 

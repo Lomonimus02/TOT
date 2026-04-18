@@ -18,11 +18,9 @@ class RichTextEditor {
      */
     async initialize() {
         if (this.isInitialized) {
-            console.warn('⚠️ Редактор уже инициализирован');
             return;
         }
 
-        console.log('📝 Инициализация Rich Text Editor...');
 
         // Проверяем наличие Quill
         if (typeof Quill === 'undefined') {
@@ -127,17 +125,12 @@ class RichTextEditor {
             readOnly: true // По умолчанию только для чтения
         });
 
-        console.log('📋 Quill редактор создан:', {
-            readOnly: this.editor.isEnabled() === false,
-            hasToolbar: !!this.editor.getModule('toolbar')
-        });
 
         // КРИТИЧЕСКИ ВАЖНО: Перемещаем тулбар в body, чтобы position:fixed работал
         // без влияния overflow/transform от родительских элементов
         const toolbar = document.querySelector('.ql-toolbar.ql-snow');
         if (toolbar) {
             document.body.appendChild(toolbar);
-            console.log('📌 Тулбар перемещён в body');
         }
 
         // Загружаем сохраненный контент
@@ -154,7 +147,6 @@ class RichTextEditor {
         this.setupDragAndDrop();
 
         this.isInitialized = true;
-        console.log('✅ Rich Text Editor инициализирован');
 
         // КРИТИЧЕСКИ ВАЖНО: Предотвращаем прокрутку страницы вверх при вызове quill.focus()
         // Quill Snow theme вызывает focus() при закрытии tooltip ссылки — это скроллит к началу
@@ -198,7 +190,6 @@ class RichTextEditor {
             return;
         }
 
-        console.log('🧹 Очистка старого контента...');
 
         // КРИТИЧЕСКИ ВАЖНО: Полностью очищаем весь контент, включая текстовые узлы
         while (pageContent.firstChild) {
@@ -219,7 +210,6 @@ class RichTextEditor {
         container.appendChild(wrapper);
         pageContent.appendChild(container);
 
-        console.log('✅ Контейнер редактора создан');
 
         // Создаем индикатор сохранения
         this.createSaveIndicator();
@@ -235,7 +225,6 @@ class RichTextEditor {
         const pageContent = document.querySelector('.page-content');
         if (!pageContent) return;
 
-        console.log('🛡️ Активация защиты от JSON данных...');
 
         // Функция для проверки и удаления JSON
         const removeJsonNodes = (container) => {
@@ -268,7 +257,6 @@ class RichTextEditor {
                     try {
                         const parsed = JSON.parse(text);
                         if (typeof parsed === 'object' && parsed !== null) {
-                            console.warn('🗑️ Обнаружены и удалены JSON данные:', text.substring(0, 100));
                             nodesToRemove.push(node);
                         }
                     } catch (e) {
@@ -304,7 +292,6 @@ class RichTextEditor {
                                 try {
                                     const parsed = JSON.parse(text);
                                     if (typeof parsed === 'object' && parsed !== null) {
-                                        console.warn('🗑️ Перехвачены и удалены JSON данные');
                                         if (node.parentNode) {
                                             node.parentNode.removeChild(node);
                                         }
@@ -338,7 +325,6 @@ class RichTextEditor {
         setTimeout(() => removeJsonNodes(pageContent), 500);
         setTimeout(() => removeJsonNodes(pageContent), 1000);
 
-        console.log('✅ Защита от JSON данных активирована');
     }
 
     /**
@@ -354,7 +340,6 @@ class RichTextEditor {
             const file = input.files[0];
             if (!file) return;
 
-            console.log('📸 Загрузка изображения:', file.name);
 
             // Проверяем размер файла (максимум 10MB)
             if (file.size > 10 * 1024 * 1024) {
@@ -383,7 +368,6 @@ class RichTextEditor {
                 const data = await response.json();
                 const imageUrl = data.url;
 
-                console.log('✅ Изображение загружено:', imageUrl);
 
                 // Вставляем изображение в редактор
                 const scrollY = window.scrollY;
@@ -488,7 +472,6 @@ class RichTextEditor {
             const file = input.files[0];
             if (!file) return;
 
-            console.log('🎥 Загрузка видео:', file.name);
 
             // Проверяем размер файла (максимум 100MB)
             if (file.size > 100 * 1024 * 1024) {
@@ -517,7 +500,6 @@ class RichTextEditor {
                 const data = await response.json();
                 const videoUrl = data.url;
 
-                console.log('✅ Видео загружено:', videoUrl);
 
                 // Вставляем видео в редактор
                 const scrollY = window.scrollY;
@@ -533,7 +515,6 @@ class RichTextEditor {
                         if (!video.style.width) {
                             video.style.width = '75%';
                             video.style.height = 'auto';
-                            console.log('✅ Установлены начальные размеры для video:', video);
                         }
                     });
                     this.wrapVideoIframes();
@@ -632,7 +613,6 @@ class RichTextEditor {
             return;
         }
 
-        console.log('🎥 Вставка видео по ссылке:', url);
 
         try {
             // Преобразуем URL в embed формат
@@ -645,7 +625,6 @@ class RichTextEditor {
             this.editor.setSelection(range.index + 1);
             window.scrollTo(0, scrollY2);
 
-            console.log('✅ Видео вставлено по ссылке:', embedUrl);
 
             // КРИТИЧЕСКИ ВАЖНО: Устанавливаем начальные размеры для iframe
             setTimeout(() => {
@@ -654,7 +633,6 @@ class RichTextEditor {
                     if (!iframe.style.width) {
                         iframe.style.width = '75%';
                         iframe.style.height = 'auto';
-                        console.log('✅ Установлены начальные размеры для iframe:', iframe);
                     }
                 });
                 this.wrapVideoIframes();
@@ -802,7 +780,6 @@ class RichTextEditor {
      */
     wrapVideoIframes() {
         // Ничего не делаем - pointer-events: none в CSS достаточно
-        console.log('✅ wrapVideoIframes: pointer-events управляется через CSS');
     }
 
     /**
@@ -1038,38 +1015,27 @@ class RichTextEditor {
      */
     getCurrentPageId() {
         const path = window.location.pathname;
-        console.log('🔍 Определение page_id:');
-        console.log('   📍 fullPath:', path);
-        console.log('   🌐 hostname:', window.location.hostname);
-        console.log('   🔗 href:', window.location.href);
 
         // Проверяем разные варианты путей
         // Вариант 1: /pages/temple.html -> temple
         let match = path.match(/\/pages\/([^\/]+)\.html/);
-        console.log('   🔎 Проверка паттерна /pages/*.html: match =', match);
         if (match) {
-            console.log('✅ Найден page_id через /pages/*.html:', match[1]);
             return match[1];
         }
 
         // Вариант 2: /temple.html -> temple
         match = path.match(/\/([^\/]+)\.html/);
-        console.log('   🔎 Проверка паттерна /*.html: match =', match);
         if (match && match[1] !== 'index') {
-            console.log('✅ Найден page_id через /*.html:', match[1]);
             return match[1];
         }
 
         // Вариант 3: /temple (без расширения) -> temple
         match = path.match(/\/([^\/]+)$/);
-        console.log('   🔎 Проверка паттерна /* (без расширения): match =', match);
         if (match && match[1] !== '' && match[1] !== 'index') {
-            console.log('✅ Найден page_id через /* (без расширения):', match[1]);
             return match[1];
         }
 
         // Вариант 4: путь заканчивается на / или пустой -> index
-        console.log('ℹ️ Используется page_id по умолчанию: index');
         return 'index';
     }
 
@@ -1091,12 +1057,10 @@ class RichTextEditor {
             const pageId = this.getCurrentPageId();
             const apiUrl = `${this.getApiBaseUrl()}/api/content/${pageId}/rich-text-content`;
 
-            console.log(`📥 Загрузка контента для страницы: ${pageId}`);
 
             const response = await fetch(apiUrl);
 
             if (!response.ok) {
-                console.warn(`⚠️ API вернул статус ${response.status}`);
             }
 
             const result = await response.json();
@@ -1128,9 +1092,7 @@ class RichTextEditor {
                 this.editor.root.innerHTML = contentHtml;
                 this._afterContentLoaded(savedImageStyles);
 
-                console.log('✅ Контент загружен из БД');
             } else {
-                console.log('ℹ️ Контент не найден, используется пустой редактор');
                 this.editor.setText('');
             }
         } catch (error) {
@@ -1294,7 +1256,6 @@ class RichTextEditor {
         }
 
         if (added > 0) {
-            console.log(`🎬 Добавлено превью для ${added} видео-ссылок`);
         }
     }
 
@@ -1350,7 +1311,6 @@ class RichTextEditor {
             }
         });
         if (migrated > 0) {
-            console.log(`📐 Мигрировано ${migrated} медиа-элементов из px в %`);
         }
     }
 
@@ -1363,7 +1323,6 @@ class RichTextEditor {
         const images = this.editor.root.querySelectorAll('img[src^="data:image"]');
         if (images.length === 0) return;
 
-        console.log(`🔄 Найдено ${images.length} base64 изображений, загружаем на сервер...`);
 
         for (const img of images) {
             try {
@@ -1397,16 +1356,13 @@ class RichTextEditor {
                     if (width) img.setAttribute('width', width);
                     if (height) img.setAttribute('height', height);
 
-                    console.log(`  ✅ base64 → ${data.url}`);
                 }
             } catch (err) {
-                console.warn('  ⚠️ Не удалось загрузить base64 изображение:', err.message);
             }
         }
 
         // Сохраняем обновлённый контент (без base64)
         if (images.length > 0) {
-            console.log('💾 Сохраняем контент без base64...');
             this.saveContent();
         }
     }
@@ -1439,33 +1395,18 @@ class RichTextEditor {
             });
             const content = clonedRoot.innerHTML;
 
-            console.log('💾 Начало сохранения контента:', {
-                pageId,
-                contentLength: content.length,
-                contentPreview: content.substring(0, 100) + '...'
-            });
 
             // КРИТИЧЕСКИ ВАЖНО: Проверяем inline стили в изображениях перед сохранением
             const images = this.editor.root.querySelectorAll('img');
-            console.log('🖼️ Изображений перед сохранением:', images.length);
             images.forEach((img, i) => {
                 if (i < 3) {
-                    console.log(`  Изображение ${i + 1}:`, {
-                        src: img.src.substring(0, 50) + '...',
-                        width: img.style.width || img.width || 'не задано',
-                        height: img.style.height || img.height || 'не задано',
-                        hasStyleAttr: img.hasAttribute('style'),
-                        styleAttr: img.getAttribute('style')
-                    });
                 }
             });
 
             // Проверяем наличие inline стилей в HTML
             const imgMatches = content.match(/<img[^>]*>/g);
             if (imgMatches) {
-                console.log('🖼️ Изображений в HTML:', imgMatches.length);
                 imgMatches.slice(0, 3).forEach((img, i) => {
-                    console.log(`  HTML изображения ${i + 1}:`, img);
                 });
             }
 
@@ -1484,17 +1425,11 @@ class RichTextEditor {
                 })
             });
 
-            console.log('📡 Ответ сервера:', {
-                status: response.status,
-                statusText: response.statusText,
-                ok: response.ok
-            });
 
             const result = await response.json();
 
             if (result.success) {
                 this.showSaveIndicator('success', 'Сохранено');
-                console.log('✅ Контент успешно сохранен:', result);
             } else {
                 this.showSaveIndicator('error', 'Ошибка сохранения');
                 console.error('❌ Ошибка сохранения:', result.error);
@@ -1593,10 +1528,8 @@ window.RichTextEditor = RichTextEditor;
         const pageContent = document.querySelector('.page-content');
 
         if (pageContent) {
-            console.log('🚀 НЕМЕДЛЕННАЯ инициализация Rich Text Editor...');
 
             // КРИТИЧЕСКИ ВАЖНО: Немедленно очищаем контейнер от любого контента
-            console.log('🧹 Предварительная очистка .page-content...');
             while (pageContent.firstChild) {
                 pageContent.removeChild(pageContent.firstChild);
             }
@@ -1607,7 +1540,6 @@ window.RichTextEditor = RichTextEditor;
             // Инициализируем редактор
             window.richTextEditor = new RichTextEditor();
             window.richTextEditor.initialize().then(() => {
-                console.log('✅ Rich Text Editor полностью инициализирован');
             });
 
             // Слушаем изменения режима редактирования

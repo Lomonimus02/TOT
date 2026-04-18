@@ -97,7 +97,6 @@ function normalizeImagesInBlock(block) {
             block.style.width = newBlockWidth + 'px';
             block.style.height = newBlockHeight + 'px';
 
-            console.log(`📐 Изображение нормализовано при загрузке: позиция (${newLeft}, ${newTop}), размер ${newBlockWidth}x${newBlockHeight}`);
         }
     });
 }
@@ -256,7 +255,6 @@ async function initializeNewBlockSystem() {
     // Это предотвращает дерганую подгрузку страницы
     if (window.FreePositioning && typeof window.FreePositioning.restoreContainerHeight === 'function') {
         window.FreePositioning.restoreContainerHeight();
-        console.log('📏 Высота контейнера восстановлена ДО загрузки блоков');
     }
 
     // КРИТИЧЕСКИ ВАЖНО: Загружаем блоки АСИНХРОННО, не блокируя выполнение
@@ -280,7 +278,6 @@ async function initializeNewBlockSystem() {
 
     // Функции редактирования и создания блоков только для администраторов
     if (isUserAdmin()) {
-        console.log('Пользователь является администратором - активируем функции редактирования блоков');
 
         // Очищаем старые обработчики
         cleanupOldSystem();
@@ -310,7 +307,6 @@ async function initializeNewBlockSystem() {
         // Удаляем отладочные JSON данные, если они есть
         removeDebugJsonData();
 
-        console.log('✅ Новая система блоков инициализирована с правами администратора');
     } else {
         // Убираем все drag handles для не-администраторов
         removeAllDragHandles();
@@ -318,7 +314,6 @@ async function initializeNewBlockSystem() {
         // Удаляем отладочные JSON данные для не-администраторов
         removeDebugJsonData();
 
-        console.log('✅ Блоки загружены для просмотра (пользователь не является администратором)');
     }
 }
 
@@ -405,10 +400,8 @@ function addDragHandlesToBlocks() {
     }
 
     const contentBlocks = document.querySelectorAll('.content-block');
-    console.log(`🔧 Добавление drag handles к ${contentBlocks.length} блокам на странице`);
 
     contentBlocks.forEach((block, index) => {
-        console.log(`🔧 Обрабатываем блок ${index}:`, block.className, block.dataset);
 
         // Удаляем старый handle если есть
         const oldHandle = block.querySelector('.new-drag-handle');
@@ -427,7 +420,6 @@ function addDragHandlesToBlocks() {
         block.style.position = 'relative';
         block.appendChild(dragHandle);
 
-        console.log(`✅ Drag handle добавлен к блоку ${index}`);
         
         // Делаем блок перетаскиваемым через handle
         dragHandle.addEventListener('mousedown', (e) => {
@@ -986,7 +978,6 @@ function handleZoneDrop(e) {
 function addNewBlockAtPosition(blockData, positionType, targetBlockIndex) {
     // КРИТИЧЕСКАЯ ПРОВЕРКА: Только администраторы могут добавлять блоки
     if (!isUserAdmin()) {
-        console.warn('Попытка добавления блока без прав администратора');
         alert('Добавление блоков разрешено только администраторам');
         return;
     }
@@ -1042,7 +1033,6 @@ function addNewBlockAtPosition(blockData, positionType, targetBlockIndex) {
 function addNewBlockAtFreePosition(blockData, x, y) {
     // КРИТИЧЕСКАЯ ПРОВЕРКА: Только администраторы могут добавлять блоки
     if (!isUserAdmin()) {
-        console.warn('Попытка добавления блока без прав администратора');
         alert('Добавление блоков разрешено только администраторам');
         return;
     }
@@ -1315,7 +1305,6 @@ function placeBlockCenter(block) {
 function getBlockTemplate(categoryKey, blockId) {
     // Проверяем, доступна ли библиотека блоков из старой системы
     if (typeof BLOCKS_LIBRARY === 'undefined') {
-        console.warn('⚠️ BLOCKS_LIBRARY не найдена, используем fallback шаблоны');
         return getFallbackTemplate(categoryKey, blockId);
     }
     
@@ -1477,9 +1466,7 @@ function setupBlockInteractions() {
 
                 // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Правильная обработка асинхронной функции
                 try {
-                    console.log('🔄 Добавление блока:', { categoryKey, blockId });
                     await addBlockToEndOfPage(categoryKey, blockId);
-                    console.log('✅ Блок успешно добавлен и сохранен');
                     showBlockNotification('Блок успешно добавлен!', 'success');
                 } catch (error) {
                     console.error('❌ Ошибка добавления блока:', error);
@@ -1496,7 +1483,6 @@ function setupBlockInteractions() {
 async function addBlockToEndOfPage(categoryKey, blockId) {
     // КРИТИЧЕСКАЯ ПРОВЕРКА: Только администраторы могут добавлять блоки
     if (!isUserAdmin()) {
-        console.warn('Попытка добавления блока без прав администратора');
         alert('Добавление блоков разрешено только администраторам');
         return;
     }
@@ -1553,7 +1539,6 @@ async function addBlockToEndOfPage(categoryKey, blockId) {
     }
 
     updateBlockSystem();
-    console.log('✅ Блок успешно добавлен и сохранен в БД');
 
     // Возвращаем успешный результат
     return { success: true, block: newBlock };
@@ -2058,10 +2043,6 @@ async function createBlockFromData(blockData) {
  * Размещение блока в правильной позиции
  */
 function placeBlockAtCorrectPosition(blockElement, container, positionIndex) {
-    console.log('🔄 placeBlockAtCorrectPosition:', {
-        positionIndex,
-        containerChildren: container.children.length
-    });
 
     // Получаем все существующие элементы в контейнере (не только блоки)
     const allElements = Array.from(container.children);
@@ -2073,11 +2054,9 @@ function placeBlockAtCorrectPosition(blockElement, container, positionIndex) {
     if (typeof positionIndex === 'number' && positionIndex >= 0) {
         // Интерпретируем positionIndex с шагом 100
         targetIndex = Math.floor(positionIndex / 100);
-        console.log('📍 Вычисленный targetIndex:', targetIndex);
     } else {
         // Если позиция не определена, добавляем в конец
         targetIndex = allElements.length;
-        console.log('📍 Позиция не определена, добавляем в конец');
     }
 
     // Убеждаемся, что блок не находится уже в контейнере
@@ -2088,25 +2067,20 @@ function placeBlockAtCorrectPosition(blockElement, container, positionIndex) {
     if (targetIndex >= allElements.length) {
         // Добавляем в конец
         container.appendChild(blockElement);
-        console.log('✅ Блок добавлен в конец контейнера');
     } else if (targetIndex <= 0) {
         // Добавляем в начало
         if (allElements.length > 0) {
             container.insertBefore(blockElement, allElements[0]);
-            console.log('✅ Блок добавлен в начало контейнера');
         } else {
             container.appendChild(blockElement);
-            console.log('✅ Блок добавлен в пустой контейнер');
         }
     } else {
         // Вставляем в указанную позицию
         const targetElement = allElements[targetIndex];
         if (targetElement) {
             container.insertBefore(blockElement, targetElement);
-            console.log('✅ Блок вставлен в позицию:', targetIndex);
         } else {
             container.appendChild(blockElement);
-            console.log('✅ Блок добавлен в конец (целевой элемент не найден)');
         }
     }
 }
@@ -2182,12 +2156,6 @@ async function saveBlockToDatabase(blockElement, categoryKey, blockId, positionD
             cssStyles: blockElement.style.cssText || null
         };
 
-        console.log('💾 Сохраняем блок с данными:', {
-            elementId,
-            blockType: blockId,
-            positionIndex,
-            layoutInfo
-        });
 
         // Подготавливаем данные для отправки
         const requestData = {
@@ -2204,9 +2172,6 @@ async function saveBlockToDatabase(blockElement, categoryKey, blockId, positionD
             body: JSON.stringify(requestData)
         });
 
-        console.log('📡 ОТВЕТ СЕРВЕРА:');
-        console.log('Status:', response.status);
-        console.log('Status Text:', response.statusText);
 
         const result = await response.json();
 
@@ -2281,10 +2246,6 @@ function getCurrentPageId() {
     else if (pageName === 'test-blocks-system') pageId = 'test-blocks-system';
     else pageId = pageName || 'home';
 
-    console.log('🔍 getCurrentPageId():');
-    console.log('- path:', path);
-    console.log('- pageName:', pageName);
-    console.log('- pageId:', pageId);
 
     return pageId;
 }
@@ -2546,18 +2507,15 @@ async function saveBlockWithPosition(block, elementId, position, layoutInfo) {
  */
 async function forceAllBlocksSave() {
     const blocks = document.querySelectorAll('.content-block[data-is-block="true"]');
-    console.log(`🔄 Принудительное сохранение ${blocks.length} блоков...`);
 
     for (const block of blocks) {
         try {
             const result = await saveBlockContentToDatabase(block);
-            console.log(`✅ Блок ${block.dataset.editId || block.dataset.blockId} сохранен:`, result);
         } catch (error) {
             console.error(`❌ Ошибка сохранения блока ${block.dataset.editId || block.dataset.blockId}:`, error);
         }
     }
 
-    console.log('🎉 Принудительное сохранение завершено');
 }
 
 /**

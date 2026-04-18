@@ -25,7 +25,6 @@ class SearchComponent {
         // Добавляем обработчики событий
         this.bindEvents();
         
-        console.log('✅ Компонент поиска инициализирован');
     }
 
     createSearchComponent() {
@@ -85,7 +84,6 @@ class SearchComponent {
             document.body.appendChild(this.searchBox);
         }
 
-        console.log('✅ Компонент поиска создан в DOM');
     }
 
     bindEvents() {
@@ -291,7 +289,6 @@ class SearchComponent {
             .replace(/\.html$/, '')
             .replace(/\/$/, '') || 'index';
 
-        console.log('[Search] navigate: current=', currentPageId, 'target=', targetPageId);
 
         if (currentPageId === targetPageId) {
             // Уже на нужной странице — плавно промотаем к элементу

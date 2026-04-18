@@ -24,13 +24,11 @@ function initializeBlocksSystem() {
     const panel = document.getElementById('blocksPanel');
 
     if (!trigger || !panel) {
-        console.log('Элементы панели блоков не найдены на этой странице');
         return;
     }
 
     // КРИТИЧЕСКАЯ ПРОВЕРКА: Система блоков доступна ТОЛЬКО администраторам
     if (!isUserAdmin()) {
-        console.log('Доступ к системе папирус блоков запрещен: пользователь не является администратором');
         // Скрываем элементы системы блоков
         if (trigger) trigger.style.display = 'none';
         if (panel) panel.style.display = 'none';
@@ -56,14 +54,12 @@ function initializeBlocksSystem() {
         }
     });
 
-    console.log('🏗️ Система блоков "Конструктор Пирамиды" инициализирована');
 }
 
 // Переключение состояния панели блоков
 function toggleBlocksPanel() {
     // КРИТИЧЕСКАЯ ПРОВЕРКА: Только администраторы могут использовать панель блоков
     if (!isUserAdmin()) {
-        console.warn('Попытка доступа к панели блоков без прав администратора');
         alert('Доступ к системе папирус блоков разрешен только администраторам');
         return;
     }
@@ -82,7 +78,6 @@ function toggleBlocksPanel() {
 function openBlocksPanel() {
     // КРИТИЧЕСКАЯ ПРОВЕРКА: Только администраторы могут открыть панель блоков
     if (!isUserAdmin()) {
-        console.warn('Попытка открытия панели блоков без прав администратора');
         return;
     }
 
@@ -101,7 +96,6 @@ function openBlocksPanel() {
         `;
     }, 200);
 
-    console.log('📜 Панель блоков открыта');
 }
 
 // Закрытие панели блоков
@@ -118,7 +112,6 @@ function closeBlocksPanel() {
         inset -2px 0 4px rgba(0, 0, 0, 0.2)
     `;
 
-    console.log('📜 Панель блоков закрыта');
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
@@ -165,7 +158,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         img.setAttribute('decoding', 'async');
     });
 
-    console.log('Пирамида ТОТА - сайт загружен');
 });
 
 // Навигация и модальные окна
@@ -174,10 +166,6 @@ function initializeNavigation() {
     const registerModal = document.getElementById('registerModal');
     const closeBtns = document.querySelectorAll('.close');
 
-    console.log('Инициализация навигации (main.js):', {
-        loginModal: !!loginModal,
-        registerModal: !!registerModal
-    });
 
     // НЕ добавляем обработчики к кнопкам входа/регистрации - это делает forms.js
     // Только обработчики модальных окон
@@ -423,7 +411,6 @@ class InlinePageEditor {
     async toggleEditMode() {
         // КРИТИЧЕСКАЯ ПРОВЕРКА: Только администраторы могут переключать режим редактирования
         if (!this.isAdmin()) {
-            console.warn('Попытка переключения режима редактирования без прав администратора');
             alert('Режим редактирования доступен только администраторам');
             return;
         }
@@ -464,7 +451,6 @@ class InlinePageEditor {
     makeElementsEditable() {
         // КРИТИЧЕСКАЯ ПРОВЕРКА: Только администраторы могут делать элементы редактируемыми
         if (!this.isAdmin()) {
-            console.warn('Попытка активации редактирования элементов без прав администратора');
             return;
         }
 
@@ -701,7 +687,6 @@ class InlinePageEditor {
                 const result = await window.NewBlockSystem.saveBlockContent(blockElement);
                 if (result && result.success) {
                     this.showSavedIndicator(element);
-                    console.log('Блок папируса автосохранен:', elementId);
                 } else {
                     this.showErrorIndicator(element);
                     console.error('Ошибка автосохранения блока папируса');
@@ -729,7 +714,6 @@ class InlinePageEditor {
 
             if (result.success) {
                 this.showSavedIndicator(element);
-                console.log('Контент автосохранен:', elementId);
 
                 // Также сохраняем форматирование
                 if (this.currentElement === element) {
@@ -760,7 +744,6 @@ class InlinePageEditor {
             const isApiAvailable = await this.checkApiAvailability();
 
             if (!isApiAvailable) {
-                console.log('API сервер недоступен, сохраняем в localStorage');
                 this.saveToLocalStorage(saveData);
                 return { success: true, source: 'localStorage' };
             }
@@ -785,7 +768,6 @@ class InlinePageEditor {
             }
 
             const result = await response.json();
-            console.log('Изменение сохранено в БД:', result);
 
             return result;
         } catch (error) {
@@ -817,7 +799,6 @@ class InlinePageEditor {
         } catch (error) {
             // Логируем только если это не таймаут или отмена
             if (error.name !== 'AbortError') {
-                console.log('API недоступен:', error.message);
             }
             return false;
         }
@@ -855,7 +836,6 @@ class InlinePageEditor {
         pageData.changes = pageData.changes || {};
         pageData.changes[saveData.element_id] = saveData;
         localStorage.setItem(`page_${pageId}`, JSON.stringify(pageData));
-        console.log('Изменение сохранено в localStorage (fallback):', saveData);
     }
 
     async saveAllChanges() {
@@ -895,7 +875,6 @@ class InlinePageEditor {
 
             if (response.ok) {
                 const result = await response.json();
-                console.log('Batch сохранение выполнено:', result);
 
                 // Обновляем индикаторы для всех элементов
                 changeKeys.forEach(elementId => {
@@ -948,7 +927,6 @@ class InlinePageEditor {
     getUserToken() {
         // Получаем токен из localStorage или sessionStorage
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
-        console.log('🔑 Получен токен для форматирования:', token ? 'Токен найден' : 'Токен НЕ найден');
         return token;
     }
 
@@ -1015,7 +993,6 @@ class InlinePageEditor {
                                   window.richTextEditor;
 
         if (hasRichTextEditor) {
-            console.log('🚫 Обнаружен Rich Text Editor, пропускаем загрузку через старую систему блоков');
             this.showContent();
             return;
         }
@@ -1024,7 +1001,6 @@ class InlinePageEditor {
         const isServerContentApplied = document.body.hasAttribute('data-server-content-applied');
 
         if (isServerContentApplied) {
-            console.log('Контент уже применен на сервере, пропускаем загрузку из API');
             this.showContent();
             return;
         }
@@ -1052,7 +1028,6 @@ class InlinePageEditor {
                     if (result.success && result.data) {
                         this.applyContentFromAPI(result.data);
                         const changesCount = Object.keys(result.data.changes || {}).length;
-                        console.log('Контент загружен из БД:', changesCount, 'элементов');
 
                         if (changesCount > 0) {
                             this.showMessage(`Контент обновлен из базы данных (${changesCount} элементов)`, 'success');
@@ -1064,7 +1039,6 @@ class InlinePageEditor {
                     }
                 }
             } else {
-                console.log('API сервер недоступен, используем localStorage');
             }
         } catch (error) {
             console.error('Ошибка загрузки из API:', error);
@@ -1264,7 +1238,6 @@ class InlinePageEditor {
                     element.innerHTML = change.content;
                 }
             });
-            console.log('Контент загружен из localStorage');
         }
     }
 
@@ -1536,46 +1509,36 @@ class InlinePageEditor {
     // Старые функции удалены - используем универсальную getCurrentFormatting()
 
     handleContextAction(action, value = null) {
-        console.log(`🎯 handleContextAction вызвана: action=${action}, value=${value}`);
 
         if (!this.currentElement) {
-            console.log(`❌ Нет текущего элемента для форматирования`);
             return;
         }
 
-        console.log(`📍 Текущий элемент:`, this.currentElement);
 
         switch (action) {
             case 'bold':
-                console.log(`🔥 Применяем Bold`);
                 this.toggleFormatting('fontWeight', 'bold', 'normal');
                 break;
             case 'italic':
-                console.log(`🔥 Применяем Italic`);
                 this.toggleFormatting('fontStyle', 'italic', 'normal');
                 break;
             case 'fontSize':
                 if (value) {
-                    console.log(`🔥 Применяем размер шрифта: ${value}`);
                     this.applyFormatting('fontSize', value);
                 }
                 break;
             case 'textColor':
                 if (value) {
-                    console.log(`🔥 Применяем цвет текста: ${value}`);
                     this.applyFormatting('textColor', value);
                 }
                 break;
             case 'alignLeft':
-                console.log(`🔥 Применяем выравнивание влево`);
                 this.applyFormatting('textAlign', 'left');
                 break;
             case 'alignCenter':
-                console.log(`🔥 Применяем выравнивание по центру`);
                 this.applyFormatting('textAlign', 'center');
                 break;
             case 'alignRight':
-                console.log(`🔥 Применяем выравнивание вправо`);
                 this.applyFormatting('textAlign', 'right');
                 break;
             case 'clear':
@@ -1609,24 +1572,19 @@ class InlinePageEditor {
     // НОВАЯ СИСТЕМА ФОРМАТИРОВАНИЯ (FUTURE-PROOF)
 
     toggleFormatting(property, activeValue, inactiveValue) {
-        console.log(`🔄 toggleFormatting: property=${property}, activeValue=${activeValue}, inactiveValue=${inactiveValue}`);
 
         const currentValue = this.getCurrentFormatting(property);
-        console.log(`📊 Текущее значение ${property}: ${currentValue}`);
 
         const newValue = currentValue === activeValue ? inactiveValue : activeValue;
-        console.log(`🎯 Новое значение ${property}: ${newValue}`);
 
         this.applyFormatting(property, newValue);
     }
 
     applyFormatting(property, value) {
         if (!this.currentElement || !value) {
-            console.log(`❌ Не удалось применить форматирование: element=${!!this.currentElement}, value=${value}`);
             return;
         }
 
-        console.log(`🎨 Применяем форматирование: ${property} = ${value} к элементу:`, this.currentElement);
 
         // Удаляем старые классы этого типа
         this.removeFormattingClasses(property);
@@ -1635,10 +1593,8 @@ class InlinePageEditor {
         if (value !== 'normal' && value !== 'none') {
             const className = `${this.getPropertyPrefix(property)}-${value}`;
             this.currentElement.classList.add(className);
-            console.log(`✅ Добавлен класс: ${className}`);
         }
 
-        console.log(`📋 Текущие классы элемента:`, this.currentElement.className);
     }
 
     removeFormattingClasses(property) {
@@ -1682,12 +1638,6 @@ class InlinePageEditor {
         const pageId = this.getCurrentPageId();
         const token = this.getUserToken();
 
-        console.log('💾 Сохраняем форматирование:', {
-            elementId,
-            pageId,
-            hasToken: !!token,
-            tokenLength: token ? token.length : 0
-        });
 
         if (!token) {
             console.error('❌ Нет токена авторизации для сохранения форматирования');
@@ -1710,7 +1660,6 @@ class InlinePageEditor {
             }
         });
 
-        console.log('📝 Форматирование для сохранения:', formatting);
 
         try {
             const response = await fetch(`${this.apiBaseUrl}/api/formatting/save`, {
@@ -1726,12 +1675,10 @@ class InlinePageEditor {
                 })
             });
 
-            console.log('📡 Ответ сервера на форматирование:', response.status, response.statusText);
 
             if (response.ok) {
                 const result = await response.json();
                 if (result.success) {
-                    console.log('✅ Форматирование сохранено в БД:', formatting);
                 } else {
                     console.error('❌ Ошибка сохранения форматирования:', result.error);
                 }
@@ -1753,7 +1700,6 @@ class InlinePageEditor {
             const result = await response.json();
 
             if (result.success && result.data.formatting) {
-                console.log('Загружено форматирование из БД:', result.data.formatting);
 
                 // Применяем форматирование к элементам
                 Object.keys(result.data.formatting).forEach(elementId => {
@@ -1780,7 +1726,6 @@ class InlinePageEditor {
                             }
                         });
 
-                        console.log(`Применено форматирование к ${elementId}:`, formatting.css_classes);
                     }
                 });
             }
@@ -1797,7 +1742,6 @@ class InlinePageEditor {
             const elementId = this.getElementId(this.currentElement);
             const pageId = this.getCurrentPageId();
 
-            console.log('🗑️ Удаляем элемент:', { elementId, pageId });
 
             // Удаляем из базы данных сначала
             try {
@@ -1812,13 +1756,11 @@ class InlinePageEditor {
                     })
                 });
 
-                console.log('📡 Ответ сервера на удаление:', response.status, response.statusText);
 
                 if (response.ok) {
                     const result = await response.json();
 
                     if (result.success) {
-                        console.log('✅ Элемент успешно удален из БД:', result);
 
                         // Удаляем элемент из DOM только после успешного удаления из БД
                         this.currentElement.remove();
@@ -1933,7 +1875,6 @@ class InlinePageEditor {
             }
 
             const result = await response.json();
-            console.log('Новый блок сохранен в БД:', result);
             this.showMessage(`Добавлен новый блок: ${type}`, 'success');
 
         } catch (error) {
@@ -2048,11 +1989,9 @@ document.addEventListener('DOMContentLoaded', createStars);
 
 // Инициализация кликабельности кнопок
 function initializeButtonClicks() {
-    console.log('Инициализация кликабельности кнопок...');
 
     // Находим все кнопки overlay-image (как обёрнутые в <a>, так и без обёртки)
     const overlayButtons = document.querySelectorAll('.overlay-column .overlay-image');
-    console.log(`Найдено кнопок: ${overlayButtons.length}`);
 
     // Маппинг кнопок на страницы (для img без <a> обёртки — обратная совместимость)
     const buttonPageMap = {
@@ -2080,13 +2019,11 @@ function initializeButtonClicks() {
         // Убираем возможное расширение .webp (сервер может отдавать WebP)
         const baseFilename = filename ? filename.replace(/\.webp$/, '.png') : null;
 
-        console.log(`Кнопка ${index + 1}: ${filename}`);
 
         // Если кнопка уже внутри <a> — она кликабельна через HTML, дополнительные обработчики не нужны
         const parentLink = button.closest('a.overlay-link');
         if (parentLink) {
             button.style.cursor = 'pointer';
-            console.log(`Кнопка ${filename} уже обёрнута в <a href="${parentLink.getAttribute('href')}">`);
             return;
         }
 
@@ -2097,7 +2034,6 @@ function initializeButtonClicks() {
             button.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log(`🖱️ КЛИК ПО КНОПКЕ: ${filename} -> ${targetPage}`);
 
                 if (targetPage.startsWith('http://') || targetPage.startsWith('https://')) {
                     window.open(targetPage, '_blank', 'noopener,noreferrer');
@@ -2110,13 +2046,10 @@ function initializeButtonClicks() {
             });
 
             button.style.cursor = 'pointer';
-            console.log(`Обработчик добавлен для: ${filename} -> ${targetPage}`);
         } else {
-            console.warn(`Не найден маппинг для кнопки: ${filename}`);
         }
     });
 
-    console.log('Инициализация кликабельности завершена');
 }
 
 // Обработка ошибок
@@ -2173,7 +2106,6 @@ function hideEmptyPageHeaders() {
             // Если нет ни заголовка, ни подзаголовка, ПОЛНОСТЬЮ УДАЛЯЕМ блок
             if (!hasTitle && !hasSubtitle) {
                 header.remove();
-                console.log('Удален пустой блок page-header');
             }
         });
 
@@ -2182,7 +2114,6 @@ function hideEmptyPageHeaders() {
         emptyTitles.forEach(title => {
             if (title.textContent.trim() === '' && !title.hasAttribute('data-edit-id') && !title.hasAttribute('contenteditable')) {
                 title.remove();
-                console.log('Удален пустой page-title');
             }
         });
 
@@ -2190,7 +2121,6 @@ function hideEmptyPageHeaders() {
         emptySubtitles.forEach(subtitle => {
             if (subtitle.textContent.trim() === '' && !subtitle.hasAttribute('data-edit-id') && !subtitle.hasAttribute('contenteditable')) {
                 subtitle.remove();
-                console.log('Удален пустой page-subtitle');
             }
         });
 
@@ -2205,7 +2135,6 @@ function hideEmptyPageHeaders() {
 
                 if (!hasTitle && !hasSubtitle) {
                     header.remove();
-                    console.log('Удален поздно созданный пустой блок page-header');
                 }
             });
         }, 1000);
@@ -2231,7 +2160,6 @@ function hideEmptyContentSections() {
             // Если нет реального контента, удаляем блок
             if (!hasRealContent) {
                 section.remove();
-                console.log('Удален пустой блок content-section');
             }
         });
 
@@ -2250,7 +2178,6 @@ function hideEmptyContentSections() {
 
                 if (!hasRealContent) {
                     section.remove();
-                    console.log('Удален поздно созданный пустой блок content-section');
                 }
             });
         }, 1000);
@@ -2261,7 +2188,6 @@ function hideEmptyContentSections() {
 
 // Глобальная функция для переинициализации навигации
 function reinitializeNavigation() {
-    console.log('Переинициализация навигации');
     initializeNavigation();
 }
 

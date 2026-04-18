@@ -162,8 +162,6 @@ function updateSEOOnEdit(element) {
 
     // Логируем для отладки
     if (seoAnalysis && seoAnalysis.hasKeywords) {
-        console.log('🔍 SEO: Найдены ключевые слова:', seoAnalysis.keywords.map(k => k.keyword).join(', '));
-        console.log('📊 SEO Score:', seoAnalysis.score);
     }
 }
 
@@ -483,7 +481,6 @@ function disableBlockClicks() {
     document.querySelectorAll('.block-item').forEach(item => {
         item.classList.add('click-disabled');
     });
-    console.log('🚫 Клики на блоки отключены, drag сохранен');
 }
 
 // Фильтрация блоков по поиску
@@ -511,7 +508,6 @@ function filterBlocks(searchTerm) {
 // Привязка Drag & Drop событий - ОТКЛЮЧЕНО (используется новая система)
 function bindDragDropEvents() {
     // Старая система отключена - используется новая система из new-blocks-system.js
-    console.log('⚠️ Старая система drag & drop отключена');
 }
 
 // Начало перетаскивания
@@ -533,7 +529,6 @@ function handleDragStart(e) {
     const isImage = isImageBlock(categoryKey, blockId);
     if (isImage) {
         document.body.classList.add('dragging-image');
-        console.log('🖼️ Перетаскиваем изображение - показываем inline зоны');
     }
 
     // Создаем и показываем зоны вставки (для новых блоков из панели)
@@ -541,10 +536,8 @@ function handleDragStart(e) {
 
     // Определяем тип блока для показа соответствующих зон
     const blockType = isImage ? 'image-block' : 'regular-block';
-    console.log(`🔍 Блок ${blockId} из категории ${categoryKey}: isImage=${isImage}, blockType=${blockType}`);
     showDropZones(-1, blockType);
 
-    console.log(`🎯 Начато перетаскивание блока: ${blockId}`);
 }
 
 // Конец перетаскивания
@@ -559,7 +552,6 @@ function handleDragEnd(e) {
     // Скрываем динамические inline зоны
     hideDynamicInlineZone();
 
-    console.log('🎯 Перетаскивание завершено');
 }
 
 // Создание зон вставки (только при необходимости)
@@ -641,7 +633,6 @@ function addDragHandlesToExistingBlocks() {
         // Добавляем обработчик контекстного меню
         block.addEventListener('contextmenu', handleBlockContextMenu);
 
-        console.log(`Drag handle добавлен к блоку ${index}`);
     });
 }
 
@@ -650,20 +641,17 @@ function handleBlockDragStart(e) {
     // Проверяем, не находимся ли мы в режиме редактирования
     if (this.classList.contains('editing')) {
         e.preventDefault();
-        console.log('🚫 Перетаскивание заблокировано - блок в режиме редактирования');
         return;
     }
 
     // Проверяем, не начинается ли перетаскивание с редактируемого элемента
     if (e.target.contentEditable === 'true' || e.target.closest('[contenteditable="true"]')) {
         e.preventDefault();
-        console.log('🚫 Перетаскивание заблокировано - клик на редактируемом элементе');
         return;
     }
 
     const blockIndex = parseInt(this.dataset.blockIndex);
 
-    console.log(`🎯 DRAG START: Блок #${blockIndex}`, this);
 
     // Сохраняем только индекс - не HTML!
     e.dataTransfer.setData('text/plain', JSON.stringify({
@@ -681,12 +669,10 @@ function handleBlockDragStart(e) {
     // Если перетаскиваем изображение, добавляем специальный класс
     if (blockType === 'image-block') {
         document.body.classList.add('dragging-image');
-        console.log('🖼️ Перетаскиваем существующее изображение - показываем inline зоны');
     }
 
     showDropZones(blockIndex, blockType);
 
-    console.log(`🎯 Начато перемещение блока #${blockIndex}`);
 }
 
 // Обработчик наведения на блок при перетаскивании изображения
@@ -744,11 +730,9 @@ function handleBlockDragOver(e) {
     }
 
     if (side) {
-        console.log(`📐 Показываем ${side} preview (mouseX: ${mouseX}/${blockWidth})`);
         this.dataset.currentPreviewSide = side;
         showDynamicInlineZone(this, side, e.clientX, e.clientY);
     } else if (currentSide) {
-        console.log(`❌ Убираем preview (mouseX: ${mouseX}/${blockWidth})`);
         delete this.dataset.currentPreviewSide;
         hideDynamicInlineZone();
     }
@@ -773,7 +757,6 @@ function handleBlockDragLeave(e) {
         if (isOutside) {
             delete this.dataset.currentPreviewSide;
             hideDynamicInlineZone();
-            console.log('🚪 Мышь покинула блок - убираем preview');
         }
     }, 200); // Увеличенная задержка
 }
@@ -825,11 +808,9 @@ function showDynamicInlineZone(targetBlock, side, mouseX, mouseY) {
 
     // Добавляем обработчик для поддержания preview при наведении на зону
     zone.addEventListener('mouseenter', () => {
-        console.log('🎯 Мышь вошла в drop зону - сохраняем preview');
     });
 
     zone.addEventListener('mouseleave', () => {
-        console.log('🚪 Мышь покинула drop зону');
         setTimeout(() => {
             hideDynamicInlineZone();
         }, 100);
@@ -839,7 +820,6 @@ function showDynamicInlineZone(targetBlock, side, mouseX, mouseY) {
     document.body.appendChild(zone);
     currentDynamicZone = zone;
 
-    console.log(`✅ Показан preview эффект ${side} для блока`);
 }
 
 // Глобальные переменные для preview
@@ -870,7 +850,6 @@ function createInlinePreview(targetBlock, side) {
     currentPreviewBlock = targetBlock;
     currentPreview = preview;
 
-    console.log(`✅ Создан preview эффект ${side}`);
 }
 
 // Удалить preview эффект
@@ -892,7 +871,6 @@ function hideDynamicInlineZone() {
     if (currentDynamicZone) {
         currentDynamicZone.remove();
         currentDynamicZone = null;
-        console.log(`❌ Скрыта динамическая зона`);
     }
 
     // Также убираем preview эффект
@@ -911,7 +889,6 @@ function handleBlockDragEnd(e) {
     // Скрываем динамические inline зоны
     hideDynamicInlineZone();
 
-    console.log('🎯 Перемещение блока завершено');
 }
 
 // Создание отдельной зоны вставки
@@ -992,13 +969,11 @@ function showDropZones(draggingBlockIndex = -1, draggedBlockType = null) {
 
     // Обрабатываем inline зоны - показываем только для блоков изображений
     const inlineZones = document.querySelectorAll('.drop-zone-inline');
-    console.log(`🔍 Найдено ${inlineZones.length} inline зон, draggedBlockType: ${draggedBlockType}`);
 
     inlineZones.forEach(zone => {
         const zoneId = zone.dataset.zoneId;
         let shouldShow = draggedBlockType === 'image-block';
 
-        console.log(`🔍 Inline зона ${zoneId}: shouldShow=${shouldShow}`);
 
         // Дополнительные проверки для inline зон
         if (shouldShow && draggingBlockIndex >= 0) {
@@ -1007,7 +982,6 @@ function showDropZones(draggingBlockIndex = -1, draggedBlockType = null) {
                 // Не показываем inline зону для самого перетаскиваемого блока
                 if (targetIndex === draggingBlockIndex) {
                     shouldShow = false;
-                    console.log(`🔍 Скрываем inline зону для самого перетаскиваемого блока ${targetIndex}`);
                 }
             }
         }
@@ -1021,13 +995,11 @@ function showDropZones(draggingBlockIndex = -1, draggedBlockType = null) {
             zone.style.display = 'flex';
             zone.style.backgroundColor = 'rgba(74, 144, 226, 0.2)';
             zone.style.border = '3px dashed #4A90E2';
-            console.log(`✅ Показываем inline зону ${zoneId}`, zone);
         } else {
             zone.classList.add('hidden');
             zone.classList.remove('visible');
             zone.style.opacity = '0';
             zone.style.visibility = 'hidden';
-            console.log(`❌ Скрываем inline зону ${zoneId}`);
         }
     });
 }
@@ -1044,14 +1016,12 @@ function cleanupDropZones() {
     document.querySelectorAll('.drop-zone, .drop-zone-inline').forEach(zone => {
         zone.remove();
     });
-    console.log('🧹 Старые зоны вставки удалены');
 }
 
 // Проверка, может ли блок быть размещен inline
 function canBeInline(block) {
     // Блоки с изображениями могут быть размещены inline
     const hasImage = block.querySelector('.content-image, .image-placeholder, .uploaded-image') !== null;
-    console.log(`🔍 canBeInline для блока:`, block, `hasImage: ${hasImage}`);
     return hasImage;
 }
 
@@ -1137,16 +1107,13 @@ function handleInlineZoneDrop(e) {
 // Проверка, является ли блок изображением
 function isImageBlock(categoryKey, blockId) {
     const category = BLOCKS_LIBRARY[categoryKey];
-    console.log(`🔍 isImageBlock: categoryKey=${categoryKey}, blockId=${blockId}, category:`, category);
 
     if (!category) {
-        console.log(`❌ Категория ${categoryKey} не найдена`);
         return false;
     }
 
     const block = category.blocks.find(b => b.id === blockId);
     const isImage = block && (block.id === 'image' || block.id === 'gallery');
-    console.log(`🔍 Найден блок:`, block, `isImage: ${isImage}`);
 
     return isImage;
 }
@@ -1171,7 +1138,6 @@ function addBlockInline(categoryKey, blockId, targetBlock, side) {
     const block = BLOCKS_LIBRARY[categoryKey].blocks.find(b => b.id === blockId);
     if (!block) return;
 
-    console.log(`📐 Добавление блока inline: ${block.name}, сторона: ${side}`);
 
     // Создаем новый элемент
     const newElement = document.createElement('div');
@@ -1188,7 +1154,6 @@ function addBlockInline(categoryKey, blockId, targetBlock, side) {
         } else {
             existingContainer.appendChild(newElement);
         }
-        console.log('✅ Блок добавлен в существующий inline контейнер');
     } else {
         // Создаем новый inline контейнер 50/50
         const inlineContainer = document.createElement('div');
@@ -1207,7 +1172,6 @@ function addBlockInline(categoryKey, blockId, targetBlock, side) {
             inlineContainer.appendChild(newElement);
         }
 
-        console.log('✅ Создан новый inline контейнер 50/50 с двумя блоками');
     }
 
     // Пересоздаем зоны
@@ -1223,7 +1187,6 @@ function addBlockInline(categoryKey, blockId, targetBlock, side) {
 
 // Переместить существующий блок inline
 function moveBlockInline(draggedBlock, targetBlock, side) {
-    console.log('📐 Перемещение блока inline');
 
     // Удаляем блок из текущего места
     const oldParent = draggedBlock.parentNode;
@@ -1237,7 +1200,6 @@ function moveBlockInline(draggedBlock, targetBlock, side) {
             const remainingBlock = remainingBlocks[0];
             oldParent.parentNode.insertBefore(remainingBlock, oldParent);
             oldParent.remove();
-            console.log('🧹 Inline контейнер с одним блоком удален');
         }
     }
 
@@ -1247,7 +1209,6 @@ function moveBlockInline(draggedBlock, targetBlock, side) {
     if (existingContainer) {
         // Добавляем в существующий inline контейнер
         existingContainer.appendChild(draggedBlock);
-        console.log('✅ Блок перемещен в существующий inline контейнер');
     } else {
         // Создаем новый inline контейнер
         const inlineContainer = document.createElement('div');
@@ -1258,7 +1219,6 @@ function moveBlockInline(draggedBlock, targetBlock, side) {
         inlineContainer.appendChild(targetBlock);
         inlineContainer.appendChild(draggedBlock);
 
-        console.log('✅ Создан новый inline контейнер при перемещении');
     }
 
     // Пересоздаем зоны
@@ -1314,21 +1274,16 @@ function handleDragLeave(e) {
 function handleDrop(e) {
     e.preventDefault();
 
-    console.log('🎯 DROP EVENT:', e);
 
     try {
         const dataString = e.dataTransfer.getData('text/plain');
-        console.log('📦 Данные drop:', dataString);
 
         const data = JSON.parse(dataString);
-        console.log('📦 Распарсенные данные:', data);
 
         if (data.type === 'existing-block') {
-            console.log('🔄 Перемещение существующего блока');
             // Перемещение существующего блока
             moveExistingBlock(data.blockIndex, this);
         } else {
-            console.log('➕ Добавление нового блока');
             // Добавление нового блока из панели
             const { blockId, categoryKey } = data;
             addBlockToPosition(categoryKey, blockId, this);
@@ -1344,7 +1299,6 @@ function handleDrop(e) {
 
 // Перемещение существующего блока
 function moveExistingBlock(fromIndex, dropZone) {
-    console.log(`🔄 НАЧАЛО ПЕРЕМЕЩЕНИЯ: блок ${fromIndex} в зону ${dropZone.dataset.zoneId}`);
 
     const pageContent = document.querySelector('.page-content');
     const contentBlocks = Array.from(pageContent.querySelectorAll('.content-block'));
@@ -1355,7 +1309,6 @@ function moveExistingBlock(fromIndex, dropZone) {
         return;
     }
 
-    console.log(`📦 Найден блок для перемещения:`, blockToMove.innerHTML.substring(0, 50) + '...');
 
     const zoneId = dropZone.dataset.zoneId;
     let moved = false;
@@ -1369,7 +1322,6 @@ function moveExistingBlock(fromIndex, dropZone) {
             if (firstBlock && firstBlock !== blockToMove) {
                 pageContent.insertBefore(blockToMove, firstBlock);
                 moved = true;
-                console.log('✅ Блок перемещен в начало');
             }
         } else if (zoneId.startsWith('after-')) {
             // После определенного блока
@@ -1385,12 +1337,10 @@ function moveExistingBlock(fromIndex, dropZone) {
                     pageContent.appendChild(blockToMove);
                 }
                 moved = true;
-                console.log(`✅ Блок перемещен после блока ${afterIndex}`);
             }
         }
 
         if (!moved) {
-            console.log('⚠️ Блок не был перемещен - возможно, уже в нужной позиции');
         }
 
     } catch (error) {
@@ -1400,7 +1350,6 @@ function moveExistingBlock(fromIndex, dropZone) {
     // Пересоздаем зоны вставки
     setTimeout(() => {
         createDropZones();
-        console.log('🔄 Зоны пересозданы');
     }, 100);
 
     // Показываем уведомление
@@ -1408,7 +1357,6 @@ function moveExistingBlock(fromIndex, dropZone) {
         showBlockNotification('Блок перемещен!', 'success');
     }
 
-    console.log(`✅ ПЕРЕМЕЩЕНИЕ ЗАВЕРШЕНО (moved: ${moved})`);
 }
 
 // ===== КОНТЕКСТНОЕ МЕНЮ БЛОКОВ =====
@@ -1424,7 +1372,6 @@ function handleBlockContextMenu(e) {
 
     // КРИТИЧЕСКИ ВАЖНО: Проверяем, клик по изображению внутри блока
     if (e.target.tagName === 'IMG' && !e.target.classList.contains('image-placeholder')) {
-        console.log('🖼️ Правый клик по изображению внутри блока - показываем меню изображения');
         // Сохраняем ссылку на текущий блок для действий с изображением
         currentContextBlock = block;
         // Показываем меню изображения вместо меню блока
@@ -1433,7 +1380,6 @@ function handleBlockContextMenu(e) {
         return;
     }
 
-    console.log(`🎯 Контекстное меню для блока #${blockIndex}`);
 
     // Сохраняем ссылку на текущий блок
     currentContextBlock = block;
@@ -1491,7 +1437,6 @@ function showContextMenu(x, y, blockIndex) {
     // Привязываем обработчики
     bindContextMenuEvents();
 
-    console.log(`📋 Контекстное меню показано в позиции (${finalX}, ${finalY}) (исходная: ${x}, ${y})`);
 }
 
 // Скрыть контекстное меню
@@ -1505,7 +1450,6 @@ function hideContextMenu() {
     // Убираем обработчики
     unbindContextMenuEvents();
 
-    console.log('📋 Контекстное меню скрыто');
 }
 
 // Обновить состояние пунктов меню
@@ -1566,7 +1510,6 @@ function handleContextMenuAction(e) {
         return;
     }
 
-    console.log(`🎯 Выполнение действия: ${action}`);
 
     switch (action) {
         case 'edit':
@@ -1614,7 +1557,6 @@ function handleContextMenuKeydown(e) {
 function editBlock(block) {
     if (!block) return;
 
-    console.log('✏️ Начало редактирования блока');
 
     // Добавляем класс редактирования
     block.classList.add('editing');
@@ -1670,7 +1612,6 @@ function handleEditableKeydown(e) {
 function finishEditing(block) {
     if (!block || !block.classList.contains('editing')) return;
 
-    console.log('✅ Завершение редактирования блока');
 
     // Убираем класс редактирования
     block.classList.remove('editing');
@@ -1697,7 +1638,6 @@ function moveBlockUp(block) {
     const contentBlocks = Array.from(pageContent.querySelectorAll('.content-block'));
     const currentIndex = contentBlocks.indexOf(block);
 
-    console.log(`⬆️ Попытка переместить блок вверх. Текущий индекс: ${currentIndex}`);
 
     if (currentIndex > 0) {
         const prevBlock = contentBlocks[currentIndex - 1];
@@ -1716,9 +1656,7 @@ function moveBlockUp(block) {
         }, 100);
 
         showBlockNotification('Блок перемещен вверх!', 'success');
-        console.log('✅ Блок перемещен вверх');
     } else {
-        console.log('🚫 Блок уже в начале');
     }
 }
 
@@ -1730,7 +1668,6 @@ function moveBlockDown(block) {
     const contentBlocks = Array.from(pageContent.querySelectorAll('.content-block'));
     const currentIndex = contentBlocks.indexOf(block);
 
-    console.log(`⬇️ Попытка переместить блок вниз. Текущий индекс: ${currentIndex}, всего блоков: ${contentBlocks.length}`);
 
     if (currentIndex < contentBlocks.length - 1) {
         const nextBlock = contentBlocks[currentIndex + 1];
@@ -1749,9 +1686,7 @@ function moveBlockDown(block) {
         }, 100);
 
         showBlockNotification('Блок перемещен вниз!', 'success');
-        console.log('✅ Блок перемещен вниз');
     } else {
-        console.log('🚫 Блок уже в конце');
     }
 }
 
@@ -1783,7 +1718,6 @@ function duplicateBlock(block) {
     // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем обработчик контекстного меню к клонированному блоку
     // addEventListener не клонируется при cloneNode, поэтому добавляем вручную
     clonedBlock.addEventListener('contextmenu', handleBlockContextMenu);
-    console.log('✅ Обработчик контекстного меню добавлен к дублированному блоку');
 
     // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Сохраняем дублированный блок в БД
     if (window.NewBlockSystem && window.NewBlockSystem.saveBlock) {
@@ -1798,7 +1732,6 @@ function duplicateBlock(block) {
                 });
 
                 if (result && result.success) {
-                    console.log('✅ Дублированный блок успешно сохранен в БД');
                 } else {
                     console.error('❌ Ошибка сохранения дублированного блока:', result?.error);
                 }
@@ -1821,7 +1754,6 @@ function duplicateBlock(block) {
     }, 300);
 
     showBlockNotification('Блок дублирован!', 'success');
-    console.log('📋 Блок дублирован');
 }
 
 // Удаление блока
@@ -1838,7 +1770,6 @@ function deleteBlock(block) {
         }, 100);
 
         showBlockNotification('Блок удален!', 'success');
-        console.log('🗑️ Блок удален');
     }
 }
 
@@ -1867,7 +1798,6 @@ function openStylePanel(block) {
     // Привязываем обработчики
     bindStylePanelEvents();
 
-    console.log('🎨 Панель стилей открыта');
 }
 
 // Закрытие панели стилей
@@ -1881,7 +1811,6 @@ function closeStylePanel() {
     // Убираем обработчики
     unbindStylePanelEvents();
 
-    console.log('🎨 Панель стилей закрыта');
 }
 
 // Обновление состояния элементов управления
@@ -1946,13 +1875,11 @@ function bindStylePanelEvents() {
     const resetColorBtn = document.getElementById('resetTextColor');
     if (colorPicker) {
         colorPicker.addEventListener('change', handleTextColorChange);
-        console.log('✅ Color picker обработчик привязан');
     } else {
         console.error('❌ Color picker не найден');
     }
     if (resetColorBtn) {
         resetColorBtn.addEventListener('click', handleResetTextColor);
-        console.log('✅ Reset color button обработчик привязан');
     } else {
         console.error('❌ Reset color button не найден');
     }
@@ -1964,19 +1891,16 @@ function bindStylePanelEvents() {
 
     if (fontSizeSelect) {
         fontSizeSelect.addEventListener('change', handleFontSizeSelectChange);
-        console.log('✅ Font size select обработчик привязан');
     } else {
         console.error('❌ Font size select не найден');
     }
     if (decreaseBtn) {
         decreaseBtn.addEventListener('click', handleDecreaseFontSize);
-        console.log('✅ Decrease font size button обработчик привязан');
     } else {
         console.error('❌ Decrease font size button не найден');
     }
     if (increaseBtn) {
         increaseBtn.addEventListener('click', handleIncreaseFontSize);
-        console.log('✅ Increase font size button обработчик привязан');
     } else {
         console.error('❌ Increase font size button не найден');
     }
@@ -2130,38 +2054,31 @@ function handleStylePanelOutsideClick(e) {
 
 // Новые обработчики для цвета и размера шрифта
 function handleTextColorChange(e) {
-    console.log('🎨 handleTextColorChange вызван', e.target.value);
 
     const color = e.target.value;
     const selection = window.getSelection();
 
-    console.log('Selection:', selection, 'Range count:', selection.rangeCount, 'Is collapsed:', selection.isCollapsed);
 
     if (selection.rangeCount > 0 && !selection.isCollapsed) {
         // Если есть выделенный текст
-        console.log('Применяем цвет к выделенному тексту');
         applyColorToSelection(selection, color);
         showBlockNotification('Цвет текста изменен для выделенного текста!', 'success');
     } else if (currentStyledBlock) {
         // Если нет выделения, применяем ко всем текстовым элементам в блоке
-        console.log('Применяем цвет ко всем текстовым элементам в блоке');
         applyColorToAllTextElements(currentStyledBlock, color);
         showBlockNotification('Цвет текста изменен для всего блока!', 'success');
     } else {
         console.error('Нет текущего блока для стилизации');
     }
 
-    console.log(`🎨 Применен цвет текста: ${color}`);
 }
 
 function handleResetTextColor() {
-    console.log('🔄 handleResetTextColor вызван');
 
     if (currentStyledBlock) {
         // Сбрасываем цвет всех текстовых элементов
         resetColorForAllTextElements(currentStyledBlock);
         showBlockNotification('Цвет текста сброшен!', 'success');
-        console.log('✅ Цвет блока сброшен');
     } else {
         console.error('Нет текущего блока для сброса цвета');
     }
@@ -2174,7 +2091,6 @@ function handleResetTextColor() {
 }
 
 function handleFontSizeSelectChange(e) {
-    console.log('📐 handleFontSizeSelectChange вызван', e.target.value);
 
     const fontSize = e.target.value + 'px';
 
@@ -2182,33 +2098,28 @@ function handleFontSizeSelectChange(e) {
         // Применяем ко всем текстовым элементам в блоке
         applyFontSizeToAllTextElements(currentStyledBlock, fontSize);
         showBlockNotification(`Размер шрифта изменен: ${fontSize}!`, 'success');
-        console.log(`✅ Размер шрифта применен к блоку: ${fontSize}`);
     } else {
         console.error('Нет текущего блока для изменения размера');
     }
 }
 
 function handleDecreaseFontSize() {
-    console.log('📐 handleDecreaseFontSize вызван');
 
     if (currentStyledBlock) {
         // Уменьшаем размер всех текстовых элементов
         changeFontSizeForAllTextElements(currentStyledBlock, -2);
         showBlockNotification('Размер шрифта уменьшен!', 'success');
-        console.log('✅ Размер шрифта уменьшен');
     } else {
         console.error('Нет текущего блока для уменьшения размера');
     }
 }
 
 function handleIncreaseFontSize() {
-    console.log('📐 handleIncreaseFontSize вызван');
 
     if (currentStyledBlock) {
         // Увеличиваем размер всех текстовых элементов
         changeFontSizeForAllTextElements(currentStyledBlock, 2);
         showBlockNotification('Размер шрифта увеличен!', 'success');
-        console.log('✅ Размер шрифта увеличен');
     } else {
         console.error('Нет текущего блока для увеличения размера');
     }
@@ -2216,7 +2127,6 @@ function handleIncreaseFontSize() {
 
 // Вспомогательные функции
 function applyColorToSelection(selection, color) {
-    console.log('🎨 applyColorToSelection вызван с цветом:', color);
     // Пока упростим - применим к родительскому элементу
     const range = selection.getRangeAt(0);
     const element = range.commonAncestorContainer.nodeType === Node.TEXT_NODE
@@ -2225,7 +2135,6 @@ function applyColorToSelection(selection, color) {
 
     if (element) {
         element.style.setProperty('color', color, 'important');
-        console.log('✅ Цвет применен к элементу:', element);
     }
 }
 
@@ -2251,11 +2160,9 @@ function applyColorToAllTextElements(block, color) {
 // Сбросить цвет для всех текстовых элементов
 function resetColorForAllTextElements(block) {
     const textElements = block.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, div, li, a, button, blockquote, cite');
-    console.log(`🔄 Сбрасываем цвет для ${textElements.length} текстовых элементов`);
 
     textElements.forEach((element, index) => {
         element.style.removeProperty('color');
-        console.log(`✅ Цвет сброшен для элемента ${index + 1}:`, element.tagName);
     });
 
     // Также сбрасываем для самого блока
@@ -2265,11 +2172,9 @@ function resetColorForAllTextElements(block) {
 // Применить размер шрифта ко всем текстовым элементам
 function applyFontSizeToAllTextElements(block, fontSize) {
     const textElements = block.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, div, li, a, button, blockquote, cite');
-    console.log(`📐 Найдено ${textElements.length} текстовых элементов для изменения размера`);
 
     textElements.forEach((element, index) => {
         element.style.setProperty('font-size', fontSize, 'important');
-        console.log(`✅ Размер применен к элементу ${index + 1}:`, element.tagName, fontSize);
     });
 
     // Также применяем к самому блоку
@@ -2339,7 +2244,6 @@ function addBlockToPosition(categoryKey, blockId, dropZone) {
     // Показываем уведомление
     showBlockNotification(`Блок "${block.name}" добавлен!`, 'success');
 
-    console.log(`✅ Блок добавлен через drag & drop: ${block.name}`);
 }
 
 // Добавление блока на страницу (старый метод для клика)
@@ -2372,7 +2276,6 @@ function addBlockToPage(categoryKey, blockId) {
 
     showBlockNotification(`Блок "${block.name}" добавлен!`, 'success');
 
-    console.log(`✅ Добавлен блок (legacy): ${block.name}`);
 }
 
 // Показ уведомлений
@@ -2432,13 +2335,11 @@ function initializeBlocksSystem() {
     const panel = document.getElementById('blocksPanel');
 
     if (!trigger || !panel) {
-        console.log('Элементы панели блоков не найдены на этой странице');
         return;
     }
 
     // КРИТИЧЕСКАЯ ПРОВЕРКА: Система блоков доступна ТОЛЬКО администраторам
     if (!isUserAdmin()) {
-        console.log('Доступ к системе папирус блоков запрещен: пользователь не является администратором');
         // Скрываем элементы системы блоков
         if (trigger) trigger.style.display = 'none';
         if (panel) panel.style.display = 'none';
@@ -2472,7 +2373,6 @@ function initializeBlocksSystem() {
 
     // НЕ создаем зоны при инициализации - только при перетаскивании
 
-    console.log('🏗️ Система блоков "Конструктор Пирамиды" инициализирована');
 
     // Инициализируем систему изображений
     initializeImageSystem();
@@ -2484,7 +2384,6 @@ function initializeBlocksSystem() {
     if (typeof window.NewBlockSystem !== 'undefined') {
         setTimeout(() => {
             window.NewBlockSystem.initialize();
-            console.log('🚀 Новая система позиционирования блоков активирована');
         }, 500);
     }
 }
@@ -2495,7 +2394,6 @@ function initializeImageSystem() {
     // КРИТИЧЕСКИ ВАЖНО: Добавляем обработчики для placeholder - левая кнопка мыши
     document.addEventListener('click', handleImageClick);
     // Обработчик контекстного меню для изображений теперь в handleBlockContextMenu
-    console.log('🖼️ Система изображений инициализирована');
 }
 
 // Обработчик клика по placeholder изображения (левая кнопка)
@@ -2511,7 +2409,6 @@ function handleImageClick(e) {
             ? e.target
             : e.target.closest('.image-placeholder');
 
-        console.log('🖼️ Клик по placeholder изображения');
         openImageUploadDialog(placeholder);
     }
 }
@@ -2527,7 +2424,6 @@ function openImageUploadDialog(placeholder) {
     fileInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
-            console.log('📁 Файл выбран:', file.name);
             loadImageFromFile(file, placeholder);
         }
         // Удаляем временный input
@@ -2556,7 +2452,6 @@ async function loadImageFromFile(file, placeholder) {
     try {
         // Загружаем изображение на сервер
         const imageUrl = await uploadImageToServer(file);
-        console.log('✅ Изображение загружено на сервер:', imageUrl);
 
         // Заменяем placeholder на реальное изображение
         replaceImagePlaceholder(placeholder, imageUrl, file.name);
@@ -2617,7 +2512,6 @@ function replaceImagePlaceholder(placeholder, imageUrl, fileName) {
     // Заменяем placeholder
     placeholder.parentNode.replaceChild(img, placeholder);
 
-    console.log('🖼️ Placeholder заменен на изображение');
 }
 
 // ===== КОНТЕКСТНОЕ МЕНЮ ДЛЯ ИЗОБРАЖЕНИЙ =====
@@ -2629,7 +2523,6 @@ function showImageContextMenu(x, y, img) {
     // КРИТИЧЕСКИ ВАЖНО: Если меню уже открыто, закрываем его
     const existingMenu = document.getElementById('imageContextMenu');
     if (existingMenu) {
-        console.log('📋 Меню уже открыто - закрываем');
         hideImageContextMenu();
         return;
     }
@@ -2713,7 +2606,6 @@ function showImageContextMenu(x, y, img) {
     // Привязываем обработчики
     bindImageContextMenuEvents();
 
-    console.log(`📋 Контекстное меню изображения показано в позиции (${finalX}, ${finalY})`);
 }
 
 // Скрыть контекстное меню изображения
@@ -2733,7 +2625,6 @@ function hideImageContextMenu() {
     // Убираем обработчики
     unbindImageContextMenuEvents();
 
-    console.log('📋 Контекстное меню изображения скрыто');
 }
 
 // Привязать обработчики контекстного меню изображения
@@ -2770,18 +2661,15 @@ function handleImageContextMenuAction(e) {
     // КРИТИЧЕСКИ ВАЖНО: Получаем .context-menu-item, даже если клик был по иконке или тексту
     const menuItem = e.target.closest('.context-menu-item');
     if (!menuItem) {
-        console.warn('⚠️ Клик не по пункту меню');
         return;
     }
 
     const action = menuItem.dataset.action;
 
     if (menuItem.classList.contains('disabled')) {
-        console.warn('⚠️ Пункт меню отключен');
         return;
     }
 
-    console.log(`🎯 Выполнение действия с изображением: ${action}`);
 
     switch (action) {
         case 'replace':
@@ -2800,7 +2688,6 @@ function handleImageContextMenuAction(e) {
             deleteImageBlock(currentImageElement);
             break;
         default:
-            console.warn(`⚠️ Неизвестное действие: ${action}`);
             return;
     }
 
@@ -2812,7 +2699,6 @@ function handleImageContextMenuOutsideClick(e) {
     const menu = document.getElementById('imageContextMenu');
     // КРИТИЧЕСКИ ВАЖНО: Проверяем существование меню и что клик не по меню
     if (menu && !menu.contains(e.target)) {
-        console.log('🖱️ Клик вне меню изображения - закрываем');
         hideImageContextMenu();
     }
 }
@@ -2826,7 +2712,6 @@ function handleImageContextMenuKeydown(e) {
 
 // Заменить изображение
 async function replaceImage(img) {
-    console.log('🔄 Замена изображения');
 
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -2856,11 +2741,9 @@ async function replaceImage(img) {
 
 // Изменить размер изображения с помощью resize handles (как в Windows)
 function resizeImage(img) {
-    console.log('📐 Активация режима изменения размера изображения');
 
     // Проверяем, не активен ли уже режим изменения размера
     if (img.classList.contains('resizing-active')) {
-        console.log('⚠️ Режим изменения размера уже активен');
         return;
     }
 
@@ -3013,7 +2896,6 @@ function resizeImage(img) {
             block.style.width = totalWidth + 'px';
             block.style.height = totalHeight + 'px';
 
-            console.log(`📐 Размер блока обновлен: ${totalWidth}x${totalHeight} (margin: ${newMarginLeft}, ${newMarginTop})`);
         }
 
         // Обновляем позицию контейнера resize handles
@@ -3075,13 +2957,11 @@ function resizeImage(img) {
                 block.style.width = newBlockWidth + 'px';
                 block.style.height = newBlockHeight + 'px';
 
-                console.log(`📐 Блок нормализован: позиция (${newLeft}, ${newTop}), размер ${newBlockWidth}x${newBlockHeight}`);
             }
 
             // Сохраняем блок с новыми размерами и позицией
             if (window.FreePositioning && typeof window.FreePositioning.saveBlockPosition === 'function') {
                 window.FreePositioning.saveBlockPosition(block);
-                console.log('💾 Размеры изображения сохранены в БД');
             }
         }
 
@@ -3116,7 +2996,6 @@ function resizeImage(img) {
 
 // Удалить изображение
 function removeImage(img) {
-    console.log('🗑️ Удаление изображения');
 
     // Создаем кастомное модальное окно подтверждения в стиле подвала
     const modal = document.createElement('div');
@@ -3200,7 +3079,6 @@ function closeConfirmModal(modal) {
 
 // Открыть панель стилей для изображения
 function openStylePanelForImage(img) {
-    console.log('🎨 Открытие панели стилей для изображения');
 
     // Получаем блок, содержащий изображение
     const block = img.closest('.content-block');
@@ -3216,7 +3094,6 @@ function openStylePanelForImage(img) {
 
 // Дублировать блок с изображением
 function duplicateImageBlock(img) {
-    console.log('📋 Дублирование блока с изображением');
 
     // Получаем блок, содержащий изображение
     const block = img.closest('.content-block');
@@ -3232,7 +3109,6 @@ function duplicateImageBlock(img) {
 
 // Удалить блок с изображением
 function deleteImageBlock(img) {
-    console.log('🗑️ Удаление блока с изображением');
 
     // Получаем блок, содержащий изображение
     const block = img.closest('.content-block');
@@ -3303,7 +3179,6 @@ function deleteImageBlock(img) {
 function initializeVideoSystem() {
     // Добавляем обработчики для видео блоков
     document.addEventListener('click', handleVideoClick);
-    console.log('📺 Система видео блоков инициализирована');
 }
 
 // Обработчик клика по видео блокам
@@ -3487,7 +3362,6 @@ function processIframeCode(placeholder) {
 function toggleBlocksPanel() {
     // КРИТИЧЕСКАЯ ПРОВЕРКА: Только администраторы могут использовать панель блоков
     if (!isUserAdmin()) {
-        console.warn('Попытка доступа к панели блоков без прав администратора');
         alert('Доступ к системе папирус блоков разрешен только администраторам');
         return;
     }
@@ -3506,7 +3380,6 @@ function toggleBlocksPanel() {
 function openBlocksPanel() {
     // КРИТИЧЕСКАЯ ПРОВЕРКА: Только администраторы могут открыть панель блоков
     if (!isUserAdmin()) {
-        console.warn('Попытка открытия панели блоков без прав администратора');
         return;
     }
 
@@ -3525,7 +3398,6 @@ function openBlocksPanel() {
         `;
     }, 200);
     
-    console.log('📜 Панель блоков открыта');
 }
 
 // Закрытие панели блоков
@@ -3542,7 +3414,6 @@ function closeBlocksPanel() {
         inset -2px 0 4px rgba(0, 0, 0, 0.2)
     `;
     
-    console.log('📜 Панель блоков закрыта');
 }
 
 // Автоинициализация при загрузке DOM
@@ -3614,7 +3485,6 @@ function createVideoElement(placeholder, source, type) {
     if (contentBlock && typeof window.NewBlockSystem !== 'undefined' && window.NewBlockSystem.saveBlockContent) {
         setTimeout(() => {
             window.NewBlockSystem.saveBlockContent(contentBlock);
-            console.log('💾 Видео блок сохранен в базе данных');
         }, 100);
     }
 }
@@ -3651,7 +3521,6 @@ async function uploadVideoToServer(file) {
 function initializeFreePositioningButton() {
     const toggleButton = document.getElementById('freePositioningToggle');
     if (!toggleButton) {
-        console.log('⚠️ Кнопка свободного позиционирования не найдена');
         return;
     }
 
@@ -3660,13 +3529,11 @@ function initializeFreePositioningButton() {
     if (savedMode === 'true') {
         toggleButton.classList.add('active');
         toggleButton.querySelector('.toggle-icon').textContent = '🔒';
-        console.log('🔄 Восстановлено состояние кнопки свободного позиционирования: ВКЛЮЧЕН');
     }
 
     toggleButton.addEventListener('click', function() {
         if (window.FreePositioning && typeof window.FreePositioning.toggleFreePositioning === 'function') {
             const isEnabled = window.FreePositioning.toggleFreePositioning();
-            console.log(`🎯 Режим свободного позиционирования: ${isEnabled ? 'ВКЛЮЧЕН' : 'ВЫКЛЮЧЕН'}`);
 
             // Обновляем визуальное состояние кнопки
             if (isEnabled) {
@@ -3682,7 +3549,6 @@ function initializeFreePositioningButton() {
         }
     });
 
-    console.log('✅ Кнопка свободного позиционирования инициализирована');
 }
 
 // Инициализируем кнопку при загрузке страницы

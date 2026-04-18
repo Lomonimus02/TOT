@@ -5,27 +5,22 @@ class ModalAuthHandler {
     }
 
     init() {
-        console.log('=== MODAL AUTH HANDLER INIT ===');
         this.setupAuthToggle();
         this.setupModalEvents();
-        console.log('=== MODAL AUTH HANDLER INIT COMPLETE ===');
     }
 
     // Setup authentication toggle in modal for all devices
     setupAuthToggle() {
-        console.log('Setting up auth toggle for all devices...');
 
         // Используем делегирование событий для надежности
         document.addEventListener('click', (e) => {
             if (e.target && e.target.id === 'showRegisterBtn') {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('REGISTER BUTTON CLICKED');
                 this.showRegisterForm();
             } else if (e.target && e.target.id === 'showLoginBtn') {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('LOGIN BUTTON CLICKED');
                 this.showLoginForm();
             }
         });
@@ -42,17 +37,14 @@ class ModalAuthHandler {
             if (showLoginBtn && showRegisterBtn) {
                 showLoginBtn.onclick = (e) => {
                     e.preventDefault();
-                    console.log('LOGIN BUTTON CLICKED (direct)');
                     this.showLoginForm();
                 };
 
                 showRegisterBtn.onclick = (e) => {
                     e.preventDefault();
-                    console.log('REGISTER BUTTON CLICKED (direct)');
                     this.showRegisterForm();
                 };
 
-                console.log('Direct handlers assigned successfully');
                 return true;
             }
             return false;
@@ -67,7 +59,6 @@ class ModalAuthHandler {
 
     // Show login form
     showLoginForm() {
-        console.log('Showing login form...');
 
         const showLoginBtn = document.getElementById('showLoginBtn');
         const showRegisterBtn = document.getElementById('showRegisterBtn');
@@ -94,12 +85,10 @@ class ModalAuthHandler {
         // Обновляем заголовок
         if (modalTitle) modalTitle.textContent = 'Вход в систему';
 
-        console.log('Login form displayed');
     }
 
     // Show register form
     showRegisterForm() {
-        console.log('Showing register form...');
 
         const showLoginBtn = document.getElementById('showLoginBtn');
         const showRegisterBtn = document.getElementById('showRegisterBtn');
@@ -126,7 +115,6 @@ class ModalAuthHandler {
         // Обновляем заголовок
         if (modalTitle) modalTitle.textContent = 'Регистрация';
 
-        console.log('Register form displayed');
     }
 
     // Setup modal events

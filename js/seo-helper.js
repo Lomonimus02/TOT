@@ -200,9 +200,6 @@ class SEOHelper {
         
         // Логируем для отладки
         if (seoAnalysis && seoAnalysis.hasKeywords) {
-            console.log('🔍 SEO: Обновлены атрибуты для блока');
-            console.log('📊 SEO Score:', seoAnalysis.score);
-            console.log('🔑 Ключевые слова:', seoAnalysis.keywords.map(k => k.keyword).join(', '));
         }
         
         return seoAnalysis;
@@ -355,5 +352,4 @@ window.generateSEOFriendlyId = (text) => window.seoHelper.generateSEOId(text);
 window.addSEOAttributes = (element, blockType) => window.seoHelper.addSEOAttributes(element, blockType);
 window.updateSEOOnEdit = (element) => window.seoHelper.updateSEOOnEdit(element);
 
-console.log('✅ SEO Helper загружен и готов к работе');
 

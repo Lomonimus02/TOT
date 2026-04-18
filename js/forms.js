@@ -37,12 +37,10 @@ class FormHandler {
 
     // Проверка статуса авторизации при загрузке
     checkAuthStatus() {
-        console.log('Проверка статуса авторизации');
 
         // Используем систему сессий для проверки
         if (window.sessionManager && window.sessionManager.isAuthenticated()) {
             const user = window.sessionManager.getCurrentUser();
-            console.log('Пользователь авторизован через сессию:', user);
 
             this.token = localStorage.getItem('authToken');
 
@@ -50,21 +48,17 @@ class FormHandler {
             const navTitle = document.getElementById('navTitle');
 
             if (navTitle) {
-                console.log('Элементы навигации найдены, обновляем интерфейс');
                 this.updateAuthUI(user);
             } else {
-                console.log('Элементы навигации не найдены, повторная попытка через 200мс');
                 setTimeout(() => {
                     this.checkAuthStatus();
                 }, 200);
             }
         } else {
-            console.log('Пользователь не авторизован или сессия истекла');
 
             // Очищаем старые данные если сессия недействительна
             const token = localStorage.getItem('authToken');
             if (token) {
-                console.log('Очистка недействительной сессии');
                 localStorage.removeItem('authToken');
                 localStorage.removeItem('user');
                 localStorage.removeItem('userSession');
@@ -227,16 +221,10 @@ class FormHandler {
         const registerForm = document.getElementById('registerForm');
         const registerFormInModal = document.getElementById('registerFormInModal');
 
-        console.log('Настройка форм авторизации:', {
-            loginForm: !!loginForm,
-            registerForm: !!registerForm,
-            registerFormInModal: !!registerFormInModal
-        });
 
         if (loginForm) {
             loginForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                console.log('Отправка формы входа');
                 this.handleLoginForm(loginForm);
             });
         }
@@ -244,7 +232,6 @@ class FormHandler {
         if (registerForm) {
             registerForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                console.log('Отправка формы регистрации (основная)');
                 this.handleRegisterForm(registerForm);
             });
         }
@@ -253,12 +240,9 @@ class FormHandler {
         if (registerFormInModal) {
             registerFormInModal.addEventListener('submit', (e) => {
                 e.preventDefault();
-                console.log('Отправка формы регистрации (модальная)');
                 this.handleRegisterForm(registerFormInModal);
             });
-            console.log('Обработчик модальной формы регистрации установлен');
         } else {
-            console.warn('Модальная форма регистрации не найдена');
         }
     }
 
@@ -267,15 +251,10 @@ class FormHandler {
         const navTitle = document.getElementById('navTitle');
         const loginModal = document.getElementById('loginModal');
 
-        console.log('Настройка навигации:', {
-            navTitle: !!navTitle,
-            loginModal: !!loginModal
-        });
 
         if (navTitle && loginModal) {
             navTitle.addEventListener('click', (e) => {
                 e.preventDefault();
-                console.log('Клик по заголовку навигации (forms.js)');
                 if (window.PyramidTOTA && window.PyramidTOTA.showModal) {
                     window.PyramidTOTA.showModal(loginModal);
                 }
@@ -301,7 +280,6 @@ class FormHandler {
         submitBtn.disabled = true;
 
         try {
-            console.log('Серверная авторизация:', data);
 
             // Серверная авторизация через API
             const response = await fetch(`${this.apiBaseUrl}/api/login`, {
@@ -322,7 +300,6 @@ class FormHandler {
                 if (window.sessionManager) {
                     const sessionData = window.sessionManager.createSession(result.user);
                     this.token = result.token;
-                    console.log('Сессия создана успешно');
                 } else {
                     // Fallback для старой системы
                     localStorage.setItem('authToken', result.token);
@@ -330,11 +307,9 @@ class FormHandler {
                     this.token = result.token;
                 }
 
-                console.log('Авторизация успешна');
                 this.showSuccessMessage(`Добро пожаловать, ${result.user.name}!`);
 
                 // Обновить интерфейс
-                console.log('Обновление интерфейса для пользователя:', result.user);
                 this.updateAuthUI({
                     id: result.user.id,
                     name: result.user.name,
@@ -344,7 +319,6 @@ class FormHandler {
 
                 // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Переинициализируем систему блоков после авторизации
                 if (result.user.role === 'admin' && window.NewBlockSystem && window.NewBlockSystem.initialize) {
-                    console.log('🔄 Переинициализация системы блоков для администратора');
                     setTimeout(() => {
                         window.NewBlockSystem.initialize();
                     }, 100);
@@ -353,12 +327,10 @@ class FormHandler {
                 // Закрыть модальное окно
                 const modal = form.closest('.modal');
                 if (modal && window.PyramidTOTA) {
-                    console.log('Закрытие модального окна');
                     setTimeout(() => {
                         window.PyramidTOTA.hideModal(modal);
                     }, 500);
                 } else {
-                    console.log('Модальное окно не найдено или PyramidTOTA недоступен');
                 }
             } else {
                 console.error('Ошибка авторизации:', result.error);
@@ -376,9 +348,6 @@ class FormHandler {
     
     // Обработка формы регистрации
     async handleRegisterForm(form) {
-        console.log('=== HANDLING REGISTER FORM ===');
-        console.log('Form element:', form);
-        console.log('Form ID:', form.id);
 
         const formData = new FormData(form);
         const data = {
@@ -388,19 +357,11 @@ class FormHandler {
             confirmPassword: formData.get('confirm-password')
         };
 
-        console.log('Form data extracted:', data);
-        console.log('Name:', data.name);
-        console.log('Email:', data.email);
-        console.log('Password length:', data.password ? data.password.length : 'null');
-        console.log('Confirm password length:', data.confirmPassword ? data.confirmPassword.length : 'null');
-        console.log('Passwords match:', data.password === data.confirmPassword);
 
         if (!this.validateRegisterForm(data)) {
-            console.log('Validation failed');
             return;
         }
 
-        console.log('Validation passed, proceeding with registration...');
 
         const submitBtn = form.querySelector('.submit-btn');
         const originalText = submitBtn.textContent;
@@ -409,7 +370,6 @@ class FormHandler {
 
         try {
             // Серверная регистрация через API
-            console.log('Регистрация пользователя через API:', data);
 
             const response = await fetch(`${this.apiBaseUrl}/api/register`, {
                 method: 'POST',
@@ -430,7 +390,6 @@ class FormHandler {
                 if (window.sessionManager) {
                     const sessionData = window.sessionManager.createSession(result.user);
                     this.token = result.token;
-                    console.log('Сессия создана успешно');
                 } else {
                     // Fallback для старой системы
                     localStorage.setItem('authToken', result.token);
@@ -438,7 +397,6 @@ class FormHandler {
                     this.token = result.token;
                 }
 
-                console.log('Пользователь успешно зарегистрирован:', result.user);
                 this.showSuccessMessage(`Добро пожаловать, ${result.user.name}! Регистрация прошла успешно.`);
 
                 // Обновить интерфейс - пользователь автоматически входит в систему
@@ -451,7 +409,6 @@ class FormHandler {
 
                 // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Переинициализируем систему блоков после регистрации
                 if (result.user.role === 'admin' && window.NewBlockSystem && window.NewBlockSystem.initialize) {
-                    console.log('🔄 Переинициализация системы блоков для нового администратора');
                     setTimeout(() => {
                         window.NewBlockSystem.initialize();
                     }, 100);
@@ -528,18 +485,11 @@ class FormHandler {
     
     // Обновление интерфейса после авторизации
     updateAuthUI(user) {
-        console.log('=== updateAuthUI НАЧАЛО ===');
-        console.log('Пользователь:', user);
-        console.log('DOM готов:', document.readyState);
 
         const navTitle = document.getElementById('navTitle');
 
-        console.log('Найдены элементы:', {
-            navTitle: !!navTitle
-        });
 
         if (navTitle) {
-            console.log('Элементы найдены, обновляем заголовок...');
 
             // Обновляем заголовок для авторизованного пользователя
             navTitle.textContent = `Добро пожаловать, ${user.name || user.email}`;
@@ -551,20 +501,14 @@ class FormHandler {
 
             newNavTitle.addEventListener('click', (e) => {
                 e.preventDefault();
-                console.log('Клик по заголовку для выхода');
                 if (confirm('Вы действительно хотите выйти?')) {
                     this.logout();
                 }
             });
 
-            console.log('Интерфейс авторизации обновлен');
-            console.log('=== updateAuthUI УСПЕШНО ЗАВЕРШЕНО ===');
         } else {
-            console.log('=== updateAuthUI ОШИБКА: НЕ ВСЕ ЭЛЕМЕНТЫ НАЙДЕНЫ ===');
-            console.log('Попытка повторного поиска через 500мс...');
 
             setTimeout(() => {
-                console.log('Повторная попытка updateAuthUI...');
                 this.updateAuthUI(user);
             }, 500);
         }
@@ -590,13 +534,11 @@ class FormHandler {
                 }, 10);
             }
 
-            console.log('Account dropdown toggled:', !isVisible);
         }
     }
 
     // Выход из системы
     logout() {
-        console.log('Выход из системы');
 
         // Отправляем событие для отключения режима редактирования
         const logoutEvent = new CustomEvent('userLoggedOut', {
@@ -635,13 +577,11 @@ class FormHandler {
         }
 
         this.showSuccessMessage('Вы успешно вышли из системы');
-        console.log('Выход завершен, интерфейс восстановлен');
 
 
 
         // Перенаправляем на главную страницу через 1 секунду
         setTimeout(() => {
-            console.log('Перенаправление на главную страницу...');
             window.location.href = '/';
         }, 1000);
     }
@@ -875,10 +815,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const userData = localStorage.getItem('user');
         if (userData) {
             const user = JSON.parse(userData);
-            console.log('Принудительное обновление интерфейса для:', user);
             formHandler.updateAuthUI(user);
         } else {
-            console.log('Пользователь не авторизован');
         }
     };
 

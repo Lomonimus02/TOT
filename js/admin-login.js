@@ -110,7 +110,6 @@ class AdminLoginManager {
                 localStorage.setItem('userSession', JSON.stringify(sessionData));
             }
 
-            console.log('✅ Администратор успешно авторизован:', result.user);
 
             // Показываем сообщение об успехе
             this.showSuccess(`Добро пожаловать, ${result.user.name}! Перенаправление на главную...`);
@@ -179,7 +178,6 @@ class AdminLoginManager {
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🔐 Инициализация страницы входа администратора');
     new AdminLoginManager();
 });
 

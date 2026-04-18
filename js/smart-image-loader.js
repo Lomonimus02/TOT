@@ -125,7 +125,6 @@
         await loadLQIPData();
 
         if (!supportsWebP) {
-            console.log('ℹ️ Браузер не поддерживает WebP, используем оригиналы');
             return;
         }
 
@@ -143,7 +142,6 @@
             upgradeToWebP(img);
         });
 
-        console.log('🚀 Smart Image Loader: ' + images.length + ' изображений оптимизировано');
     }
 
     // Запуск после DOM ready

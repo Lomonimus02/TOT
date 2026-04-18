@@ -17,7 +17,6 @@ class EditMode {
     }
 
     async init() {
-        console.log('Инициализация режима редактирования');
         this.setupEditButton();
         await this.loadExistingContent();
         await this.loadSavedFormatting();
@@ -46,7 +45,6 @@ class EditMode {
             }
         });
 
-        console.log('Обработчик плавающей кнопки редактирования настроен');
     }
 
 
@@ -79,7 +77,6 @@ class EditMode {
 
     // Включение режима редактирования
     enableEditMode() {
-        console.log('Включение режима редактирования');
 
         // Проверяем авторизацию перед включением
         if (!this.checkAuthBeforeAction()) {
@@ -107,7 +104,6 @@ class EditMode {
 
     // Выключение режима редактирования
     async disableEditMode() {
-        console.log('Выключение режима редактирования');
 
         // Останавливаем мониторинг авторизации
         this.stopAuthMonitoring();
@@ -471,7 +467,6 @@ class EditMode {
 
         if (formattingPromises.length > 0) {
             await Promise.all(formattingPromises);
-            console.log('Форматирование сохранено для всех элементов');
         }
     }
 
@@ -518,7 +513,6 @@ class EditMode {
                 throw new Error('Ошибка сохранения форматирования');
             }
 
-            console.log(`Форматирование сохранено для ${elementId}:`, formatting);
         } catch (error) {
             console.error(`Ошибка сохранения форматирования для ${elementId}:`, error);
         }
@@ -538,7 +532,6 @@ class EditMode {
                 const data = await response.json();
                 if (data.success && data.formatting) {
                     this.applyLoadedFormatting(data.formatting);
-                    console.log('Форматирование загружено:', data.formatting);
                 }
             }
         } catch (error) {
@@ -557,7 +550,6 @@ class EditMode {
                     element.classList.add(className);
                 });
 
-                console.log(`Форматирование применено к ${item.element_id}:`, item.formatting);
             }
         });
     }
@@ -602,11 +594,9 @@ class EditMode {
                 const data = await response.json();
                 if (data.success) {
                     // Контент и удаленные элементы уже применены на сервере через middleware
-                    console.log('Существующий контент загружен (применен на сервере)');
 
                     // Удаленные элементы уже обработаны на сервере, клиентская обработка не нужна
                     if (data.data.deleted_elements && data.data.deleted_elements.length > 0) {
-                        console.log('Удаленные элементы обработаны на сервере:', data.data.deleted_elements);
                     }
                 }
             }
@@ -1127,7 +1117,6 @@ class EditMode {
         // Если нет токена или данных пользователя
         if (!token || !userStr) {
             if (this.isEditMode) {
-                console.log('Токен или данные пользователя отсутствуют - отключаем режим редактирования');
                 this.handleLogout();
             }
             return;
@@ -1139,7 +1128,6 @@ class EditMode {
             // Если пользователь не администратор
             if (user.role !== 'admin') {
                 if (this.isEditMode) {
-                    console.log('Пользователь не администратор - отключаем режим редактирования');
                     this.handleLogout();
                 }
                 return;
@@ -1158,13 +1146,11 @@ class EditMode {
 
     // Обработка изменения авторизации
     handleAuthChange() {
-        console.log('Изменение авторизации обнаружено');
         this.checkAuthStatus();
     }
 
     // Обработка выхода из системы
     handleLogout() {
-        console.log('Обработка выхода из системы - принудительное отключение режима редактирования');
 
         if (this.isEditMode) {
             // Отключаем режим редактирования без сохранения
@@ -1188,12 +1174,10 @@ class EditMode {
         try {
             const userStr = localStorage.getItem('user');
             if (!userStr) {
-                console.log('Нет данных пользователя в localStorage');
                 return false;
             }
 
             const user = JSON.parse(userStr);
-            console.log('Проверка прав пользователя:', user);
             return user && user.role === 'admin';
         } catch (error) {
             console.error('Ошибка проверки прав администратора:', error);
@@ -1207,7 +1191,6 @@ class EditMode {
         const userStr = localStorage.getItem('user');
 
         if (!token || !userStr) {
-            console.log('Нет токена или данных пользователя');
             this.showNotification('Требуется авторизация администратора', 'warning');
             return false;
         }
@@ -1215,7 +1198,6 @@ class EditMode {
         try {
             const user = JSON.parse(userStr);
             if (user.role !== 'admin') {
-                console.log('Пользователь не администратор:', user.role);
                 this.showNotification('Доступ только для администраторов', 'warning');
                 return false;
             }

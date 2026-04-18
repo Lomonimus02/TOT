@@ -13,7 +13,6 @@ class SessionManager {
     }
 
     init() {
-        console.log('Инициализация системы сессий');
         
         // Проверяем существующую сессию при загрузке
         this.validateSession();
@@ -27,7 +26,6 @@ class SessionManager {
 
     // Создание новой сессии
     createSession(user) {
-        console.log('Создание новой сессии для пользователя:', user.email);
         
         const sessionData = {
             userId: user.id,
@@ -50,10 +48,6 @@ class SessionManager {
             role: user.role
         }));
 
-        console.log('Сессия создана:', {
-            token: sessionData.token,
-            expiresAt: new Date(sessionData.expiresAt).toLocaleString()
-        });
 
         // Обновляем статус зоны входа
         this.updateLoginZoneStatus();
@@ -63,12 +57,10 @@ class SessionManager {
 
     // Валидация существующей сессии
     validateSession() {
-        console.log('Проверка существующей сессии...');
         
         const sessionData = this.getSessionData();
         
         if (!sessionData) {
-            console.log('Сессия не найдена');
             return false;
         }
 
@@ -76,7 +68,6 @@ class SessionManager {
         
         // Проверяем, не истекла ли сессия
         if (now > sessionData.expiresAt) {
-            console.log('Сессия истекла');
             this.destroySession();
             return false;
         }
@@ -84,7 +75,6 @@ class SessionManager {
         // Обновляем последнюю активность
         this.updateActivity();
         
-        console.log('Сессия действительна');
         return true;
     }
 
@@ -130,13 +120,11 @@ class SessionManager {
             sessionData.expiresAt = Date.now() + this.sessionDuration;
             sessionData.lastActivity = Date.now();
             localStorage.setItem('userSession', JSON.stringify(sessionData));
-            console.log('Сессия продлена до:', new Date(sessionData.expiresAt).toLocaleString());
         }
     }
 
     // Уничтожение сессии
     destroySession() {
-        console.log('Уничтожение сессии');
 
         // Отправляем событие для отключения режима редактирования
         const logoutEvent = new CustomEvent('userLoggedOut', {
@@ -182,7 +170,6 @@ class SessionManager {
                 
                 // Автоматическое уничтожение истекшей сессии
                 if (timeLeft <= 0) {
-                    console.log('Сессия автоматически истекла');
                     this.destroySession();
                 }
             }

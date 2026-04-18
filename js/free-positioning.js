@@ -228,13 +228,11 @@ function handleFreePositioningMouseDown(e) {
     // КРИТИЧЕСКИ ВАЖНО: Проверяем, не находится ли изображение в режиме изменения размера
     const img = e.target.closest('img');
     if (img && img.classList.contains('resizing-active')) {
-        console.log('⚠️ Изображение в режиме изменения размера - перетаскивание заблокировано');
         return;
     }
 
     // КРИТИЧЕСКИ ВАЖНО: Проверяем, не клик ли по resize handle
     if (e.target.classList.contains('resize-handle')) {
-        console.log('⚠️ Клик по resize handle - перетаскивание заблокировано');
         return;
     }
 
@@ -307,7 +305,6 @@ function handleFreePositioningMouseMove(e) {
         const newContainerHeight = requiredHeight + 200; // Добавляем запас
         pageContent.style.minHeight = newContainerHeight + 'px';
         containerHeight = newContainerHeight;
-        console.log(`📏 Страница растянута до ${newContainerHeight}px`);
 
         // КРИТИЧЕСКИ ВАЖНО: Сохраняем высоту контейнера в localStorage
         saveContainerHeight(newContainerHeight);
@@ -847,7 +844,6 @@ function saveContainerHeight(height) {
     try {
         const pageId = getCurrentPageId();
         localStorage.setItem(`containerHeight_${pageId}`, height.toString());
-        console.log(`💾 Высота контейнера сохранена: ${height}px`);
     } catch (error) {
         console.error('❌ Ошибка сохранения высоты контейнера:', error);
     }
@@ -866,7 +862,6 @@ function restoreContainerHeight() {
             if (pageContent) {
                 const height = parseInt(savedHeight);
                 pageContent.style.minHeight = height + 'px';
-                console.log(`📏 Высота контейнера восстановлена: ${height}px`);
             }
         }
     } catch (error) {
@@ -914,7 +909,6 @@ function updateContainerHeightFromBlocks() {
             if (minHeight !== currentHeight) {
                 pageContent.style.minHeight = minHeight + 'px';
                 saveContainerHeight(minHeight);
-                console.log(`📏 Высота контейнера обновлена: ${currentHeight}px → ${minHeight}px`);
             }
         }
     } else {
@@ -924,7 +918,6 @@ function updateContainerHeightFromBlocks() {
             const minHeight = window.innerHeight;
             pageContent.style.minHeight = minHeight + 'px';
             saveContainerHeight(minHeight);
-            console.log(`📏 Высота контейнера сброшена до минимальной: ${minHeight}px`);
         }
     }
 }
