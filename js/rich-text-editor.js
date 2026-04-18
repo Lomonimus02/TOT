@@ -1155,14 +1155,34 @@ class RichTextEditor {
         const media = this.editor.root.querySelectorAll('img, iframe.ql-video, video');
         media.forEach(el => {
             const styleW = el.style.width;
-            // Только px-значения нуждаются в миграции
+            // 1) Inline style width в px → конвертируем в %
             if (styleW && styleW.includes('px') && !styleW.includes('%')) {
                 const pxVal = parseFloat(styleW);
                 if (!isNaN(pxVal) && pxVal > 0) {
                     const pct = Math.round((pxVal / editorWidth) * 1000) / 10;
                     el.style.width = Math.min(pct, 100) + '%';
                     el.style.height = 'auto';
-                    // Синхронизируем с Quill blot
+                    el.removeAttribute('width');
+                    el.removeAttribute('height');
+                    const blot = Quill.find(el);
+                    if (blot && blot.format) {
+                        blot.format('style', el.getAttribute('style'));
+                    }
+                    migrated++;
+                    return; // уже обработан
+                }
+            }
+
+            // 2) HTML-атрибут width в px (без inline style width) → конвертируем в %
+            const attrW = el.getAttribute('width');
+            if (attrW && !styleW) {
+                const pxVal = parseFloat(attrW);
+                if (!isNaN(pxVal) && pxVal > 0) {
+                    const pct = Math.round((pxVal / editorWidth) * 1000) / 10;
+                    el.style.width = Math.min(pct, 100) + '%';
+                    el.style.height = 'auto';
+                    el.removeAttribute('width');
+                    el.removeAttribute('height');
                     const blot = Quill.find(el);
                     if (blot && blot.format) {
                         blot.format('style', el.getAttribute('style'));

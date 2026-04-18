@@ -1446,13 +1446,29 @@ body.img-resizing * {
     flex-wrap: nowrap;
     gap: 8px;
     align-items: flex-start;
+    overflow: hidden; /* Предотвращаем выход за границы контейнера */
 }
 
 .ql-editor p:has(img ~ img) img {
-    flex: 0 1 auto;   /* не растут, но сжимаются пропорционально */
+    flex: 1 1 0%;      /* равное распределение — надёжно при смешанных единицах (px/%) */
     min-width: 0;      /* разрешаем сжатие ниже content-size */
+    max-width: 100%;
     height: auto !important;
     margin: 4px 0;     /* gap между, только вертикальный margin */
+}
+
+/* На средних экранах — галерейные ряды переносятся */
+@media (max-width: 1024px) {
+    .ql-editor p:has(img ~ img) {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .ql-editor p:has(img ~ img) img {
+        flex: 0 1 auto;
+        min-width: 120px;
+        max-width: calc(50% - 4px);
+    }
 }
 
 /* На мобильных — все картинки штабелируются вертикально */
