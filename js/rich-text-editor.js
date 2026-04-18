@@ -694,6 +694,12 @@ class RichTextEditor {
             return `https://player.vimeo.com/video/${vimeoId}`;
         }
 
+        // VK Video
+        const vkEmbed = this.extractVkVideoEmbed(url);
+        if (vkEmbed) {
+            return vkEmbed;
+        }
+
         // Если это уже embed URL или прямая ссылка на видео файл, возвращаем как есть
         return url;
     }
@@ -723,6 +729,32 @@ class RichTextEditor {
         const regExp = /vimeo\.com\/(\d+)/;
         const match = url.match(regExp);
         return match ? match[1] : null;
+    }
+
+    /**
+     * Извлечение embed URL для VK Video.
+     * Поддерживает:
+     *  - https://vk.com/video-12345_67890
+     *  - https://vk.com/video12345_67890
+     *  - https://vkvideo.ru/video-12345_67890
+     *  - https://vk.com/video_ext.php?oid=...&id=...&hash=... (возвращается как есть)
+     */
+    extractVkVideoEmbed(url) {
+        // Уже embed-ссылка
+        if (/vk\.com\/video_ext\.php/.test(url)) {
+            return url;
+        }
+        // Формат vk.com/video{oid}_{id} или vkvideo.ru/video{oid}_{id}
+        const m = url.match(/(?:vk\.com|vkvideo\.ru)\/video(-?\d+)_(\d+)/);
+        if (m) {
+            const oid = m[1];
+            const id = m[2];
+            // hash может быть в query-параметрах (?hash=...)
+            const hashMatch = url.match(/[?&]hash=([a-zA-Z0-9]+)/);
+            const hashPart = hashMatch ? `&hash=${hashMatch[1]}` : '';
+            return `https://vk.com/video_ext.php?oid=${oid}&id=${id}${hashPart}`;
+        }
+        return null;
     }
 
     /**
@@ -1220,6 +1252,10 @@ class RichTextEditor {
         }
         if (this.extractVimeoId(url)) {
             return `https://player.vimeo.com/video/${this.extractVimeoId(url)}`;
+        }
+        const vkEmbed = this.extractVkVideoEmbed(url);
+        if (vkEmbed) {
+            return vkEmbed;
         }
         return null;
     }
