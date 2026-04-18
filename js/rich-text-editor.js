@@ -895,12 +895,28 @@ class RichTextEditor {
         const editorElement = document.querySelector(`#${this.containerId} .ql-editor`);
         if (editorElement) {
             editorElement.addEventListener('click', (e) => {
+                // Игнорируем клики внутри превью видео (там своя логика)
+                if (e.target.closest('.video-link-preview')) return;
                 const link = e.target.closest('a');
                 if (link && !this.editor.isEnabled()) {
                     e.preventDefault();
                     window.open(link.href, '_blank');
                 }
             });
+        }
+
+        // MutationObserver: рендерим превью видео при любом изменении содержимого
+        // (например, после SPA-навигации или динамической загрузки контента)
+        if (this.editor && this.editor.root) {
+            const observer = new MutationObserver(() => {
+                if (this._previewRenderTimeout) clearTimeout(this._previewRenderTimeout);
+                this._previewRenderTimeout = setTimeout(() => {
+                    if (!this.editor.isEnabled()) {
+                        this._renderVideoLinkPreviews();
+                    }
+                }, 150);
+            });
+            observer.observe(this.editor.root, { childList: true, subtree: true });
         }
 
         // Предотвращаем потерю фокуса с tooltip input при кликах на тулбар
