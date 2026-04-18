@@ -908,7 +908,14 @@ class RichTextEditor {
         // MutationObserver: рендерим превью видео при любом изменении содержимого
         // (например, после SPA-навигации или динамической загрузки контента)
         if (this.editor && this.editor.root) {
-            const observer = new MutationObserver(() => {
+            const observer = new MutationObserver((mutations) => {
+                // Игнорируем мутации, вызванные нашими же вставками превью
+                const onlyOurChanges = mutations.every(m => {
+                    const nodes = [...(m.addedNodes || []), ...(m.removedNodes || [])];
+                    return nodes.every(n => n.nodeType === 1 && n.classList?.contains('video-link-preview'));
+                });
+                if (onlyOurChanges) return;
+
                 if (this._previewRenderTimeout) clearTimeout(this._previewRenderTimeout);
                 this._previewRenderTimeout = setTimeout(() => {
                     if (!this.editor.isEnabled()) {
@@ -1204,65 +1211,87 @@ class RichTextEditor {
         const links = root.querySelectorAll('a[href]');
         if (links.length === 0) return;
 
-        let added = 0;
+        // Собираем работу заранее, чтобы временно отключить Quill MutationObserver
+        // ровно на время вставки и не получать "Cannot read properties of undefined (reading 'emit')"
+        const tasks = [];
         links.forEach(link => {
-            // Пропускаем, если уже добавили превью для этой ссылки
             if (link.dataset.videoPreviewAdded === '1') return;
-
             const href = link.getAttribute('href');
             if (!href) return;
-
             const embedUrl = this._getVideoEmbedUrl(href);
             if (!embedUrl) return;
-
-            // Создаём контейнер превью как div (block-level) — будет вставлен ПОСЛЕ параграфа,
-            // чтобы не нарушать HTML (block внутри <p> не валиден и может ломаться).
-            const preview = document.createElement('div');
-            preview.className = 'video-link-preview';
-            preview.setAttribute('contenteditable', 'false');
-            preview.dataset.embedUrl = embedUrl;
-            preview.dataset.originalUrl = href;
-            preview.innerHTML = `
-                <div class="video-link-preview-frame">
-                    <button type="button" class="video-link-preview-play" aria-label="Воспроизвести видео">
-                        <svg viewBox="0 0 68 48" width="68" height="48" aria-hidden="true">
-                            <path d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#000" opacity="0.7"/>
-                            <path d="M 45,24 27,14 27,34" fill="#fff"/>
-                        </svg>
-                    </button>
-                </div>
-            `;
-
-            // Находим ближайший блочный родитель (p, h1-h6, li, blockquote)
-            // и вставляем превью после него
-            const blockParent = link.closest('p, h1, h2, h3, h4, h5, h6, li, blockquote, div');
-            const insertAfter = (blockParent && blockParent !== root) ? blockParent : link;
-
-            // Проверяем, нет ли уже превью сразу после
-            if (insertAfter.nextElementSibling &&
-                insertAfter.nextElementSibling.classList?.contains('video-link-preview')) {
-                link.dataset.videoPreviewAdded = '1';
-                return;
-            }
-
-            insertAfter.insertAdjacentElement('afterend', preview);
-            link.dataset.videoPreviewAdded = '1';
-            added++;
-
-            // Клик по кнопке play — заменяем превью на iframe
-            const playBtn = preview.querySelector('.video-link-preview-play');
-            playBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const iframe = document.createElement('iframe');
-                iframe.src = embedUrl + (embedUrl.includes('?') ? '&' : '?') + 'autoplay=1';
-                iframe.setAttribute('frameborder', '0');
-                iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
-                iframe.setAttribute('allowfullscreen', '');
-                iframe.className = 'video-link-preview-iframe';
-                preview.querySelector('.video-link-preview-frame').replaceWith(iframe);
-            });
+            tasks.push({ link, href, embedUrl });
         });
+
+        if (tasks.length === 0) return;
+
+        // Временно отключаем внутренний observer Quill — он падает на DOM-узлах,
+        // не зарегистрированных в Parchment (наш .video-link-preview)
+        const scrollObserver = this.editor?.scroll?.observer;
+        if (scrollObserver && typeof scrollObserver.disconnect === 'function') {
+            try { scrollObserver.disconnect(); } catch (_) {}
+        }
+
+        let added = 0;
+        try {
+            tasks.forEach(({ link, href, embedUrl }) => {
+                const preview = document.createElement('div');
+                preview.className = 'video-link-preview';
+                preview.setAttribute('contenteditable', 'false');
+                preview.dataset.embedUrl = embedUrl;
+                preview.dataset.originalUrl = href;
+                preview.innerHTML = `
+                    <div class="video-link-preview-frame">
+                        <button type="button" class="video-link-preview-play" aria-label="Воспроизвести видео">
+                            <svg viewBox="0 0 68 48" width="68" height="48" aria-hidden="true">
+                                <path d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#000" opacity="0.7"/>
+                                <path d="M 45,24 27,14 27,34" fill="#fff"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+
+                const blockParent = link.closest('p, h1, h2, h3, h4, h5, h6, li, blockquote');
+                const insertAfter = (blockParent && root.contains(blockParent)) ? blockParent : link;
+
+                if (insertAfter.nextElementSibling &&
+                    insertAfter.nextElementSibling.classList?.contains('video-link-preview')) {
+                    link.dataset.videoPreviewAdded = '1';
+                    return;
+                }
+
+                insertAfter.insertAdjacentElement('afterend', preview);
+                link.dataset.videoPreviewAdded = '1';
+                added++;
+
+                const playBtn = preview.querySelector('.video-link-preview-play');
+                playBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const iframe = document.createElement('iframe');
+                    iframe.src = embedUrl + (embedUrl.includes('?') ? '&' : '?') + 'autoplay=1';
+                    iframe.setAttribute('frameborder', '0');
+                    iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                    iframe.setAttribute('allowfullscreen', '');
+                    iframe.className = 'video-link-preview-iframe';
+                    preview.querySelector('.video-link-preview-frame').replaceWith(iframe);
+                });
+            });
+        } finally {
+            // Возобновляем наблюдение Quill — но только за реальным контентом редактора.
+            // Используем тот же observer-инстанс, что был у Quill.
+            if (scrollObserver && typeof scrollObserver.observe === 'function') {
+                try {
+                    scrollObserver.observe(this.editor.scroll.domNode, {
+                        attributes: true,
+                        characterData: true,
+                        characterDataOldValue: true,
+                        childList: true,
+                        subtree: true
+                    });
+                } catch (_) {}
+            }
+        }
 
         if (added > 0) {
             console.log(`🎬 Добавлено превью для ${added} видео-ссылок`);
