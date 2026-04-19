@@ -874,6 +874,8 @@ class RichTextEditor {
             editorElement.addEventListener('click', (e) => {
                 // Игнорируем клики внутри превью видео (там своя логика)
                 if (e.target.closest('.video-link-preview')) return;
+                // Игнорируем клики по изображениям — не открываем превью
+                if (e.target.tagName === 'IMG') { e.preventDefault(); return; }
                 const link = e.target.closest('a');
                 if (link && !this.editor.isEnabled()) {
                     e.preventDefault();

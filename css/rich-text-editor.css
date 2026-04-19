@@ -647,7 +647,7 @@ body.edit-mode .ql-editor.ql-blank::before {
 /* В режиме просмотра — height: auto гарантирует сохранение пропорций при сужении */
 body:not(.edit-mode) .ql-editor img {
     height: auto !important;
-    cursor: pointer;
+    cursor: default;
 }
 
 /* В режиме редактирования — move чтобы было понятно что можно кликнуть */
