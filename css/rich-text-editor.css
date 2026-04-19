@@ -3,6 +3,34 @@
 /* Импорт Quill CSS */
 @import url('https://cdn.quilljs.com/1.3.7/quill.snow.css');
 
+/* SSR-контент — серверный контент для SEO, виден до инициализации JS-редактора */
+.ssr-content {
+    color: #e0d4b8;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.8;
+    max-width: 2040px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+.ssr-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.ssr-content h1, .ssr-content h2, .ssr-content h3 {
+    font-family: 'Cinzel', serif;
+    color: #d4af37;
+    margin: 1em 0 0.5em;
+}
+
+.ssr-content a {
+    color: #d4af37;
+    text-decoration: underline;
+}
+
 /* Контейнер редактора */
 .rich-text-editor-container {
     position: relative;

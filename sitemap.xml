@@ -7,119 +7,159 @@
     <!-- Главная страница -->
     <url>
         <loc>https://pyramid-tota.ru/</loc>
-        <lastmod>2025-10-01</lastmod>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
     </url>
 
     <!-- Пирамида Тота -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/pyramid.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/pyramid</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.9</priority>
     </url>
 
     <!-- Храм Исиды -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/temple.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/temple</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.9</priority>
     </url>
 
     <!-- Женская Школа Isais -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/school-isais.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/school-isais</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <!-- Школа Пирамиды Тота -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/school-tota.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/school-tota</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <!-- Выездные семинары -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/seminars.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/seminars</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <!-- Программы обучения -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/programs.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/programs</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <!-- Записи лекций и семинаров -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/recordings.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/recordings</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <!-- Жезлы Фараонов -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/rods.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/rods</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
 
     <!-- Посетить пирамиду -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/visit.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/visit</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <!-- Личные приемы -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/consultations.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/consultations</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <!-- Храмовый мистериальный двор -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/court.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/court</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
 
     <!-- Комплекс -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/complex.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/complex</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
 
-    <!-- СМИ о Пирамиде -->
+    <!-- Артефакты -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/news.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/artifacts</loc>
+        <lastmod>2026-04-19</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <!-- Проекты -->
+    <url>
+        <loc>https://pyramid-tota.ru/projects</loc>
+        <lastmod>2026-04-19</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <!-- Об Исаис -->
+    <url>
+        <loc>https://pyramid-tota.ru/about-isais</loc>
+        <lastmod>2026-04-19</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <!-- СМИ / Медиа -->
+    <url>
+        <loc>https://pyramid-tota.ru/media</loc>
+        <lastmod>2026-04-19</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <!-- Новости Пирамиды -->
+    <url>
+        <loc>https://pyramid-tota.ru/news-pyramid</loc>
+        <lastmod>2026-04-19</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <!-- Новости -->
+    <url>
+        <loc>https://pyramid-tota.ru/news</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.6</priority>
     </url>
 
     <!-- Форум -->
     <url>
-        <loc>https://pyramid-tota.ru/pages/forum.html</loc>
-        <lastmod>2025-10-01</lastmod>
+        <loc>https://pyramid-tota.ru/forum</loc>
+        <lastmod>2026-04-19</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.7</priority>
     </url>

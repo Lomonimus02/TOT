@@ -9,8 +9,13 @@ Disallow: /node_modules/
 Disallow: /server/
 Disallow: /scripts/
 Disallow: /.git/
-Disallow: /css/
-Disallow: /js/
+Disallow: /admin-login
+Disallow: /admin.html
+Disallow: /api/
+
+# Разрешаем CSS и JS для корректного рендеринга страниц поисковиками
+Allow: /css/
+Allow: /js/
 
 # Разрешаем индексацию страниц
 Allow: /index.html
@@ -28,6 +33,12 @@ Allow: /
 Disallow: /node_modules/
 Disallow: /server/
 Disallow: /scripts/
+Disallow: /admin-login
+Disallow: /admin.html
+Disallow: /api/
+Allow: /css/
+Allow: /js/
+Host: pyramid-tota.ru
 Clean-param: utm_source&utm_medium&utm_campaign
 
 # Специальные правила для Google

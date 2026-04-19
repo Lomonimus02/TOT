@@ -1470,6 +1470,191 @@ async function applyChangesToHTML(htmlContent, pageId) {
     }
 }
 
+// Функция для серверной инъекции rich-text контента из page_content для SEO
+async function injectRichTextContent(htmlContent, pageId) {
+    try {
+        // Получаем rich-text контент из таблицы page_content
+        const richTextRows = await dbAll(
+            'SELECT content FROM page_content WHERE page_id = ? AND element_id = ?',
+            [pageId, 'rich-text-content']
+        );
+
+        if (richTextRows.length === 0 || !richTextRows[0].content) {
+            return htmlContent;
+        }
+
+        const $ = cheerio.load(htmlContent, { decodeEntities: false });
+        const pageContent = $('.page-content');
+
+        if (pageContent.length > 0) {
+            // Инъектируем контент из БД в .page-content для индексации поисковиками
+            // Класс ssr-content позволяет JS-редактору понять, что контент уже загружен с сервера
+            pageContent.html(`<div class="ssr-content">${richTextRows[0].content}</div>`);
+            console.log(`🔍 SEO: Инъектирован rich-text контент для страницы "${pageId}" (${richTextRows[0].content.length} символов)`);
+        }
+
+        return $.html();
+    } catch (error) {
+        console.error(`❌ Ошибка инъекции rich-text контента для ${pageId}:`, error.message);
+        return htmlContent;
+    }
+}
+
+// Функция для серверной инъекции блоков из new-blocks-system для SEO
+async function injectBlocksContent(htmlContent, pageId) {
+    try {
+        // Получаем все блоки для этой страницы
+        const blockRows = await dbAll(
+            'SELECT content, element_type, block_metadata FROM page_content WHERE page_id = ? AND element_id != ? ORDER BY rowid',
+            [pageId, 'rich-text-content']
+        );
+
+        if (blockRows.length === 0) {
+            return htmlContent;
+        }
+
+        const $ = cheerio.load(htmlContent, { decodeEntities: false });
+        const pageContent = $('.page-content');
+
+        if (pageContent.length > 0 && pageContent.find('.ssr-content').length === 0) {
+            // Если rich-text не был инъектирован, собираем контент из блоков
+            let blocksHtml = '';
+            for (const block of blockRows) {
+                if (block.content) {
+                    blocksHtml += block.content;
+                }
+            }
+            if (blocksHtml) {
+                pageContent.html(`<div class="ssr-content">${blocksHtml}</div>`);
+                console.log(`🔍 SEO: Инъектированы блоки для страницы "${pageId}" (${blockRows.length} блоков)`);
+            }
+        }
+
+        return $.html();
+    } catch (error) {
+        console.error(`❌ Ошибка инъекции блоков для ${pageId}:`, error.message);
+        return htmlContent;
+    }
+}
+
+// Функция для серверной корректировки SEO-тегов (canonical, og:url, twitter cards, structured data)
+function fixSEOUrls(htmlContent, pageId) {
+    const $ = cheerio.load(htmlContent, { decodeEntities: false });
+    const baseUrl = 'https://pyramid-tota.ru';
+    const cleanUrl = `${baseUrl}/${pageId}`;
+
+    // Исправляем canonical URL
+    const canonical = $('link[rel="canonical"]');
+    if (canonical.length > 0) {
+        const currentCanonical = canonical.attr('href');
+        if (currentCanonical && currentCanonical.includes('/pages/')) {
+            canonical.attr('href', cleanUrl);
+        }
+    }
+
+    // Исправляем og:url
+    const ogUrl = $('meta[property="og:url"]');
+    if (ogUrl.length > 0) {
+        const currentOgUrl = ogUrl.attr('content');
+        if (currentOgUrl && currentOgUrl.includes('/pages/')) {
+            ogUrl.attr('content', cleanUrl);
+        }
+    }
+
+    // Добавляем Twitter Card если отсутствует
+    if ($('meta[property="twitter:card"]').length === 0 && $('meta[name="twitter:card"]').length === 0) {
+        const ogTitle = $('meta[property="og:title"]').attr('content') || $('title').text();
+        const ogDesc = $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || '';
+        const ogImage = $('meta[property="og:image"]').attr('content') || `${baseUrl}/images/uploads/logo.png`;
+
+        $('head').append(`\n    <!-- Twitter Card (автогенерация) -->`);
+        $('head').append(`\n    <meta name="twitter:card" content="summary_large_image">`);
+        $('head').append(`\n    <meta name="twitter:url" content="${cleanUrl}">`);
+        $('head').append(`\n    <meta name="twitter:title" content="${ogTitle}">`);
+        $('head').append(`\n    <meta name="twitter:description" content="${ogDesc}">`);
+        $('head').append(`\n    <meta name="twitter:image" content="${ogImage}">`);
+    }
+
+    // Добавляем расширенные мета-теги robots если упрощенные
+    const robotsMeta = $('meta[name="robots"]');
+    if (robotsMeta.length > 0) {
+        const currentRobots = robotsMeta.attr('content');
+        if (currentRobots === 'index, follow') {
+            robotsMeta.attr('content', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+        }
+    }
+
+    // Добавляем Schema.org structured data если отсутствует
+    const existingLD = $('script[type="application/ld+json"]');
+    if (existingLD.length === 0) {
+        const title = $('title').text() || '';
+        const description = $('meta[name="description"]').attr('content') || '';
+        const ogImage = $('meta[property="og:image"]').attr('content') || `${baseUrl}/images/uploads/logo.png`;
+
+        const schemaData = {
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": title,
+            "description": description,
+            "url": cleanUrl,
+            "image": ogImage,
+            "isPartOf": {
+                "@type": "WebSite",
+                "name": "Пирамида ТОТА",
+                "url": baseUrl
+            },
+            "publisher": {
+                "@type": "Organization",
+                "name": "Пирамида ТОТА",
+                "logo": {
+                    "@type": "ImageObject",
+                    "url": `${baseUrl}/images/uploads/logo.png`
+                }
+            }
+        };
+
+        $('head').append(`\n    <script type="application/ld+json">${JSON.stringify(schemaData)}</script>`);
+    }
+
+    // Добавляем og:locale если отсутствует
+    if ($('meta[property="og:locale"]').length === 0) {
+        $('meta[property="og:image"]').after('\n    <meta property="og:locale" content="ru_RU">');
+    }
+
+    // Добавляем og:site_name если отсутствует
+    if ($('meta[property="og:site_name"]').length === 0) {
+        $('meta[property="og:image"]').after('\n    <meta property="og:site_name" content="Пирамида ТОТА">');
+    }
+
+    return $.html();
+}
+
+// Универсальная функция для отдачи страниц с SSR-контентом (SEO-оптимизация)
+async function servePageWithSSR(pageName, req, res) {
+    try {
+        let htmlContent = await fs.readFile(path.join(__dirname, 'pages', `${pageName}.html`), 'utf8');
+
+        // 1. Применяем content_changes (inline editor) через Cheerio
+        htmlContent = await applyChangesToHTML(htmlContent, pageName);
+
+        // 2. Инъектируем rich-text контент из page_content для SEO
+        htmlContent = await injectRichTextContent(htmlContent, pageName);
+
+        // 3. Инъектируем блоки если rich-text не найден
+        htmlContent = await injectBlocksContent(htmlContent, pageName);
+
+        // 4. Исправляем SEO-теги (canonical, og:url, twitter cards)
+        htmlContent = fixSEOUrls(htmlContent, pageName);
+
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(htmlContent);
+    } catch (error) {
+        console.error(`❌ Ошибка отдачи страницы ${pageName}:`, error);
+        res.status(500).send('Ошибка: ' + error.message);
+    }
+}
+
 // Функция для очистки inline стилей из контента
 function cleanInlineStyles(content) {
     // Удаляем все inline стили из HTML контента
@@ -1526,22 +1711,29 @@ async function htmlMiddleware(req, res, next) {
             // Читаем оригинальный HTML файл
             const htmlContent = await fs.readFile(htmlFilePath, 'utf8');
 
-            // ВРЕМЕННО: для news и forum страниц возвращаем файлы как есть, без изменений из БД
+            // ВРЕМЕННО: для news и forum страниц — минимальная обработка с SSR для SEO
             if (pageId === 'news' || pageId === 'forum') {
-                console.log(`🔧 ВРЕМЕННО: Возвращаем ${pageId}.html без изменений из БД`);
-                console.log(`📁 Путь к файлу: ${htmlFilePath}`);
-                console.log(`📄 Размер файла: ${htmlContent.length} символов`);
-                console.log(`🔍 Содержит "ПАПИРУС БЛОКОВ": ${htmlContent.includes('ПАПИРУС БЛОКОВ')}`);
-                console.log(`🔍 Содержит "{{PREV_TITLE}}": ${htmlContent.includes('{{PREV_TITLE}}')}`);
-                console.log(`🔍 Навигация preview: ${htmlContent.match(/<nav class="page-navigation">[\s\S]*?<\/nav>/)?.[0]?.substring(0, 200) || 'НЕ НАЙДЕНО'}`);
-
+                console.log(`🔧 Обработка ${pageId}.html с SSR для SEO`);
+                let modifiedHTML = htmlContent;
+                modifiedHTML = await injectRichTextContent(modifiedHTML, pageId);
+                modifiedHTML = await injectBlocksContent(modifiedHTML, pageId);
+                modifiedHTML = fixSEOUrls(modifiedHTML, pageId);
                 res.setHeader('Content-Type', 'text/html; charset=utf-8');
-                res.send(htmlContent);
+                res.send(modifiedHTML);
                 return;
             }
 
             // Применяем изменения из БД для остальных страниц
-            const modifiedHTML = await applyChangesToHTML(htmlContent, pageId);
+            let modifiedHTML = await applyChangesToHTML(htmlContent, pageId);
+
+            // Инъектируем rich-text контент для SEO
+            modifiedHTML = await injectRichTextContent(modifiedHTML, pageId);
+            modifiedHTML = await injectBlocksContent(modifiedHTML, pageId);
+
+            // Исправляем SEO-теги
+            if (pageId !== 'home') {
+                modifiedHTML = fixSEOUrls(modifiedHTML, pageId);
+            }
 
             // Отправляем модифицированный HTML
             res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -1556,32 +1748,9 @@ async function htmlMiddleware(req, res, next) {
     next();
 }
 
-// РАБОЧИЕ МАРШРУТЫ для news и forum (обходят БД)
-app.get('/news', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'news.html'), 'utf8');
-        console.log('📰 Возвращаем news.html (рабочая версия)');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/forum', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'forum.html'), 'utf8');
-        console.log('💬 Возвращаем forum.html (рабочая версия)');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
+// МАРШРУТЫ для news и forum (теперь с SSR для SEO)
+app.get('/news', async (req, res) => servePageWithSSR('news', req, res));
+app.get('/forum', async (req, res) => servePageWithSSR('forum', req, res));
 
 // РЕДИРЕКТЫ с длинных URL на короткие
 app.get('/pages/complex.html', (req, res) => res.redirect(301, '/complex'));
@@ -1599,187 +1768,19 @@ app.get('/pages/artifacts.html', (req, res) => res.redirect(301, '/artifacts'));
 app.get('/pages/projects.html', (req, res) => res.redirect(301, '/projects'));
 app.get('/pages/seminars.html', (req, res) => res.redirect(301, '/seminars'));
 app.get('/pages/about-isais.html', (req, res) => res.redirect(301, '/about-isais'));
+app.get('/pages/recordings.html', (req, res) => res.redirect(301, '/recordings'));
+app.get('/pages/rods.html', (req, res) => res.redirect(301, '/rods'));
 
-// МАРШРУТЫ для всех страниц (короткие URL)
-app.get('/complex', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'complex.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/pyramid', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'pyramid.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/temple', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'temple.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/court', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'court.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/visit', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'visit.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/programs', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'programs.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/media', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'media.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/news-pyramid', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'news-pyramid.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/school-tota', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'school-tota.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/school-isais', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'school-isais.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/consultations', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'consultations.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/artifacts', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'artifacts.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/projects', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'projects.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/seminars', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'seminars.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/about-isais', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'about-isais.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
+// МАРШРУТЫ для всех страниц (короткие URL) — с SSR для SEO индексации
+const seoPages = [
+    'complex', 'pyramid', 'temple', 'court', 'visit', 'programs',
+    'media', 'news-pyramid', 'school-tota', 'school-isais',
+    'consultations', 'artifacts', 'projects', 'seminars', 'about-isais',
+    'recordings', 'rods'
+];
+for (const pageName of seoPages) {
+    app.get(`/${pageName}`, async (req, res) => servePageWithSSR(pageName, req, res));
+}
 
 // ТЕСТОВЫЕ МАРШРУТЫ для отладки (оставляем для совместимости)
 app.get('/test/news', async (req, res) => {
