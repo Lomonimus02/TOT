@@ -73,3 +73,6 @@ tasks.json
 server/content.db
 server/content.db-shm
 server/content.db-wal
+server/database.db
+server/database.db-shm
+server/database.db-wal
