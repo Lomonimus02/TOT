@@ -10,8 +10,17 @@ Disallow: /server/
 Disallow: /scripts/
 Disallow: /.git/
 Disallow: /admin-login
+Disallow: /admin-login.html
 Disallow: /admin.html
+Disallow: /admin
 Disallow: /api/
+Disallow: /demo.html
+Disallow: /api-status.html
+Disallow: /pages/template.html
+Disallow: /debug
+Disallow: /raw-news
+Disallow: /raw-forum
+Disallow: /test/
 
 # Разрешаем CSS и JS для корректного рендеринга страниц поисковиками
 Allow: /css/
@@ -24,6 +33,9 @@ Allow: /pages/
 # Разрешаем индексацию изображений
 Allow: /images/
 
+# Время задержки между запросами (в секундах)
+Crawl-delay: 1
+
 # Указываем путь к карте сайта
 Sitemap: https://pyramid-tota.ru/sitemap.xml
 
@@ -34,8 +46,17 @@ Disallow: /node_modules/
 Disallow: /server/
 Disallow: /scripts/
 Disallow: /admin-login
+Disallow: /admin-login.html
 Disallow: /admin.html
+Disallow: /admin
 Disallow: /api/
+Disallow: /demo.html
+Disallow: /api-status.html
+Disallow: /pages/template.html
+Disallow: /debug
+Disallow: /raw-news
+Disallow: /raw-forum
+Disallow: /test/
 Allow: /css/
 Allow: /js/
 Host: pyramid-tota.ru
@@ -47,11 +68,20 @@ Allow: /
 Disallow: /node_modules/
 Disallow: /server/
 Disallow: /scripts/
+Disallow: /admin-login
+Disallow: /admin-login.html
+Disallow: /admin.html
+Disallow: /admin
+Disallow: /api/
+Disallow: /demo.html
+Disallow: /api-status.html
+Disallow: /pages/template.html
+Disallow: /debug
+Disallow: /raw-news
+Disallow: /raw-forum
+Disallow: /test/
 
 # Разрешаем индексацию изображений для Google Images
 User-agent: Googlebot-Image
 Allow: /images/
-
-# Время задержки между запросами (в секундах)
-Crawl-delay: 1
 

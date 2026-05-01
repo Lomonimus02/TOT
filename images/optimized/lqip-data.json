@@ -123,5 +123,63 @@
     "lqip": "data:image/webp;base64,UklGRlwAAABXRUJQVlA4WAoAAAAQAAAAEwAACQAAQUxQSAoAAAABB1D/iAhERP8DVlA4ICwAAADwAgCdASoUAAoAPzmGuVOvKSWisAgB4CcJZQC06C0kAAD+7hSao28CL2OAAA==",
     "webp": "images/optimized/backgrounds/cosmic-bg.webp",
     "srcset": "images/optimized/backgrounds/cosmic-bg-400w.webp 400w, images/optimized/backgrounds/cosmic-bg-800w.webp 800w, images/optimized/backgrounds/cosmic-bg-1200w.webp 1200w"
+  },
+  "images/uploads/image-1777645868513-8878127.png": {
+    "lqip": "data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACwAgCdASoUAA8APzmGuVOvKSWisAgB4CcJaQAAeyAA/u3OBUytaHAA",
+    "webp": {
+      "full": {
+        "path": "images/optimized/uploads/image-1777645868513-8878127.webp"
+      },
+      "400w": {
+        "path": "images/optimized/uploads/image-1777645868513-8878127-400w.webp"
+      }
+    }
+  },
+  "images/uploads/image-1777645868482-354547622.png": {
+    "lqip": "data:image/webp;base64,UklGRkIAAABXRUJQVlA4IDYAAADwAgCdASoUABsAPzmSwVm+qacvqAgD0CcJZwAAP/VjgAD+uOtgxpMKszTcxmt3pR4WTJeAAAA=",
+    "webp": {
+      "full": {
+        "path": "images/optimized/uploads/image-1777645868482-354547622.webp"
+      },
+      "400w": {
+        "path": "images/optimized/uploads/image-1777645868482-354547622-400w.webp"
+      }
+    }
+  },
+  "images/uploads/image-1777645868455-338455594.png": {
+    "lqip": "data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAADwAgCdASoUAAsAPzmGuVO0qSWisAgCkCcJZwDE2DLxQAD+0mR1Jo0o8zc5h8AA",
+    "webp": {
+      "full": {
+        "path": "images/optimized/uploads/image-1777645868455-338455594.webp"
+      },
+      "400w": {
+        "path": "images/optimized/uploads/image-1777645868455-338455594-400w.webp"
+      },
+      "800w": {
+        "path": "images/optimized/uploads/image-1777645868455-338455594-800w.webp"
+      }
+    }
+  },
+  "images/uploads/image-1777645868502-471610720.png": {
+    "lqip": "data:image/webp;base64,UklGRkYAAABXRUJQVlA4IDoAAAAQAwCdASoUABQAPy2Es1O/qSSit/VYA/AliWkAAEGpk3AA/pFf4maefB+UEN2iu4e64ug3gGkcBAAA",
+    "webp": {
+      "full": {
+        "path": "images/optimized/uploads/image-1777645868502-471610720.webp"
+      },
+      "400w": {
+        "path": "images/optimized/uploads/image-1777645868502-471610720-400w.webp"
+      },
+      "800w": {
+        "path": "images/optimized/uploads/image-1777645868502-471610720-800w.webp"
+      }
+    }
+  },
+  "images/uploads/image-1777655915725-70945306.png": {
+    "lqip": "data:image/webp;base64,UklGRkIAAABXRUJQVlA4IDYAAAAQAwCdASoUABQAPzmQu1g0qaWjqAqqkCcJZwAAQ0uS0AAA/ujvpzzy7scLtOVKsMM1aCksAAA=",
+    "webp": {
+      "full": {
+        "path": "images/optimized/uploads/image-1777655915725-70945306.webp"
+      }
+    }
   }
 }

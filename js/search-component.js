@@ -7,6 +7,11 @@ class SearchComponent {
         this.debounceTimer = null;
         this.debounceDelay = 300;
         this.minChars = 2;
+        this.activeSearchHighlight = null;
+        this.highlightCleanupTimer = null;
+        this.highlightName = 'search-highlight-inline';
+        this.activeSearchController = null;
+        this.searchRequestId = 0;
         this.init();
     }
 
@@ -142,10 +147,29 @@ class SearchComponent {
     }
 
     async performSearch(query) {
+        const normalizedQuery = query.trim();
+        const requestId = ++this.searchRequestId;
+
+        if (this.activeSearchController) {
+            this.activeSearchController.abort();
+        }
+
+        this.activeSearchController = new AbortController();
+
         try {
-            const response = await fetch(`/api/search?query=${encodeURIComponent(query)}&limit=15`);
+            const response = await fetch(`/api/search?query=${encodeURIComponent(normalizedQuery)}&limit=15`, {
+                signal: this.activeSearchController.signal
+            });
             
             const data = await response.json();
+
+            if (requestId !== this.searchRequestId) {
+                return;
+            }
+
+            if (!this.searchInput || this.searchInput.value.trim() !== normalizedQuery) {
+                return;
+            }
             
             // Проверяем наличие ошибки в ответе
             if (data.error) {
@@ -159,19 +183,28 @@ class SearchComponent {
             }
 
             if (data.success && data.data && data.data.length > 0) {
-                this.displayResults(data.data, query);
+                this.displayResults(data.data, normalizedQuery);
             } else {
                 this.showNoResults();
             }
         } catch (error) {
+            if (error.name === 'AbortError') {
+                return;
+            }
+
             console.error('Ошибка выполнения поиска:', error);
             this.showNoResults();
+        } finally {
+            if (requestId === this.searchRequestId) {
+                this.activeSearchController = null;
+            }
         }
     }
 
     displayResults(results, query) {
         // Группируем результаты по страницам
         const groupedByPage = {};
+        const renderedItems = [];
         
         results.forEach(result => {
             if (!groupedByPage[result.page_id]) {
@@ -191,7 +224,14 @@ class SearchComponent {
             html += `<div class="search-result-page-name">${pageName}</div>`;
             
             items.forEach(item => {
-                const highlighted = this.highlightQuery(item.context, query);
+                const highlighted = this.highlightQuery(item.context, query, item.match_start, item.match_length);
+                renderedItems.push({
+                    pageId,
+                    elementId: item.element_id,
+                    context: item.context,
+                    matchStart: item.match_start,
+                    matchLength: item.match_length
+                });
                 html += `
                     <div class="search-result-item" data-page-id="${pageId}" data-element-id="${item.element_id}">
                         <div class="search-result-context">${highlighted}</div>
@@ -209,15 +249,16 @@ class SearchComponent {
 
         // Добавляем обработчики кликов на результаты
         const items = this.resultsDropdown.querySelectorAll('.search-result-item');
-        items.forEach(item => {
-            item.addEventListener('click', (e) => {
-                const pageId = item.getAttribute('data-page-id');
-                const elementId = item.getAttribute('data-element-id');
+        items.forEach((item, index) => {
+            item.addEventListener('click', () => {
+                const renderedItem = renderedItems[index];
+                if (!renderedItem) return;
+
                 this.closeResults();
                 this.searchInput.value = '';
                 const clearBtn = this.searchBox.querySelector('.search-clear-btn');
                 if (clearBtn) clearBtn.style.display = 'none';
-                this.navigateToPage(pageId, elementId);
+                this.navigateToPage(renderedItem.pageId, renderedItem.elementId, query, renderedItem.context);
             });
         });
     }
@@ -240,39 +281,78 @@ class SearchComponent {
         this.resultsDropdown.style.display = 'block';
     }
 
-    highlightQuery(text, query) {
-        // Экранируем специальные символы в регулярном выражении
-        const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
-        return text.replace(regex, '<mark>$1</mark>').substring(0, 150);
+    highlightQuery(text, query, matchStart = -1, matchLength = 0) {
+        return this._highlightSnippet(text, query, matchStart, matchLength);
+    }
+
+    _highlightSnippet(text, query, matchStart = -1, matchLength = 0) {
+        const truncated = text.length > 200 ? text.substring(0, 200) : text;
+        const safeMatchLength = matchLength || query.length;
+
+        if (
+            Number.isInteger(matchStart) &&
+            matchStart >= 0 &&
+            safeMatchLength > 0 &&
+            matchStart + safeMatchLength <= truncated.length
+        ) {
+            const before = truncated.slice(0, matchStart);
+            const matched = truncated.slice(matchStart, matchStart + safeMatchLength);
+            const after = truncated.slice(matchStart + safeMatchLength);
+
+            return `${this._escapeHtml(before)}<mark>${this._escapeHtml(matched)}</mark>${this._escapeHtml(after)}`;
+        }
+
+        const escapedText = this._escapeHtml(truncated);
+        const escapedQuery = this._escapeRegex(this._escapeHtml(query));
+        const regex = new RegExp(`(${escapedQuery})`, 'gi');
+        return escapedText.replace(regex, '<mark>$1</mark>');
+    }
+
+    _escapeHtml(text) {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    _escapeRegex(text) {
+        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     getPageName(pageId) {
         // Преобразуем ID страницы в читаемое название
         const pageNames = {
             'index': 'Главная страница',
+            'home': 'Главная страница',
             'pyramid': 'Пирамида ТОТА',
             'temple': 'Храм Исиды',
             'complex': 'Комплекс ТОТА',
-            'court': 'Суд фараона',
+            'court': 'Храмовый мистериальный двор',
             'forum': 'Форум',
             'news': 'Новости',
-            'programs': 'Программы',
-            'seminars': 'Семинары',
-            'school-tota': 'Школа ТОТА',
-            'school-isais': 'Школа Исаис',
-            'rods': 'Жезлы',
-            'visit': 'Посещение',
-            'recordings': 'Записи',
-            'consultations': 'Консультации'
+            'news-pyramid': 'Новости Пирамиды',
+            'programs': 'Программы обучения',
+            'seminars': 'Въездные семинары',
+            'school-tota': 'Школа Пирамиды ТОТА',
+            'school-isais': 'Женская Школа Isais',
+            'about-isais': 'Об Исаис',
+            'rods': 'Жезлы Фараонов',
+            'visit': 'Посетить пирамиду',
+            'recordings': 'Записи лекций',
+            'consultations': 'Личные приёмы',
+            'media': 'СМИ о Пирамиде',
+            'artifacts': 'Артефакты',
+            'projects': 'Проекты'
         };
 
         // Получаем базовое имя (без расширения)
         const baseName = pageId.replace(/\.html$/, '').split('/').pop();
-        return pageNames[baseName] || baseName.toUpperCase();
+        return pageNames[baseName] || baseName;
     }
 
-    navigateToPage(pageId, elementId) {
+    navigateToPage(pageId, elementId, query = '', context = '') {
         // Определяем, находимся ли уже на целевой странице
         const currentPath = window.location.pathname;
         // Нормализуем: убираем /pages/, .html, ведущий /, хвостовой /
@@ -292,7 +372,7 @@ class SearchComponent {
 
         if (currentPageId === targetPageId) {
             // Уже на нужной странице — плавно промотаем к элементу
-            this._scrollToElement(elementId);
+            this._scrollToElement(elementId, query, context);
             return;
         }
 
@@ -301,52 +381,280 @@ class SearchComponent {
             const onNavigate = () => {
                 document.removeEventListener('spa:navigate', onNavigate);
                 // Даём время на загрузку контента из БД (RTE initialize)
-                setTimeout(() => this._scrollToElement(elementId), 600);
+                setTimeout(() => this._scrollToElement(elementId, query, context), 600);
             };
             document.addEventListener('spa:navigate', onNavigate);
         }
 
-        let url = targetPageId;
-        if (!url.endsWith('.html')) url += '.html';
-        if (url !== 'index.html') url = 'pages/' + url;
+        // Используем чистые URL (совпадающие с маршрутами сервера)
+        const cleanPath = (targetPageId === 'index' || targetPageId === 'home')
+            ? '/'
+            : `/${targetPageId}`;
 
         if (window.SPARouter) {
-            const fullUrl = new URL(url, location.origin + '/').href;
+            const fullUrl = new URL(cleanPath, location.origin).href;
             if (window.SPARouter.isInternalPage(fullUrl)) {
-                const cleanUrl = window.SPARouter.normalizePageUrl(fullUrl);
-                window.SPARouter.navigate(cleanUrl);
+                window.SPARouter.navigate(fullUrl);
                 return;
             }
         }
-        window.location.href = url;
+        window.location.href = cleanPath;
     }
 
-    _scrollToElement(elementId) {
+    _scrollToElement(elementId, query = '', context = '') {
         if (!elementId) return;
 
-        // Для rich-text-content — скроллим к .page-content (.ql-editor)
-        let el = null;
-        if (elementId === 'rich-text-content') {
-            el = document.querySelector('.ql-editor') ||
-                 document.querySelector('.rich-text-editor-container') ||
-                 document.querySelector('.page-content');
-        } else {
-            // Блоки системы: [data-block-id="..."] или #id
-            el = document.querySelector(`[data-block-id="${elementId}"]`) ||
-                 document.getElementById(elementId);
-        }
+        const el = this._resolveTargetElement(elementId) || this._resolveTargetElement('rich-text-content');
 
         if (!el) return;
 
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const matchTarget = query ? this._highlightTextMatch(el, query, context) : null;
+        const scrollTarget = matchTarget || el;
 
-        // Лёгкая подсветка элемента
-        el.style.transition = 'box-shadow 0.4s';
-        el.style.boxShadow = '0 0 0 3px rgba(218,165,32,0.6)';
-        setTimeout(() => { el.style.boxShadow = ''; }, 1800);
+        this._scrollNodeToViewportCenter(scrollTarget);
+
+        if (!matchTarget) {
+            this._pulseElement(el);
+        }
+    }
+
+    _resolveTargetElement(elementId) {
+        if (elementId === 'rich-text-content') {
+            return document.querySelector('.ql-editor') ||
+                   document.querySelector('.rich-text-editor-container') ||
+                   document.querySelector('.page-content');
+        }
+
+        return document.querySelector(`[data-block-id="${elementId}"]`) ||
+               document.getElementById(elementId);
+    }
+
+    _highlightTextMatch(container, query, context = '') {
+        this._clearActiveHighlight();
+
+        const match = this._findBestTextMatch(container, query, context);
+        if (!match) return null;
+
+        const highlightTarget = this._createMatchHighlight(match.node, match.index, match.length);
+        if (!highlightTarget) return null;
+
+        clearTimeout(this.highlightCleanupTimer);
+        this.highlightCleanupTimer = setTimeout(() => this._clearActiveHighlight(), 2200);
+
+        return highlightTarget;
+    }
+
+    _findBestTextMatch(container, query, context = '') {
+        const trimmedQuery = query.trim();
+        if (!trimmedQuery) return null;
+
+        const normalizedQuery = trimmedQuery.toLowerCase();
+        const normalizedContext = this._normalizeSearchText(context);
+        const candidates = [];
+        const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+            acceptNode: (node) => {
+                if (!node.nodeValue || !node.nodeValue.trim()) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+
+                const parent = node.parentElement;
+                if (!parent) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+
+                if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(parent.tagName)) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        });
+
+        let node = walker.nextNode();
+        let order = 0;
+
+        while (node) {
+            const nodeText = node.nodeValue;
+            const lowerText = nodeText.toLowerCase();
+            let fromIndex = 0;
+
+            while (fromIndex < lowerText.length) {
+                const index = lowerText.indexOf(normalizedQuery, fromIndex);
+                if (index === -1) break;
+
+                const preview = nodeText.substring(
+                    Math.max(0, index - 40),
+                    Math.min(nodeText.length, index + trimmedQuery.length + 80)
+                );
+
+                candidates.push({
+                    node,
+                    index,
+                    length: trimmedQuery.length,
+                    score: this._scoreTextCandidate(preview, normalizedContext, order)
+                });
+
+                fromIndex = index + trimmedQuery.length;
+            }
+
+            order += 1;
+            node = walker.nextNode();
+        }
+
+        if (candidates.length === 0) {
+            return null;
+        }
+
+        candidates.sort((left, right) => right.score - left.score);
+        return candidates[0];
+    }
+
+    _scoreTextCandidate(preview, normalizedContext, order) {
+        if (!normalizedContext) {
+            return -order;
+        }
+
+        const normalizedPreview = this._normalizeSearchText(preview);
+        const contextWords = normalizedContext.split(' ').filter(word => word.length > 2);
+        let score = 0;
+
+        if (normalizedPreview && (normalizedPreview.includes(normalizedContext) || normalizedContext.includes(normalizedPreview))) {
+            score += 100;
+        }
+
+        contextWords.forEach(word => {
+            if (normalizedPreview.includes(word)) {
+                score += 5;
+            }
+        });
+
+        return score - order;
+    }
+
+    _normalizeSearchText(text = '') {
+        return text
+            .replace(/\.\.\./g, ' ')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+    }
+
+    _createMatchHighlight(node, index, length) {
+        const text = node.nodeValue || '';
+        const matched = text.slice(index, index + length);
+        if (!matched) return null;
+
+        const range = document.createRange();
+        range.setStart(node, index);
+        range.setEnd(node, index + length);
+
+        if (window.Highlight && window.CSS && CSS.highlights) {
+            const highlight = new Highlight(range);
+            CSS.highlights.set(this.highlightName, highlight);
+            this.activeSearchHighlight = {
+                type: 'css-highlight',
+                range
+            };
+            return range;
+        }
+
+        const sourceElement = node.parentElement;
+        if (!sourceElement) {
+            range.detach?.();
+            return null;
+        }
+
+        const rects = Array.from(range.getClientRects()).filter(rect => rect.width > 0 && rect.height > 0);
+        const sourceRects = rects.length > 0
+            ? rects
+            : [range.getBoundingClientRect()].filter(rect => rect.width > 0 && rect.height > 0);
+
+        if (sourceRects.length === 0) {
+            range.detach?.();
+            return null;
+        }
+
+        const computed = window.getComputedStyle(sourceElement);
+        const overlays = sourceRects.map((rect) => {
+            const overlay = document.createElement('span');
+            overlay.className = 'search-highlight-inline';
+            overlay.setAttribute('aria-hidden', 'true');
+            overlay.style.left = `${window.scrollX + rect.left - 4}px`;
+            overlay.style.top = `${window.scrollY + rect.top - 2}px`;
+            overlay.style.minWidth = `${Math.max(rect.width + 8, 14)}px`;
+            overlay.style.height = `${rect.height + 4}px`;
+            overlay.style.font = computed.font;
+            overlay.style.letterSpacing = computed.letterSpacing;
+            overlay.style.textTransform = computed.textTransform;
+            overlay.style.textDecoration = 'none';
+            overlay.style.textAlign = 'left';
+            overlay.style.lineHeight = `${rect.height}px`;
+            document.body.appendChild(overlay);
+            return overlay;
+        });
+
+        range.detach?.();
+        this.activeSearchHighlight = {
+            type: 'overlay',
+            overlays
+        };
+
+        return overlays[0] || null;
+    }
+
+    _clearActiveHighlight() {
+        clearTimeout(this.highlightCleanupTimer);
+        this.highlightCleanupTimer = null;
+
+        if (!this.activeSearchHighlight) {
+            return;
+        }
+
+        if (this.activeSearchHighlight.type === 'css-highlight') {
+            CSS.highlights.delete(this.highlightName);
+            this.activeSearchHighlight.range?.detach?.();
+        } else if (this.activeSearchHighlight.type === 'overlay') {
+            this.activeSearchHighlight.overlays.forEach(marker => marker.remove());
+        }
+
+        this.activeSearchHighlight = null;
+    }
+
+    _scrollNodeToViewportCenter(node) {
+        const headerOffset = this._getHeaderOffset();
+        const nodeRect = node.getBoundingClientRect();
+        const nodeCenterY = nodeRect.top + nodeRect.height / 2;
+        const viewportH = window.innerHeight;
+        const availableH = viewportH - headerOffset;
+        const targetCenterY = headerOffset + availableH / 2;
+        const scrollDelta = nodeCenterY - targetCenterY;
+
+        window.scrollBy({ top: scrollDelta, behavior: 'smooth' });
+    }
+
+    _getHeaderOffset() {
+        let maxBottom = 0;
+
+        document.querySelectorAll('.search-login-wrapper, .site-logo').forEach(fixed => {
+            const rect = fixed.getBoundingClientRect();
+            if (rect.bottom > maxBottom) maxBottom = rect.bottom;
+        });
+
+        return maxBottom > 0 ? maxBottom + 16 : 140;
+    }
+
+    _pulseElement(el) {
+        el.classList.add('search-highlight');
+        setTimeout(() => el.classList.remove('search-highlight'), 2000);
     }
 
     clearSearch() {
+        if (this.activeSearchController) {
+            this.activeSearchController.abort();
+            this.activeSearchController = null;
+        }
+
         this.searchInput.value = '';
         this.closeResults();
         

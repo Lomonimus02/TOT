@@ -187,6 +187,61 @@
     color: rgba(255, 100, 100, 0.8);
 }
 
+/* Подсветка найденного элемента при переходе из поиска */
+@keyframes search-highlight-pulse {
+    0%   { box-shadow: 0 0 0 0px rgba(218, 165, 32, 0); }
+    15%  { box-shadow: 0 0 0 6px rgba(218, 165, 32, 0.7); }
+    50%  { box-shadow: 0 0 0 8px rgba(218, 165, 32, 0.4); }
+    100% { box-shadow: 0 0 0 4px rgba(218, 165, 32, 0); }
+}
+
+.search-highlight {
+    animation: search-highlight-pulse 2s ease-out forwards;
+    border-radius: 4px;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes search-highlight-inline-pulse {
+    0% {
+        opacity: 0.35;
+        background-color: rgba(255, 215, 0, 0.24);
+        box-shadow: 0 0 0 rgba(218, 165, 32, 0);
+    }
+    18% {
+        opacity: 1;
+        background-color: rgba(255, 215, 0, 0.75);
+        box-shadow: 0 0 18px rgba(218, 165, 32, 0.45);
+    }
+    70% {
+        opacity: 1;
+        background-color: rgba(255, 215, 0, 0.62);
+        box-shadow: 0 0 14px rgba(218, 165, 32, 0.35);
+    }
+    100% {
+        opacity: 0;
+        background-color: rgba(255, 215, 0, 0);
+        box-shadow: 0 0 0 rgba(218, 165, 32, 0);
+    }
+}
+
+.search-highlight-inline {
+    animation: search-highlight-inline-pulse 2.2s ease-out forwards;
+    position: absolute;
+    pointer-events: none;
+    border-radius: 0.35em;
+    background: rgba(255, 215, 0, 0.38);
+    z-index: 2000;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+}
+
+::highlight(search-highlight-inline) {
+    background: rgba(255, 215, 0, 0.68);
+    color: #1a1a2e;
+    text-shadow: none;
+}
+
 /* ========================================
    АДАПТИВНОСТЬ ПОИСКА
    ======================================== */

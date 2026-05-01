@@ -60,42 +60,6 @@ function dbRun(sql, params = []) {
     });
 }
 
-// ОТЛАДКА: Простейший тест
-app.get('/debug', (req, res) => {
-    res.send(`
-        <h1>ОТЛАДКА</h1>
-        <p>Время: ${new Date()}</p>
-        <p><a href="/raw-news">Показать RAW news.html</a></p>
-        <p><a href="/raw-forum">Показать RAW forum.html</a></p>
-        <p><a href="/pages/news.html">Обычный news.html</a></p>
-        <p><a href="/pages/forum.html">Обычный forum.html</a></p>
-    `);
-});
-
-app.get('/raw-news', async (req, res) => {
-    try {
-        const fs = require('fs').promises;
-        const path = require('path');
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'news.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.send('СОДЕРЖИМОЕ news.html:\n\n' + htmlContent);
-    } catch (error) {
-        res.send('ОШИБКА: ' + error.message);
-    }
-});
-
-app.get('/raw-forum', async (req, res) => {
-    try {
-        const fs = require('fs').promises;
-        const path = require('path');
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'forum.html'), 'utf8');
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.send('СОДЕРЖИМОЕ forum.html:\n\n' + htmlContent);
-    } catch (error) {
-        res.send('ОШИБКА: ' + error.message);
-    }
-});
-
 // ПРИОРИТЕТНЫЕ РЕДИРЕКТЫ (должны быть ПЕРВЫМИ)
 app.get('/pages/news.html', (req, res) => res.redirect(301, '/news'));
 app.get('/pages/forum.html', (req, res) => res.redirect(301, '/forum'));
@@ -855,103 +819,6 @@ async function sendToTelegram(type, data) {
     }
 }
 
-// Отладочный endpoint для проверки пользователей
-app.get('/api/debug/users', async (req, res) => {
-    try {
-        const rows = await dbAll('SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC');
-        res.json(rows);
-    } catch (error) {
-        console.error('Ошибка получения пользователей:', error);
-        res.status(500).json({ error: 'Ошибка базы данных' });
-    }
-});
-
-// Функция поиска в HTML файлах
-async function searchInHtmlFiles(query, limit = 20) {
-    const results = [];
-    const searchTerm = query.toLowerCase();
-    
-    try {
-        // Получаем список всех HTML файлов в папке pages
-        const pagesDir = path.join(__dirname, 'pages');
-        const files = await fs.readdir(pagesDir);
-        const htmlFiles = files.filter(f => f.endsWith('.html'));
-        
-        // Добавляем index.html из корня
-        htmlFiles.push('../index.html');
-        
-        for (const file of htmlFiles) {
-            try {
-                const filePath = path.join(pagesDir, file);
-                const htmlContent = await fs.readFile(filePath, 'utf8');
-                const $ = cheerio.load(htmlContent);
-                
-                // Удаляем скрипты и стили из поиска
-                $('script, style').remove();
-                
-                // Получаем заголовок страницы
-                const pageTitle = $('title').text() || $('h1').first().text() || file.replace('.html', '');
-                
-                // Определяем pageId
-                let pageId = file.replace('.html', '');
-                if (file === '../index.html') {
-                    pageId = 'index';
-                }
-                
-                // Ищем в различных элементах с приоритетами
-                const searchElements = [
-                    { selector: 'title', weight: 10 },
-                    { selector: 'h1', weight: 8 },
-                    { selector: 'h2', weight: 6 },
-                    { selector: 'h3', weight: 4 },
-                    { selector: 'meta[name="description"]', attr: 'content', weight: 7 },
-                    { selector: 'p', weight: 2 },
-                    { selector: 'li', weight: 2 },
-                    { selector: 'div', weight: 1 }
-                ];
-                
-                for (const { selector, attr, weight } of searchElements) {
-                    $(selector).each((i, elem) => {
-                        const text = attr ? $(elem).attr(attr) : $(elem).text();
-                        if (text && text.toLowerCase().includes(searchTerm)) {
-                            // Извлекаем контекст вокруг найденного текста
-                            const lowerText = text.toLowerCase();
-                            const index = lowerText.indexOf(searchTerm);
-                            const start = Math.max(0, index - 50);
-                            const end = Math.min(text.length, index + searchTerm.length + 50);
-                            let snippet = text.substring(start, end).trim();
-                            
-                            if (start > 0) snippet = '...' + snippet;
-                            if (end < text.length) snippet = snippet + '...';
-                            
-                            results.push({
-                                page_id: pageId,
-                                page_name: pageTitle,
-                                element_type: selector,
-                                content: text.substring(0, 200),
-                                context: snippet,
-                                snippet: snippet,
-                                weight: weight,
-                                source: 'html'
-                            });
-                        }
-                    });
-                }
-            } catch (fileError) {
-                console.error(`Ошибка чтения файла ${file}:`, fileError.message);
-            }
-        }
-        
-        // Сортируем по весу и ограничиваем количество результатов
-        results.sort((a, b) => b.weight - a.weight);
-        return results.slice(0, limit);
-        
-    } catch (error) {
-        console.error('Ошибка поиска в HTML файлах:', error);
-        return [];
-    }
-}
-
 // Функция поиска в базе данных
 async function searchInDatabase(query, limit = 20) {
     try {
@@ -983,25 +850,8 @@ async function searchInDatabase(query, limit = 20) {
         const searchPattern = `%${query}%`;
         const placeholders = allowedPages.map(() => '?').join(',');
 
-        // Поиск в content_changes (только в доступных страницах)
-        const result1 = await dbAll(
-            `SELECT
-                page_id,
-                element_id,
-                element_type,
-                content,
-                selector,
-                updated_at
-            FROM content_changes
-            WHERE content LIKE ? COLLATE NOCASE AND page_id IN (${placeholders})
-            AND TRIM(REPLACE(content, ' ', '')) != '' AND LENGTH(content) > 10
-            ORDER BY updated_at DESC
-            LIMIT ?`,
-            [searchPattern, ...allowedPages, limit]
-        );
-
-        // Поиск в page_content (новая таблица для блоков, только в доступных страницах)
-        const result2 = await dbAll(
+        // Ищем только в Quill rich-text контенте, сохраненном в page_content
+        const richTextResults = await dbAll(
             `SELECT
                 page_id,
                 element_id,
@@ -1011,17 +861,43 @@ async function searchInDatabase(query, limit = 20) {
                 updated_at
             FROM page_content
             WHERE content LIKE ? COLLATE NOCASE AND page_id IN (${placeholders})
+            AND element_id = ?
             AND TRIM(REPLACE(content, ' ', '')) != '' AND LENGTH(content) > 10
             ORDER BY updated_at DESC
             LIMIT ?`,
-            [searchPattern, ...allowedPages, limit]
+            [searchPattern, ...allowedPages, 'rich-text-content', limit]
         );
         
-        // Объединяем результаты из обеих таблиц, убираем дубли (одна страница - одна запись rich-text)
-        const allRows = [...result1, ...result2];
+        const normalizeSearchSnippet = (text) => text
+            .replace(/\.\.\./g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+
+        const deduplicateResults = (items) => {
+            const uniqueResults = new Map();
+
+            items.forEach(item => {
+                const normalizedSnippet = normalizeSearchSnippet(item.snippet || item.context || '');
+                const dedupeKey = `${item.page_id}::${normalizedSnippet}`;
+                const existing = uniqueResults.get(dedupeKey);
+
+                if (!existing) {
+                    uniqueResults.set(dedupeKey, item);
+                }
+            });
+
+            return Array.from(uniqueResults.values())
+                .sort((left, right) => String(right.updated_at || '').localeCompare(String(left.updated_at || '')))
+                .slice(0, limit)
+                .map((item) => item);
+        };
+
+        // Убираем дубли по странице и сниппету внутри Quill rich-text выдачи
+        const allRows = richTextResults;
         const searchTermLower = query.toLowerCase();
 
-        return allRows
+        const mappedResults = allRows
             .map(row => {
                 // Удаляем HTML теги и лишние пробелы для поиска и snippet
                 const textContent = row.content
@@ -1035,13 +911,29 @@ async function searchInDatabase(query, limit = 20) {
                 // (например запрос "img" матчил <img> тег, но в тексте слова нет)
                 if (!textContent.toLowerCase().includes(searchTermLower)) return null;
 
-                // Находим центр совпадения для лучшего сниппета
+                // Делаем сниппет так, чтобы совпадение оставалось видимым даже в узком dropdown
                 const idx = textContent.toLowerCase().indexOf(searchTermLower);
-                const start = Math.max(0, idx - 60);
-                const end = Math.min(textContent.length, idx + searchTermLower.length + 90);
-                const snippet = (start > 0 ? '...' : '') +
-                    textContent.substring(start, end) +
-                    (end < textContent.length ? '...' : '');
+                const preferredStart = Math.max(0, idx - 18);
+                let start = preferredStart;
+                if (start > 0) {
+                    const nextWordBoundary = textContent.indexOf(' ', start);
+                    if (nextWordBoundary !== -1 && nextWordBoundary < idx) {
+                        start = nextWordBoundary + 1;
+                    }
+                }
+
+                let end = Math.min(textContent.length, idx + searchTermLower.length + 100);
+                if (end < textContent.length) {
+                    const lastWordBoundary = textContent.lastIndexOf(' ', end);
+                    if (lastWordBoundary > idx + searchTermLower.length) {
+                        end = lastWordBoundary;
+                    }
+                }
+
+                const prefix = start > 0 ? '...' : '';
+                const suffix = end < textContent.length ? '...' : '';
+                const snippet = prefix + textContent.substring(start, end) + suffix;
+                const matchStart = prefix.length + (idx - start);
 
                 return {
                     page_id: row.page_id,
@@ -1051,11 +943,15 @@ async function searchInDatabase(query, limit = 20) {
                     content: textContent,
                     context: snippet,
                     snippet: snippet,
+                    match_start: matchStart,
+                    match_length: query.length,
                     source: 'database',
                     updated_at: row.updated_at
                 };
             })
             .filter(Boolean);
+
+        return deduplicateResults(mappedResults);
     } catch (error) {
         console.error('Ошибка поиска в базе данных:', error);
         return [];
@@ -1078,8 +974,8 @@ app.get('/api/search', async (req, res) => {
 
         console.log('Поиск:', query);
 
-        // Ищем ТОЛЬКО в базе данных (content_changes и page_content)
-        // Это гарантирует, что ищем только контент, добавленный администратором
+        // Ищем только в Quill rich-text контенте из page_content
+        // Это гарантирует, что поиск не захватывает блоки и inline editor изменения
         const dbResults = await searchInDatabase(query, limit);
 
         // Ограничиваем общее количество результатов
@@ -1561,8 +1457,15 @@ function fixSEOUrls(htmlContent, pageId) {
         }
     }
 
+    // Исправляем Twitter Card: property= → name= (Twitter требует name=, не property=)
+    $('meta[property^="twitter:"]').each((i, el) => {
+        const prop = $(el).attr('property');
+        $(el).removeAttr('property');
+        $(el).attr('name', prop);
+    });
+
     // Добавляем Twitter Card если отсутствует
-    if ($('meta[property="twitter:card"]').length === 0 && $('meta[name="twitter:card"]').length === 0) {
+    if ($('meta[name="twitter:card"]').length === 0) {
         const ogTitle = $('meta[property="og:title"]').attr('content') || $('title').text();
         const ogDesc = $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || '';
         const ogImage = $('meta[property="og:image"]').attr('content') || `${baseUrl}/images/uploads/logo.png`;
@@ -1781,38 +1684,6 @@ const seoPages = [
 for (const pageName of seoPages) {
     app.get(`/${pageName}`, async (req, res) => servePageWithSSR(pageName, req, res));
 }
-
-// ТЕСТОВЫЕ МАРШРУТЫ для отладки (оставляем для совместимости)
-app.get('/test/news', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'news.html'), 'utf8');
-        console.log('🔧 ТЕСТ: Читаем news.html напрямую');
-        console.log(`📄 Размер файла: ${htmlContent.length} символов`);
-        console.log(`🔍 Содержит "ПАПИРУС БЛОКОВ": ${htmlContent.includes('ПАПИРУС БЛОКОВ')}`);
-        console.log(`🔍 Содержит "{{PREV_TITLE}}": ${htmlContent.includes('{{PREV_TITLE}}')}`);
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
-app.get('/test/forum', async (req, res) => {
-    try {
-        const htmlContent = await fs.readFile(path.join(__dirname, 'pages', 'forum.html'), 'utf8');
-        console.log('🔧 ТЕСТ: Читаем forum.html напрямую');
-        console.log(`📄 Размер файла: ${htmlContent.length} символов`);
-        console.log(`🔍 Содержит "ПАПИРУС БЛОКОВ": ${htmlContent.includes('ПАПИРУС БЛОКОВ')}`);
-        console.log(`🔍 Содержит "{{PREV_TITLE}}": ${htmlContent.includes('{{PREV_TITLE}}')}`);
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.send(htmlContent);
-    } catch (error) {
-        console.error('Ошибка чтения файла:', error);
-        res.status(500).send('Ошибка: ' + error.message);
-    }
-});
-
 
 // Применяем middleware для HTML файлов ДО раздачи статических файлов
 app.use(htmlMiddleware);
