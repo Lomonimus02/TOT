@@ -1980,9 +1980,13 @@ html, body {
     display: flex;
 }
 
-/* Двухстрочные кнопки в ссылке занимают больше места */
-.overlay-column .overlay-link:has(.two-line-button) {
-    flex: 1.5 !important;
+/* Двухстрочные кнопки в ссылке занимают больше места, при этом верхняя чуть меньше, нижняя чуть больше */
+.overlay-column .overlay-link:nth-child(1):has(.two-line-button) {
+    flex: 1.35 !important; /* Верхняя двухстрочная - чуть меньше */
+}
+
+.overlay-column .overlay-link:nth-child(4):has(.two-line-button) {
+    flex: 1.65 !important; /* Нижняя двухстрочная - чуть больше для выравнивания шрифта */
 }
 
 /* Задержка анимации для каждой кнопки-ссылки */
