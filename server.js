@@ -1775,16 +1775,33 @@ app.get('/admin-login', async (req, res) => {
     }
 });
 
+let startServerPromise = null;
+
 // Запуск сервера
 async function startServer() {
-    await initDatabase();
+    if (startServerPromise) {
+        return startServerPromise;
+    }
 
-    app.listen(PORT, () => {
-        console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
-        console.log(`📊 Локальная SQLite база данных подключена`);
-        console.log(`🌟 Сайт "Пирамида ТОТА" готов к работе!`);
-        console.log(`🔐 Страница входа администратора: http://localhost:${PORT}/admin-login`);
-    });
+    startServerPromise = initDatabase()
+        .then(() => new Promise((resolve, reject) => {
+            const server = app.listen(PORT);
+
+            server.once('error', reject);
+            server.once('listening', () => {
+                console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
+                console.log(`📊 Локальная SQLite база данных подключена`);
+                console.log(`🌟 Сайт "Пирамида ТОТА" готов к работе!`);
+                console.log(`🔐 Страница входа администратора: http://localhost:${PORT}/admin-login`);
+                resolve(server);
+            });
+        }))
+        .catch((error) => {
+            startServerPromise = null;
+            throw error;
+        });
+
+    return startServerPromise;
 }
 
 // ===== НОВЫЕ API ДЛЯ ФОРМАТИРОВАНИЯ (FUTURE-PROOF) =====
@@ -2359,4 +2376,14 @@ app.delete('/api/blocks/delete', async (req, res) => {
     }
 });
 
-startServer().catch(console.error);
+if (require.main === module) {
+    startServer().catch((error) => {
+        console.error(error);
+        process.exit(1);
+    });
+}
+
+module.exports = {
+    app,
+    startServer
+};
